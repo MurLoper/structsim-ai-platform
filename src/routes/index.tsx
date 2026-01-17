@@ -13,10 +13,12 @@ const Configuration = React.lazy(() => import('@/pages/configuration/Configurati
 const NoPermission = React.lazy(() => import('@/pages/auth/NoPermission'));
 
 // Protected route wrapper
-const ProtectedRoute: React.FC<{
+interface ProtectedRouteProps {
   children: React.ReactNode;
   perm?: Permission;
-}> = ({ children, perm }) => {
+}
+
+function ProtectedRoute({ children, perm }: ProtectedRouteProps) {
   const { user, hasPermission } = useAuthStore();
 
   if (!user) {
@@ -28,20 +30,26 @@ const ProtectedRoute: React.FC<{
   }
 
   return <>{children}</>;
-};
+}
 
 // Suspense wrapper for lazy loaded components
-const SuspenseWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <React.Suspense
-    fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="spinner w-8 h-8" />
-      </div>
-    }
-  >
-    {children}
-  </React.Suspense>
-);
+interface SuspenseWrapperProps {
+  children: React.ReactNode;
+}
+
+function SuspenseWrapper({ children }: SuspenseWrapperProps) {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="spinner w-8 h-8" />
+        </div>
+      }
+    >
+      {children}
+    </React.Suspense>
+  );
+}
 
 export const routes: RouteObject[] = [
   {

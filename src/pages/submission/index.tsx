@@ -15,7 +15,6 @@ import { useSubmissionState, useCanvasInteraction } from './hooks';
 import {
   CanvasNode,
   ConnectionLine,
-  CANVAS_CONSTANTS,
   ConfigDrawer,
   ProjectDrawerContent,
   ParamsDrawerContent,
@@ -23,6 +22,7 @@ import {
   SolverDrawerContent,
   SimTypeConfigBox,
 } from './components';
+import { CANVAS_CONSTANTS } from './constants';
 
 const Submission: React.FC = () => {
   const navigate = useNavigate();
