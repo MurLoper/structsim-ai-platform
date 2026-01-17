@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useConfigStore } from '@/stores';
 import type {
   SimTypeConfig,
@@ -49,15 +49,15 @@ export const useSubmissionState = () => {
   const [drawerMode, setDrawerMode] = useState<DrawerMode>('project');
   const [activeSimTypeId, setActiveSimTypeId] = useState<number | null>(null);
 
-  // 安全数据
-  const safeSimTypes = simTypes || [];
-  const safeFoldTypes = foldTypes || [];
-  const safeSolvers = solvers || [];
-  const safeParamDefs = paramDefs || [];
-  const safeOutputDefs = outputDefs || [];
-  const safeConditionDefs = conditionDefs || [];
-  const safeParamTplSets = paramTplSets || [];
-  const safeCondOutSets = condOutSets || [];
+  // 安全数据 - 使用 useMemo 优化性能
+  const safeSimTypes = useMemo(() => simTypes || [], [simTypes]);
+  const safeFoldTypes = useMemo(() => foldTypes || [], [foldTypes]);
+  const safeSolvers = useMemo(() => solvers || [], [solvers]);
+  const safeParamDefs = useMemo(() => paramDefs || [], [paramDefs]);
+  const safeOutputDefs = useMemo(() => outputDefs || [], [outputDefs]);
+  const safeConditionDefs = useMemo(() => conditionDefs || [], [conditionDefs]);
+  const safeParamTplSets = useMemo(() => paramTplSets || [], [paramTplSets]);
+  const safeCondOutSets = useMemo(() => condOutSets || [], [condOutSets]);
   const selectedProject = (projects || []).find(p => p.id === selectedProjectId);
 
   // 初始化仿真类型配置

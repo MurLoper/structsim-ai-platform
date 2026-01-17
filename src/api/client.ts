@@ -4,7 +4,7 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // 统一响应结构
-interface ApiResponse<T = any> {
+interface ApiResponse<T = unknown> {
   code: number;
   msg: string;
   data: T;

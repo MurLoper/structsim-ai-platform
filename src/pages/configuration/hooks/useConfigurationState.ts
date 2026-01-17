@@ -47,12 +47,12 @@ export const useConfigurationState = () => {
   const [activeTab, setActiveTab] = useState('simTypes');
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<ModalType>('simType');
-  const [editingItem, setEditingItem] = useState<any>(null);
-  const [formData, setFormData] = useState<any>({});
+  const [editingItem, setEditingItem] = useState<Record<string, unknown> | null>(null);
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [loading, setLoading] = useState(false);
 
   // 打开新建/编辑弹窗
-  const openModal = useCallback((type: ModalType, item?: any) => {
+  const openModal = useCallback((type: ModalType, item?: Record<string, unknown>) => {
     setModalType(type);
     setEditingItem(item || null);
     setFormData(item ? { ...item } : getDefaultFormData(type));
@@ -136,8 +136,8 @@ export const useConfigurationState = () => {
     [fetchAllConfig]
   );
 
-  const updateFormData = useCallback((key: string, value: any) => {
-    setFormData((prev: any) => ({ ...prev, [key]: value }));
+  const updateFormData = useCallback((key: string, value: unknown) => {
+    setFormData((prev: Record<string, unknown>) => ({ ...prev, [key]: value }));
   }, []);
 
   return {

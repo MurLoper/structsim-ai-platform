@@ -22,7 +22,7 @@ export interface CondOutConfig {
   mode: 'template' | 'custom'; // 模板应用 or 自定义
   condOutSetId: number | null; // 工况输出集ID
   selectedConditionIds: number[]; // 自定义选择的工况
-  conditionValues: Record<number, Record<string, any>>; // 工况参数值
+  conditionValues: Record<number, Record<string, number | string>>; // 工况参数值
   selectedOutputIds: number[]; // 自定义选择的输出
 }
 
