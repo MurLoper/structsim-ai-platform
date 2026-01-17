@@ -89,6 +89,8 @@ const Submission: React.FC = () => {
       simTypeConfigs: state.selectedSimTypeIds.map(id => state.simTypeConfigs[id]),
     };
 
+    // TODO: 调用 API 提交订单
+    // eslint-disable-next-line no-console
     console.log('提交订单:', orderData);
     alert('提交成功！（演示）');
     navigate('/orders');
@@ -112,7 +114,6 @@ const Submission: React.FC = () => {
 
   const {
     PROJECT_NODE_X,
-    PROJECT_NODE_Y,
     PROJECT_NODE_WIDTH,
     SIM_TYPE_NODE_X,
     SIM_TYPE_NODE_WIDTH,

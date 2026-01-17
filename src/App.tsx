@@ -23,7 +23,7 @@ const AppRoutes: React.FC = () => {
 // Main App component
 const App: React.FC = () => {
   const { theme } = useUIStore();
-  const { fetchUsers, user } = useAuthStore();
+  const { fetchUsers } = useAuthStore();
   const { fetchAllConfig, isLoading } = useConfigStore();
 
   // Initialize app data

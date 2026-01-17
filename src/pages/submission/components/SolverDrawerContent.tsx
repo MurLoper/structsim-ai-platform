@@ -6,7 +6,6 @@ interface SolverDrawerContentProps {
   config: SimTypeConfig;
   solvers: Solver[];
   globalSolver: GlobalSolverConfig;
-  selectedSimTypeIds: number[];
   onUpdate: (updates: Partial<SolverConfig>) => void;
   onGlobalSolverChange: (config: GlobalSolverConfig) => void;
   onApplyToAll: (updates: Partial<SolverConfig>) => void;
@@ -16,7 +15,6 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
   config,
   solvers,
   globalSolver,
-  selectedSimTypeIds,
   onUpdate,
   onGlobalSolverChange,
   onApplyToAll,

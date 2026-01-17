@@ -13,7 +13,6 @@ import type {
   Workflow,
   ParamTplSet,
   CondOutSet,
-  BaseDataResponse,
 } from '@/api/config';
 
 interface ConfigState {
@@ -61,11 +60,8 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   fetchAllConfig: async () => {
     set({ isLoading: true, error: null });
     try {
-      console.log('Fetching config data...');
-
       // 先获取基础数据
       const baseData = await configApi.getBaseData();
-      console.log('Base data loaded:', baseData);
 
       // 并行获取其他数据
       const [projects, workflows, paramTplSets, condOutSets] = await Promise.all([
@@ -74,12 +70,6 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         configApi.getParamTplSets().catch(() => []),
         configApi.getCondOutSets().catch(() => []),
       ]);
-
-      console.log('All config loaded:', {
-        projects: projects?.length,
-        simTypes: baseData?.simTypes?.length,
-        workflows: workflows?.length,
-      });
 
       set({
         projects: projects || [],

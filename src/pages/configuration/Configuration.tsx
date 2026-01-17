@@ -1,7 +1,7 @@
 import React from 'react';
 import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
-import { Card, CardHeader, Tabs } from '@/components/ui';
+import { Card, CardHeader } from '@/components/ui';
 import {
   FolderIcon,
   AdjustmentsHorizontalIcon,
@@ -66,11 +66,6 @@ const Configuration: React.FC = () => {
       ],
     },
   ];
-
-  // 扁平化的tabs用于Tabs组件
-  const tabs = configCategories.flatMap(cat =>
-    cat.items.map(item => ({ key: item.key, label: item.label }))
-  );
 
   return (
     <div className="space-y-6 animate-fade-in">

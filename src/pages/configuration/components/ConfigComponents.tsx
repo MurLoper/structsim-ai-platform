@@ -1,6 +1,6 @@
 import React from 'react';
 import { PencilIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
-import { Card, CardHeader, Button } from '@/components/ui';
+import { CardHeader, Button } from '@/components/ui';
 
 // 操作按钮组件
 interface ActionButtonsProps {

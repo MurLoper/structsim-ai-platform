@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores';
-import { Button } from '@/components/ui';
 
 const Login: React.FC = () => {
   const { users, login } = useAuthStore();
