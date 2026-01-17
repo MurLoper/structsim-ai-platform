@@ -9,6 +9,7 @@ import {
   BeakerIcon,
   ChartBarIcon,
   CubeIcon,
+  LinkIcon,
 } from '@heroicons/react/24/outline';
 
 import { useConfigurationState } from './hooks';
@@ -20,6 +21,9 @@ import {
   ListItem,
   ActionButtons,
 } from './components';
+import { ParamGroupsManagement } from './components/ParamGroupsManagement';
+import { CondOutGroupsManagement } from './components/CondOutGroupsManagement';
+import { ConfigRelationsManagement } from './components/ConfigRelationsManagement';
 
 const CATEGORY_OPTIONS = [
   { value: 'STRUCTURE', label: '结构' },
@@ -54,6 +58,27 @@ const Configuration: React.FC = () => {
         { key: 'conditions', label: '工况定义', icon: <BeakerIcon className="w-5 h-5" /> },
         { key: 'outputs', label: '输出定义', icon: <ChartBarIcon className="w-5 h-5" /> },
         { key: 'foldTypes', label: '姿态类型', icon: <CubeIcon className="w-5 h-5" /> },
+      ],
+    },
+    {
+      key: 'groups',
+      label: '组合配置',
+      icon: <FolderIcon className="w-4 h-4" />,
+      items: [
+        {
+          key: 'paramGroups',
+          label: '参数组合',
+          icon: <AdjustmentsHorizontalIcon className="w-5 h-5" />,
+        },
+        { key: 'condOutGroups', label: '工况输出组合', icon: <BeakerIcon className="w-5 h-5" /> },
+      ],
+    },
+    {
+      key: 'relations',
+      label: '关联配置',
+      icon: <LinkIcon className="w-4 h-4" />,
+      items: [
+        { key: 'configRelations', label: '配置关联管理', icon: <LinkIcon className="w-5 h-5" /> },
       ],
     },
     {
@@ -281,25 +306,44 @@ const Configuration: React.FC = () => {
             </Card>
           )}
 
-          {/* 项目（只读） */}
+          {/* 参数组合管理 */}
+          {state.activeTab === 'paramGroups' && <ParamGroupsManagement />}
+
+          {/* 工况输出组合管理 */}
+          {state.activeTab === 'condOutGroups' && <CondOutGroupsManagement />}
+
+          {/* 配置关联管理 */}
+          {state.activeTab === 'configRelations' && <ConfigRelationsManagement />}
+
+          {/* 项目管理 */}
           {state.activeTab === 'projects' && (
             <Card>
-              <CardHeader title="项目列表" icon={<FolderIcon className="w-5 h-5" />} />
-              <div className="space-y-2">
-                {state.projects.map(p => (
-                  <div
-                    key={p.id}
-                    className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg flex justify-between"
-                  >
-                    <div>
-                      <div className="font-medium">{p.name}</div>
-                      <div className="text-xs text-slate-500 font-mono">{p.code}</div>
-                    </div>
-                    <span className="text-xs bg-slate-200 dark:bg-slate-600 px-2 py-1 rounded h-fit">
-                      {p.id}
-                    </span>
-                  </div>
-                ))}
+              <ConfigCardHeader
+                title="项目管理"
+                icon={<FolderIcon className="w-5 h-5" />}
+                onAdd={() => state.openModal('project')}
+                onRefresh={state.refreshData}
+              />
+              <div className="p-6">
+                <div className="space-y-2">
+                  {state.projects.map(project => (
+                    <ListItem
+                      key={project.id}
+                      title={project.name}
+                      subtitle={project.code || '无编码'}
+                      badge={project.valid ? '启用' : '禁用'}
+                      badgeColor={project.valid ? 'green' : 'gray'}
+                      onEdit={() => state.openModal('project', project)}
+                      onDelete={() => state.handleDelete('project', project.id, project.name)}
+                    >
+                      {project.remark && (
+                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                          {project.remark}
+                        </p>
+                      )}
+                    </ListItem>
+                  ))}
+                </div>
               </div>
             </Card>
           )}

@@ -2,10 +2,19 @@ import { useState, useCallback } from 'react';
 import { useConfigStore } from '@/stores';
 import { configApi } from '@/api';
 
-type ModalType = 'simType' | 'paramDef' | 'solver' | 'conditionDef' | 'outputDef' | 'foldType';
+type ModalType =
+  | 'project'
+  | 'simType'
+  | 'paramDef'
+  | 'solver'
+  | 'conditionDef'
+  | 'outputDef'
+  | 'foldType';
 
 const getDefaultFormData = (type: ModalType) => {
   switch (type) {
+    case 'project':
+      return { name: '', code: '', sort: 100, remark: '' };
     case 'simType':
       return { name: '', code: '', category: 'STRUCTURE', colorTag: 'blue', sort: 100 };
     case 'paramDef':
@@ -69,7 +78,13 @@ export const useConfigurationState = () => {
   const handleSave = useCallback(async () => {
     setLoading(true);
     try {
-      if (modalType === 'simType') {
+      if (modalType === 'project') {
+        if (editingItem) {
+          await configApi.updateProject(editingItem.id as number, formData);
+        } else {
+          await configApi.createProject(formData);
+        }
+      } else if (modalType === 'simType') {
         if (editingItem) {
           await configApi.updateSimType(editingItem.id, formData);
         } else {

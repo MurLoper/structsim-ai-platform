@@ -3,12 +3,12 @@
 export interface Project {
   id: number;
   name: string;
-  code: string;
-  defaultSimTypeId: number;
-  defaultSolverId: number;
+  code?: string;
+  defaultSimTypeId?: number;
+  defaultSolverId?: number;
   valid: number;
   sort: number;
-  remark: string;
+  remark?: string;
   createdAt: number;
   updatedAt: number;
 }

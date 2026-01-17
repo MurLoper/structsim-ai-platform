@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { Project } from '@/types';
-import { configApi, projectApi } from '@/api';
+import { configApi } from '@/api';
 import type {
   SimType,
   ParamDef,
@@ -13,7 +13,7 @@ import type {
   Workflow,
   ParamTplSet,
   CondOutSet,
-} from '@/api/config';
+} from '@/api';
 
 interface ConfigState {
   // Data
@@ -65,7 +65,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 
       // 并行获取其他数据
       const [projects, workflows, paramTplSets, condOutSets] = await Promise.all([
-        projectApi.getAll().catch(() => []),
+        configApi.getProjects().catch(() => []),
         configApi.getWorkflows().catch(() => []),
         configApi.getParamTplSets().catch(() => []),
         configApi.getCondOutSets().catch(() => []),

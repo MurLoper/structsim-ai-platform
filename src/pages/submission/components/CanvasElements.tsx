@@ -99,3 +99,11 @@ export const ConnectionLine: React.FC<ConnectionLineProps> = ({ x1, y1, x2, y2, 
     </svg>
   );
 };
+
+// ============ 画布常量 ============
+export const CANVAS_CONSTANTS = {
+  NODE_WIDTH: 280,
+  NODE_HEIGHT: 120,
+  SPACING_X: 400,
+  SPACING_Y: 200,
+};
