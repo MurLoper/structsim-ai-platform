@@ -336,7 +336,6 @@ const Submission: React.FC = () => {
             config={state.simTypeConfigs[state.activeSimTypeId]}
             solvers={state.safeSolvers}
             globalSolver={state.globalSolver}
-            selectedSimTypeIds={state.selectedSimTypeIds}
             onUpdate={updates => state.updateSolverConfig(state.activeSimTypeId!, updates)}
             onGlobalSolverChange={state.setGlobalSolver}
             onApplyToAll={state.applySolverToAll}
