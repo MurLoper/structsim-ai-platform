@@ -1,0 +1,5 @@
+{
+  "name": "StructSim AI Platform",
+  "description": "An intelligent structural simulation web platform featuring tree-based workflow configuration, automated DOE/Bayesian optimization parameter management, and advanced result data analysis.",
+  "requestFramePermissions": []
+}
