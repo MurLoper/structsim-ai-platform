@@ -22,7 +22,7 @@ import {
   SolverDrawerContent,
   SimTypeConfigBox,
 } from './components';
-import { CANVAS_CONSTANTS } from './constants';
+import { CANVAS_LAYOUT } from '@/constants/submission';
 
 const Submission: React.FC = () => {
   const navigate = useNavigate();
@@ -121,7 +121,7 @@ const Submission: React.FC = () => {
     CONFIG_BOX_WIDTH,
     CONFIG_BOX_HEIGHT,
     LINE_OFFSET_Y,
-  } = CANVAS_CONSTANTS;
+  } = CANVAS_LAYOUT;
 
   return (
     <div className="h-full flex flex-col bg-slate-100 dark:bg-slate-900">
