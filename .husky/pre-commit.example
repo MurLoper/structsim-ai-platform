@@ -1,0 +1,24 @@
+#!/bin/sh
+# Pre-commit hook for frontend project
+# This script runs before each commit to ensure code quality
+
+echo "🔍 Running pre-commit checks..."
+
+# Run ESLint with auto-fix
+echo "📝 Running ESLint..."
+npm run lint:fix
+if [ $? -ne 0 ]; then
+  echo "❌ ESLint check failed. Please fix the errors before committing."
+  exit 1
+fi
+
+# Run Prettier
+echo "🎨 Running Prettier..."
+npm run format
+
+# Add formatted files
+git add .
+
+echo "✅ Pre-commit checks passed!"
+exit 0
+
