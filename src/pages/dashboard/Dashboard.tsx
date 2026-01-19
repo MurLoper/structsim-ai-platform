@@ -64,7 +64,7 @@ const Dashboard: React.FC = () => {
   const t = (key: string) => RESOURCES[language][key] || key;
 
   const getStatusBadge = (statusId: string) => {
-    const config = getStatus(statusId);
+    const config = getStatus(Number(statusId));
     if (!config) return <Badge>Unknown</Badge>;
 
     const variant = statusId.includes('success')

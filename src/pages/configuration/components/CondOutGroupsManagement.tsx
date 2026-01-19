@@ -23,9 +23,11 @@ export const CondOutGroupsManagement: React.FC = () => {
     try {
       setLoading(true);
       const response = await configApi.getCondOutGroups();
-      setGroups(response.data || []);
+      const groupsData = Array.isArray(response?.data) ? response.data : [];
+      setGroups(groupsData);
     } catch (error) {
       console.error('加载工况输出组合失败:', error);
+      setGroups([]);
     } finally {
       setLoading(false);
     }
@@ -38,10 +40,14 @@ export const CondOutGroupsManagement: React.FC = () => {
         configApi.getConditionDefs(),
         configApi.getOutputDefs(),
       ]);
-      setAllConditionDefs(condRes.data || []);
-      setAllOutputDefs(outRes.data || []);
+      const condDefsData = Array.isArray(condRes?.data) ? condRes.data : [];
+      const outDefsData = Array.isArray(outRes?.data) ? outRes.data : [];
+      setAllConditionDefs(condDefsData);
+      setAllOutputDefs(outDefsData);
     } catch (error) {
       console.error('加载定义失败:', error);
+      setAllConditionDefs([]);
+      setAllOutputDefs([]);
     }
   };
 
@@ -52,10 +58,14 @@ export const CondOutGroupsManagement: React.FC = () => {
         configApi.getCondOutGroupConditions(groupId),
         configApi.getCondOutGroupOutputs(groupId),
       ]);
-      setGroupConditions(condRes.data || []);
-      setGroupOutputs(outRes.data || []);
+      const conditionsData = Array.isArray(condRes?.data) ? condRes.data : [];
+      const outputsData = Array.isArray(outRes?.data) ? outRes.data : [];
+      setGroupConditions(conditionsData);
+      setGroupOutputs(outputsData);
     } catch (error) {
       console.error('加载组合详情失败:', error);
+      setGroupConditions([]);
+      setGroupOutputs([]);
     }
   };
 
@@ -76,7 +86,9 @@ export const CondOutGroupsManagement: React.FC = () => {
       if (editingGroup?.id) {
         await configApi.updateCondOutGroup(editingGroup.id, data);
       } else {
-        await configApi.createCondOutGroup(data);
+        await configApi.createCondOutGroup(
+          data as { name: string; description?: string; sort?: number }
+        );
       }
       setShowGroupModal(false);
       setEditingGroup(null);

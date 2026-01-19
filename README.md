@@ -2,13 +2,14 @@
 
 基于 React + TypeScript + Tailwind CSS 的现代化前端应用。
 
-## 📚 文档
+## 文档
 
 详细文档请查看 [docs/](./docs/) 目录：
 
-- **开发规范（必读）**: [CODE_STANDARDS.md](./docs/development/CODE_STANDARDS.md)
-- 架构设计文档（待添加）
-- 组件文档（待添加）
+- **开发规范 (必读)**: [CODE_STANDARDS.md](./docs/development/CODE_STANDARDS.md)
+- **架构设计**: [ARCHITECTURE.md](./docs/architecture/ARCHITECTURE.md)
+- **技术路线图**: [TECH_ROADMAP.md](./docs/architecture/TECH_ROADMAP.md)
+- **最佳实践**: [best-practices/](./docs/best-practices/)
 
 ## 🚀 快速开始
 

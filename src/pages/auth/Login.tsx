@@ -40,7 +40,7 @@ const Login: React.FC = () => {
                 </div>
                 <div className="text-xs text-slate-500">{u.email}</div>
                 <div className="text-xs text-slate-400 mt-1">
-                  {u.permissions.length} permissions
+                  {u.permissions?.length ?? 0} permissions
                 </div>
               </div>
             </button>

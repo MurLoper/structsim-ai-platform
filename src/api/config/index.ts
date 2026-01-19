@@ -1,5 +1,6 @@
-// 导出所有类型（从 src/types 统一导出）
+// 导出所有类型（从 @/types 统一导出）
 export * from '@/types/config';
+export * from '@/types/configGroups';
 
 // 导入各个子模块
 import { baseConfigApi } from './base';

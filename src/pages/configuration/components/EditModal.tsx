@@ -50,7 +50,7 @@ export const EditModal: React.FC<EditModalProps> = ({
 // 表单输入组件
 interface FormInputProps {
   label: string;
-  value: string | number;
+  value: string | number | undefined;
   onChange: (v: string) => void;
   type?: string;
   placeholder?: string;
@@ -69,7 +69,7 @@ export const FormInput: React.FC<FormInputProps> = ({
     </label>
     <input
       type={type}
-      value={value}
+      value={value ?? ''}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"

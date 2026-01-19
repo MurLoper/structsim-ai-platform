@@ -50,8 +50,8 @@ apiClient.interceptors.response.use(
           trace_id: response.data.trace_id,
         });
       }
-      // 成功时返回data字段
-      return { ...response, data: response.data.data };
+      // 成功时返回整个response.data（包含data字段）
+      return response;
     }
     // 兼容旧版API直接返回数据
     return response;
@@ -69,19 +69,19 @@ apiClient.interceptors.response.use(
 // Generic request methods
 export const api = {
   get: <T>(url: string, config?: AxiosRequestConfig) =>
-    apiClient.get<T>(url, config).then(res => res.data),
+    apiClient.get<ApiResponse<T>>(url, config).then(res => res.data),
 
   post: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
-    apiClient.post<T>(url, data, config).then(res => res.data),
+    apiClient.post<ApiResponse<T>>(url, data, config).then(res => res.data),
 
   put: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
-    apiClient.put<T>(url, data, config).then(res => res.data),
+    apiClient.put<ApiResponse<T>>(url, data, config).then(res => res.data),
 
   delete: <T>(url: string, config?: AxiosRequestConfig) =>
-    apiClient.delete<T>(url, config).then(res => res.data),
+    apiClient.delete<ApiResponse<T>>(url, config).then(res => res.data),
 
   patch: <T>(url: string, data?: unknown, config?: AxiosRequestConfig) =>
-    apiClient.patch<T>(url, data, config).then(res => res.data),
+    apiClient.patch<ApiResponse<T>>(url, data, config).then(res => res.data),
 };
 
 export default apiClient;

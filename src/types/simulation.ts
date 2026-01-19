@@ -9,7 +9,7 @@ export interface OptimizationConfig {
   targetMetric?: string;
 }
 
-export interface SolverConfig {
+export interface SimulationSolverConfig {
   version: string;
   processors: number;
   memory: number;
@@ -28,7 +28,7 @@ export interface SimConfiguration {
   selectedLoadCases: string[];
   optConfig: OptimizationConfig;
   outputMetrics: string[];
-  solverConfig: SolverConfig;
+  solverConfig: SimulationSolverConfig;
 }
 
 export interface SubmissionRequest {

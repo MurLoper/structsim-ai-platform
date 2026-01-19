@@ -2,5 +2,6 @@
 export * from './enums';
 export * from './user';
 export * from './config';
+export * from './configGroups';
 export * from './simulation';
 export * from './process';

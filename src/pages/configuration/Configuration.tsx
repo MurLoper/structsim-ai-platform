@@ -24,6 +24,8 @@ import {
 import { ParamGroupsManagement } from './components/ParamGroupsManagement';
 import { CondOutGroupsManagement } from './components/CondOutGroupsManagement';
 import { ConfigRelationsManagement } from './components/ConfigRelationsManagement';
+import { ProjectSimTypeManagement } from './components/ProjectSimTypeManagement';
+import { SystemConfigManagement } from './components/SystemConfigManagement';
 
 const CATEGORY_OPTIONS = [
   { value: 'STRUCTURE', label: '结构' },
@@ -87,6 +89,12 @@ const Configuration: React.FC = () => {
       icon: <FolderIcon className="w-4 h-4" />,
       items: [
         { key: 'projects', label: '项目管理', icon: <FolderIcon className="w-5 h-5" /> },
+        {
+          key: 'projectSimTypes',
+          label: '项目仿真类型',
+          icon: <LinkIcon className="w-5 h-5" />,
+        },
+        { key: 'systemConfig', label: '系统配置', icon: <CubeIcon className="w-5 h-5" /> },
         { key: 'workflow', label: '工作流', icon: <ArrowPathIcon className="w-5 h-5" /> },
       ],
     },
@@ -322,31 +330,54 @@ const Configuration: React.FC = () => {
                 title="项目管理"
                 icon={<FolderIcon className="w-5 h-5" />}
                 onAdd={() => state.openModal('project')}
-                onRefresh={state.refreshData}
               />
-              <div className="p-6">
+              <div className="p-4">
                 <div className="space-y-2">
                   {state.projects.map(project => (
-                    <ListItem
+                    <div
                       key={project.id}
-                      title={project.name}
-                      subtitle={project.code || '无编码'}
-                      badge={project.valid ? '启用' : '禁用'}
-                      badgeColor={project.valid ? 'green' : 'gray'}
-                      onEdit={() => state.openModal('project', project)}
-                      onDelete={() => state.handleDelete('project', project.id, project.name)}
+                      className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg flex justify-between items-start"
                     >
-                      {project.remark && (
-                        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                          {project.remark}
-                        </p>
-                      )}
-                    </ListItem>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium text-slate-900 dark:text-white">
+                            {project.name}
+                          </h4>
+                          <span
+                            className={`px-2 py-0.5 text-xs rounded-full ${
+                              project.valid
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
+                            }`}
+                          >
+                            {project.valid ? '启用' : '禁用'}
+                          </span>
+                        </div>
+                        <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                          编码: {project.code || '无'} | 排序: {project.sort}
+                        </div>
+                        {project.remark && (
+                          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                            {project.remark}
+                          </p>
+                        )}
+                      </div>
+                      <ActionButtons
+                        onEdit={() => state.openModal('project', project)}
+                        onDelete={() => state.handleDelete('project', project.id, project.name)}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>
             </Card>
           )}
+
+          {/* 项目仿真类型关联 */}
+          {state.activeTab === 'projectSimTypes' && <ProjectSimTypeManagement />}
+
+          {/* 系统配置 */}
+          {state.activeTab === 'systemConfig' && <SystemConfigManagement />}
 
           {/* 工作流（只读） */}
           {state.activeTab === 'workflow' && (
@@ -405,28 +436,77 @@ const Configuration: React.FC = () => {
                   label="名称"
                   value={state.formData.name || ''}
                   onChange={v => state.updateFormData('name', v)}
+                  placeholder="请输入参数名称"
                 />
                 <FormInput
                   label="Key"
                   value={state.formData.key || ''}
                   onChange={v => state.updateFormData('key', v)}
+                  placeholder="请输入参数键名（英文）"
+                />
+                <FormSelect
+                  label="数据类型"
+                  value={String(state.formData.valType || 1)}
+                  onChange={v => state.updateFormData('valType', Number(v))}
+                  options={[
+                    { value: '1', label: '浮点数' },
+                    { value: '2', label: '整数' },
+                    { value: '3', label: '字符串' },
+                    { value: '4', label: '枚举' },
+                    { value: '5', label: '布尔' },
+                  ]}
                 />
                 <FormInput
                   label="单位"
                   value={state.formData.unit || ''}
                   onChange={v => state.updateFormData('unit', v)}
+                  placeholder="如：mm, kg, MPa"
                 />
                 <div className="grid grid-cols-2 gap-4">
                   <FormInput
                     label="最小值"
                     value={state.formData.minVal ?? 0}
-                    onChange={v => state.updateFormData('minVal', Number(v))}
+                    onChange={v => {
+                      console.log('🔵 [最小值] 输入值:', v, '类型:', typeof v);
+                      console.log('🔵 [最小值] 转换后:', Number(v));
+                      console.log('🔵 [最小值] 当前 formData:', state.formData);
+                      state.updateFormData('minVal', Number(v));
+                    }}
                     type="number"
                   />
                   <FormInput
                     label="最大值"
                     value={state.formData.maxVal ?? 100}
-                    onChange={v => state.updateFormData('maxVal', Number(v))}
+                    onChange={v => {
+                      console.log('🟡 [最大值] 输入值:', v, '类型:', typeof v);
+                      console.log('🟡 [最大值] 转换后:', Number(v));
+                      console.log('🟡 [最大值] 当前 formData:', state.formData);
+                      state.updateFormData('maxVal', Number(v));
+                    }}
+                    type="number"
+                  />
+                </div>
+                <FormInput
+                  label="默认值"
+                  value={state.formData.defaultVal || ''}
+                  onChange={v => {
+                    console.log('🟢 [默认值] 输入值:', v, '类型:', typeof v);
+                    console.log('🟢 [默认值] 当前 formData:', state.formData);
+                    state.updateFormData('defaultVal', v);
+                  }}
+                  placeholder="请输入默认值"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormInput
+                    label="精度"
+                    value={state.formData.precision ?? 3}
+                    onChange={v => state.updateFormData('precision', Number(v))}
+                    type="number"
+                  />
+                  <FormInput
+                    label="排序"
+                    value={state.formData.sort ?? 100}
+                    onChange={v => state.updateFormData('sort', Number(v))}
                     type="number"
                   />
                 </div>
@@ -438,61 +518,72 @@ const Configuration: React.FC = () => {
                   label="名称"
                   value={state.formData.name || ''}
                   onChange={v => state.updateFormData('name', v)}
+                  placeholder="请输入求解器名称"
                 />
-                <FormInput
-                  label="编码"
-                  value={state.formData.code || ''}
-                  onChange={v => state.updateFormData('code', v)}
-                />
-                <FormInput
-                  label="版本"
-                  value={state.formData.version || ''}
-                  onChange={v => state.updateFormData('version', v)}
-                />
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <FormInput
-                    label="最小核数"
-                    value={state.formData.cpuCoreMin ?? 1}
-                    onChange={v => state.updateFormData('cpuCoreMin', Number(v))}
-                    type="number"
+                    label="编码"
+                    value={state.formData.code || ''}
+                    onChange={v => state.updateFormData('code', v)}
+                    placeholder="如：NASTRAN"
                   />
                   <FormInput
-                    label="最大核数"
-                    value={state.formData.cpuCoreMax ?? 64}
-                    onChange={v => state.updateFormData('cpuCoreMax', Number(v))}
-                    type="number"
-                  />
-                  <FormInput
-                    label="默认核数"
-                    value={state.formData.cpuCoreDefault ?? 8}
-                    onChange={v => state.updateFormData('cpuCoreDefault', Number(v))}
-                    type="number"
+                    label="版本"
+                    value={state.formData.version || ''}
+                    onChange={v => state.updateFormData('version', v)}
+                    placeholder="如：2024"
                   />
                 </div>
-              </>
-            )}
-            {state.modalType === 'conditionDef' && (
-              <>
-                <FormInput
-                  label="名称"
-                  value={state.formData.name || ''}
-                  onChange={v => state.updateFormData('name', v)}
-                />
-                <FormInput
-                  label="编码"
-                  value={state.formData.code || ''}
-                  onChange={v => state.updateFormData('code', v)}
-                />
-                <FormInput
-                  label="分类"
-                  value={state.formData.category || ''}
-                  onChange={v => state.updateFormData('category', v)}
-                />
-                <FormInput
-                  label="单位"
-                  value={state.formData.unit || ''}
-                  onChange={v => state.updateFormData('unit', v)}
-                />
+                <div className="border-t pt-4 mt-2">
+                  <h4 className="text-sm font-medium mb-3 text-slate-700 dark:text-slate-300">
+                    CPU 核数配置
+                  </h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <FormInput
+                      label="最小核数"
+                      value={state.formData.cpuCoreMin ?? 1}
+                      onChange={v => state.updateFormData('cpuCoreMin', Number(v))}
+                      type="number"
+                    />
+                    <FormInput
+                      label="最大核数"
+                      value={state.formData.cpuCoreMax ?? 64}
+                      onChange={v => state.updateFormData('cpuCoreMax', Number(v))}
+                      type="number"
+                    />
+                    <FormInput
+                      label="默认核数"
+                      value={state.formData.cpuCoreDefault ?? 8}
+                      onChange={v => state.updateFormData('cpuCoreDefault', Number(v))}
+                      type="number"
+                    />
+                  </div>
+                </div>
+                <div className="border-t pt-4 mt-2">
+                  <h4 className="text-sm font-medium mb-3 text-slate-700 dark:text-slate-300">
+                    内存配置 (GB)
+                  </h4>
+                  <div className="grid grid-cols-3 gap-4">
+                    <FormInput
+                      label="最小内存"
+                      value={state.formData.memoryMin ?? 1}
+                      onChange={v => state.updateFormData('memoryMin', Number(v))}
+                      type="number"
+                    />
+                    <FormInput
+                      label="最大内存"
+                      value={state.formData.memoryMax ?? 1024}
+                      onChange={v => state.updateFormData('memoryMax', Number(v))}
+                      type="number"
+                    />
+                    <FormInput
+                      label="默认内存"
+                      value={state.formData.memoryDefault ?? 64}
+                      onChange={v => state.updateFormData('memoryDefault', Number(v))}
+                      type="number"
+                    />
+                  </div>
+                </div>
                 <FormInput
                   label="排序"
                   value={state.formData.sort ?? 100}
@@ -501,22 +592,71 @@ const Configuration: React.FC = () => {
                 />
               </>
             )}
+            {state.modalType === 'conditionDef' && (
+              <>
+                <FormInput
+                  label="名称"
+                  value={state.formData.name || ''}
+                  onChange={v => state.updateFormData('name', v)}
+                  placeholder="请输入工况名称"
+                />
+                <FormInput
+                  label="编码"
+                  value={state.formData.code || ''}
+                  onChange={v => state.updateFormData('code', v)}
+                  placeholder="请输入工况编码"
+                />
+                <FormInput
+                  label="分类"
+                  value={state.formData.category || ''}
+                  onChange={v => state.updateFormData('category', v)}
+                  placeholder="如：载荷、约束等"
+                />
+                <FormInput
+                  label="单位"
+                  value={state.formData.unit || ''}
+                  onChange={v => state.updateFormData('unit', v)}
+                  placeholder="如：N, MPa"
+                />
+                <FormInput
+                  label="排序"
+                  value={state.formData.sort ?? 100}
+                  onChange={v => state.updateFormData('sort', Number(v))}
+                  type="number"
+                />
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
+                    备注
+                  </label>
+                  <textarea
+                    value={state.formData.remark || ''}
+                    onChange={e => state.updateFormData('remark', e.target.value)}
+                    placeholder="请输入备注信息（可选）"
+                    rows={2}
+                    className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+                  />
+                </div>
+              </>
+            )}
             {state.modalType === 'outputDef' && (
               <>
                 <FormInput
                   label="名称"
                   value={state.formData.name || ''}
                   onChange={v => state.updateFormData('name', v)}
+                  placeholder="请输入输出名称"
                 />
                 <FormInput
                   label="编码"
                   value={state.formData.code || ''}
                   onChange={v => state.updateFormData('code', v)}
+                  placeholder="请输入输出编码"
                 />
                 <FormInput
                   label="单位"
                   value={state.formData.unit || ''}
                   onChange={v => state.updateFormData('unit', v)}
+                  placeholder="如：mm, MPa, Hz"
                 />
                 <FormSelect
                   label="数据类型"
@@ -534,6 +674,18 @@ const Configuration: React.FC = () => {
                   onChange={v => state.updateFormData('sort', Number(v))}
                   type="number"
                 />
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
+                    备注
+                  </label>
+                  <textarea
+                    value={state.formData.remark || ''}
+                    onChange={e => state.updateFormData('remark', e.target.value)}
+                    placeholder="请输入备注信息（可选）"
+                    rows={2}
+                    className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+                  />
+                </div>
               </>
             )}
             {state.modalType === 'foldType' && (
@@ -542,17 +694,20 @@ const Configuration: React.FC = () => {
                   label="名称"
                   value={state.formData.name || ''}
                   onChange={v => state.updateFormData('name', v)}
+                  placeholder="请输入姿态名称"
                 />
                 <FormInput
                   label="编码"
                   value={state.formData.code || ''}
                   onChange={v => state.updateFormData('code', v)}
+                  placeholder="请输入姿态编码"
                 />
                 <FormInput
                   label="角度"
                   value={state.formData.angle ?? 0}
                   onChange={v => state.updateFormData('angle', Number(v))}
                   type="number"
+                  placeholder="请输入角度值"
                 />
                 <FormInput
                   label="排序"
@@ -560,11 +715,60 @@ const Configuration: React.FC = () => {
                   onChange={v => state.updateFormData('sort', Number(v))}
                   type="number"
                 />
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
+                    备注
+                  </label>
+                  <textarea
+                    value={state.formData.remark || ''}
+                    onChange={e => state.updateFormData('remark', e.target.value)}
+                    placeholder="请输入备注信息（可选）"
+                    rows={2}
+                    className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+                  />
+                </div>
+              </>
+            )}
+            {state.modalType === 'project' && (
+              <>
+                <FormInput
+                  label="项目名称"
+                  value={state.formData.name || ''}
+                  onChange={v => state.updateFormData('name', v)}
+                  placeholder="请输入项目名称"
+                />
+                <FormInput
+                  label="项目编码"
+                  value={state.formData.code || ''}
+                  onChange={v => state.updateFormData('code', v)}
+                  placeholder="请输入项目编码（可选）"
+                />
+                <FormInput
+                  label="排序"
+                  value={state.formData.sort ?? 100}
+                  onChange={v => state.updateFormData('sort', Number(v))}
+                  type="number"
+                />
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
+                    备注
+                  </label>
+                  <textarea
+                    value={state.formData.remark || ''}
+                    onChange={e => state.updateFormData('remark', e.target.value)}
+                    placeholder="请输入备注信息（可选）"
+                    rows={3}
+                    className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+                  />
+                </div>
               </>
             )}
           </EditModal>
         </div>
       </div>
+
+      {/* 确认对话框 */}
+      <state.ConfirmDialogComponent />
     </div>
   );
 };

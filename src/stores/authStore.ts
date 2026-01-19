@@ -8,6 +8,8 @@ interface AuthState {
   token: string | null;
   isLoading: boolean;
   users: User[];
+  /** 是否已认证（派生状态：user 不为 null 时为 true） */
+  isAuthenticated: boolean;
 
   // Actions
   setUser: (user: User | null) => void;
@@ -25,8 +27,9 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       isLoading: false,
       users: [],
+      isAuthenticated: false,
 
-      setUser: user => set({ user }),
+      setUser: user => set({ user, isAuthenticated: !!user }),
 
       setToken: token => {
         if (token) {
@@ -45,7 +48,11 @@ export const useAuthStore = create<AuthState>()(
           if (user) {
             // For demo, we just set the user directly
             // In production, call authApi.login()
-            set({ user, isLoading: false });
+            set({
+              user: { ...user, permissions: user.permissions ?? [] },
+              isLoading: false,
+              isAuthenticated: true,
+            });
           }
         } catch (error) {
           set({ isLoading: false });
@@ -55,12 +62,16 @@ export const useAuthStore = create<AuthState>()(
 
       logout: () => {
         localStorage.removeItem('auth_token');
-        set({ user: null, token: null });
+        set({ user: null, token: null, isAuthenticated: false });
       },
 
       fetchUsers: async () => {
         try {
-          const users = await authApi.getAllUsers();
+          const response = await authApi.getAllUsers();
+          const users = (response.data || []).map(user => ({
+            ...user,
+            permissions: user.permissions ?? [],
+          }));
           set({ users });
         } catch (error) {
           console.error('Failed to fetch users:', error);
@@ -69,12 +80,19 @@ export const useAuthStore = create<AuthState>()(
 
       hasPermission: (perm: Permission) => {
         const user = get().user;
-        return user ? user.permissions.includes(perm) : false;
+        const permissions = user?.permissions ?? [];
+        return permissions.includes(perm);
       },
     }),
     {
       name: 'auth-storage',
       partialize: state => ({ user: state.user, token: state.token }),
+      onRehydrateStorage: () => state => {
+        // 恢复时根据 user 设置 isAuthenticated
+        if (state) {
+          state.isAuthenticated = !!state.user;
+        }
+      },
     }
   )
 );

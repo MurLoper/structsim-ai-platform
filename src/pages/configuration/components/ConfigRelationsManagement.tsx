@@ -54,9 +54,9 @@ export const ConfigRelationsManagement: React.FC = () => {
         configApi.getCondOutGroups(),
         configApi.getSolvers(),
       ]);
-      setAllParamGroups(paramGroupsRes.data || []);
-      setAllCondOutGroups(condOutGroupsRes.data || []);
-      setAllSolvers(solversRes.data || []);
+      setAllParamGroups((paramGroupsRes.data || []) as ParamGroup[]);
+      setAllCondOutGroups((condOutGroupsRes.data || []) as CondOutGroup[]);
+      setAllSolvers((solversRes.data || []) as Solver[]);
     } catch (error) {
       console.error('加载配置失败:', error);
     }
@@ -67,13 +67,13 @@ export const ConfigRelationsManagement: React.FC = () => {
     try {
       if (activeTab === 'paramGroups') {
         const response = await configApi.getSimTypeParamGroups(simTypeId);
-        setParamGroupRels(response.data || []);
+        setParamGroupRels((response.data || []) as SimTypeParamGroupRel[]);
       } else if (activeTab === 'condOutGroups') {
         const response = await configApi.getSimTypeCondOutGroups(simTypeId);
-        setCondOutGroupRels(response.data || []);
+        setCondOutGroupRels((response.data || []) as SimTypeCondOutGroupRel[]);
       } else if (activeTab === 'solvers') {
         const response = await configApi.getSimTypeSolvers(simTypeId);
-        setSolverRels(response.data || []);
+        setSolverRels((response.data || []) as SimTypeSolverRel[]);
       }
     } catch (error) {
       console.error('加载关联配置失败:', error);

@@ -1,3 +1,6 @@
+/* Theme CSS Variables - must be imported before Tailwind */
+@import './styles/themes.css';
+
 /* Tailwind CSS */
 @tailwind base;
 @tailwind components;
@@ -78,18 +81,6 @@ body {
   background-image:
     linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-}
-
-/* Eye care mode */
-[data-theme='eyecare'] {
-  --bg-color: #fdf6e3;
-  --text-color: #5c534b;
-  --accent-color: #d33682;
-}
-
-[data-theme='eyecare'] body {
-  background-color: var(--bg-color);
-  color: var(--text-color);
 }
 
 /* Focus styles */

@@ -1,6 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useConfigStore } from '@/stores';
 import { configApi } from '@/api';
+import { useToast, useConfirmDialog } from '@/components/ui';
+import { useStableCallback } from '@/hooks/useStableCallback';
 
 type ModalType =
   | 'project'
@@ -50,21 +52,44 @@ export const useConfigurationState = () => {
     conditionDefs,
     outputDefs,
     foldTypes,
-    fetchAllConfig,
+    refreshProjects,
+    refreshSimTypes,
+    refreshParamDefs,
+    refreshSolvers,
+    refreshConditionDefs,
+    refreshOutputDefs,
+    refreshFoldTypes,
   } = useConfigStore();
+
+  const { showToast } = useToast();
+  const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
 
   const [activeTab, setActiveTab] = useState('simTypes');
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<ModalType>('simType');
-  const [editingItem, setEditingItem] = useState<Record<string, unknown> | null>(null);
-  const [formData, setFormData] = useState<Record<string, unknown>>({});
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [formData, setFormData] = useState<any>({});
   const [loading, setLoading] = useState(false);
 
+  // 使用 ref 保存最新的 formData，确保 handleSave 能访问到最新值
+  const formDataRef = useRef(formData);
+  useEffect(() => {
+    formDataRef.current = formData;
+    console.log('📌 [formDataRef] 更新:', formData);
+  }, [formData]);
+
   // 打开新建/编辑弹窗
-  const openModal = useCallback((type: ModalType, item?: Record<string, unknown>) => {
+  const openModal = useCallback((type: ModalType, item?: any) => {
+    console.log('🔷 [openModal] 打开弹窗');
+    console.log('🔷 [openModal] type:', type);
+    console.log('🔷 [openModal] item:', item);
+
     setModalType(type);
     setEditingItem(item || null);
-    setFormData(item ? { ...item } : getDefaultFormData(type));
+
+    const initialData = item ? { ...item } : getDefaultFormData(type);
+    console.log('🔷 [openModal] 初始化 formData:', initialData);
+    setFormData(initialData);
     setModalOpen(true);
   }, []);
 
@@ -74,86 +99,175 @@ export const useConfigurationState = () => {
     setFormData({});
   }, []);
 
-  // 保存
-  const handleSave = useCallback(async () => {
+  // 保存 - 使用 useStableCallback 避免闭包陷阱
+  const handleSave = useStableCallback(async () => {
+    // 使用 ref 获取最新的 formData
+    const latestFormData = formDataRef.current;
+
+    console.log('=== 表单提交调试 ===');
+    console.log('modalType:', modalType);
+    console.log('editingItem:', editingItem);
+    console.log('formData (state):', formData);
+    console.log('formData (ref):', latestFormData);
+    console.log('是否相同:', formData === latestFormData);
+
     setLoading(true);
     try {
       if (modalType === 'project') {
         if (editingItem) {
-          await configApi.updateProject(editingItem.id as number, formData);
+          console.log('更新项目，ID:', editingItem.id, '数据:', latestFormData);
+          await configApi.updateProject(editingItem.id as number, latestFormData);
+          showToast('success', '项目更新成功');
+          await refreshProjects();
         } else {
-          await configApi.createProject(formData);
+          console.log('创建项目，数据:', latestFormData);
+          await configApi.createProject(latestFormData);
+          showToast('success', '项目创建成功');
+          await refreshProjects();
         }
       } else if (modalType === 'simType') {
         if (editingItem) {
-          await configApi.updateSimType(editingItem.id, formData);
+          console.log('更新仿真类型，ID:', editingItem.id, '数据:', latestFormData);
+          await configApi.updateSimType(editingItem.id, latestFormData);
+          showToast('success', '仿真类型更新成功');
+          await refreshSimTypes();
         } else {
-          await configApi.createSimType(formData);
+          console.log('创建仿真类型，数据:', latestFormData);
+          await configApi.createSimType(latestFormData);
+          showToast('success', '仿真类型创建成功');
+          await refreshSimTypes();
         }
       } else if (modalType === 'paramDef') {
         if (editingItem) {
-          await configApi.updateParamDef(editingItem.id, formData);
+          console.log('更新参数定义，ID:', editingItem.id, '数据:', latestFormData);
+          await configApi.updateParamDef(editingItem.id, latestFormData);
+          showToast('success', '参数定义更新成功');
+          await refreshParamDefs();
         } else {
-          await configApi.createParamDef(formData);
+          console.log('创建参数定义，数据:', latestFormData);
+          await configApi.createParamDef(latestFormData);
+          showToast('success', '参数定义创建成功');
+          await refreshParamDefs();
         }
       } else if (modalType === 'solver') {
         if (editingItem) {
-          await configApi.updateSolver(editingItem.id, formData);
+          console.log('更新求解器，ID:', editingItem.id, '数据:', latestFormData);
+          await configApi.updateSolver(editingItem.id, latestFormData);
+          showToast('success', '求解器更新成功');
+          await refreshSolvers();
         } else {
-          await configApi.createSolver(formData);
+          console.log('创建求解器，数据:', latestFormData);
+          await configApi.createSolver(latestFormData);
+          showToast('success', '求解器创建成功');
+          await refreshSolvers();
         }
       } else if (modalType === 'conditionDef') {
         if (editingItem) {
-          await configApi.updateConditionDef(editingItem.id, formData);
+          console.log('更新工况定义，ID:', editingItem.id, '数据:', latestFormData);
+          await configApi.updateConditionDef(editingItem.id, latestFormData);
+          showToast('success', '工况定义更新成功');
+          await refreshConditionDefs();
         } else {
-          await configApi.createConditionDef(formData);
+          console.log('创建工况定义，数据:', latestFormData);
+          await configApi.createConditionDef(latestFormData);
+          showToast('success', '工况定义创建成功');
+          await refreshConditionDefs();
         }
       } else if (modalType === 'outputDef') {
         if (editingItem) {
-          await configApi.updateOutputDef(editingItem.id, formData);
+          console.log('更新输出定义，ID:', editingItem.id, '数据:', latestFormData);
+          await configApi.updateOutputDef(editingItem.id, latestFormData);
+          showToast('success', '输出定义更新成功');
+          await refreshOutputDefs();
         } else {
-          await configApi.createOutputDef(formData);
+          console.log('创建输出定义，数据:', latestFormData);
+          await configApi.createOutputDef(latestFormData);
+          showToast('success', '输出定义创建成功');
+          await refreshOutputDefs();
         }
       } else if (modalType === 'foldType') {
         if (editingItem) {
-          await configApi.updateFoldType(editingItem.id, formData);
+          console.log('更新姿态类型，ID:', editingItem.id, '数据:', latestFormData);
+          await configApi.updateFoldType(editingItem.id, latestFormData);
+          showToast('success', '姿态类型更新成功');
+          await refreshFoldTypes();
         } else {
-          await configApi.createFoldType(formData);
+          console.log('创建姿态类型，数据:', latestFormData);
+          await configApi.createFoldType(latestFormData);
+          showToast('success', '姿态类型创建成功');
+          await refreshFoldTypes();
         }
       }
-      await fetchAllConfig();
       closeModal();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Save failed:', error);
-      alert('保存失败');
+      showToast('error', error?.message || '保存失败，请重试');
     } finally {
       setLoading(false);
     }
-  }, [modalType, editingItem, formData, fetchAllConfig, closeModal]);
+  });
 
   // 删除
   const handleDelete = useCallback(
     async (type: string, id: number, name: string) => {
-      if (!confirm(`确定要删除 "${name}" 吗？`)) return;
-      try {
-        if (type === 'simType') await configApi.deleteSimType(id);
-        else if (type === 'paramDef') await configApi.deleteParamDef(id);
-        else if (type === 'solver') await configApi.deleteSolver(id);
-        else if (type === 'conditionDef') await configApi.deleteConditionDef(id);
-        else if (type === 'outputDef') await configApi.deleteOutputDef(id);
-        else if (type === 'foldType') await configApi.deleteFoldType(id);
-        await fetchAllConfig();
-      } catch (error) {
-        console.error('Delete failed:', error);
-        alert('删除失败');
-      }
+      showConfirm(
+        '确认删除',
+        `确定要删除 "${name}" 吗？此操作无法撤销。`,
+        async () => {
+          try {
+            if (type === 'project') {
+              await configApi.deleteProject(id);
+              await refreshProjects();
+            } else if (type === 'simType') {
+              await configApi.deleteSimType(id);
+              await refreshSimTypes();
+            } else if (type === 'paramDef') {
+              await configApi.deleteParamDef(id);
+              await refreshParamDefs();
+            } else if (type === 'solver') {
+              await configApi.deleteSolver(id);
+              await refreshSolvers();
+            } else if (type === 'conditionDef') {
+              await configApi.deleteConditionDef(id);
+              await refreshConditionDefs();
+            } else if (type === 'outputDef') {
+              await configApi.deleteOutputDef(id);
+              await refreshOutputDefs();
+            } else if (type === 'foldType') {
+              await configApi.deleteFoldType(id);
+              await refreshFoldTypes();
+            }
+
+            showToast('success', '删除成功');
+          } catch (error: any) {
+            console.error('Delete failed:', error);
+            showToast('error', error?.message || '删除失败，请重试');
+          }
+        },
+        'danger'
+      );
     },
-    [fetchAllConfig]
+    [
+      showConfirm,
+      showToast,
+      refreshProjects,
+      refreshSimTypes,
+      refreshParamDefs,
+      refreshSolvers,
+      refreshConditionDefs,
+      refreshOutputDefs,
+      refreshFoldTypes,
+    ]
   );
 
-  const updateFormData = useCallback((key: string, value: unknown) => {
-    setFormData((prev: Record<string, unknown>) => ({ ...prev, [key]: value }));
-  }, []);
+  const updateFormData = useStableCallback((key: string, value: unknown) => {
+    console.log(`[updateFormData] 更新字段 ${key}:`, value);
+    setFormData((prev: any) => {
+      const newData = { ...prev, [key]: value };
+      console.log('[updateFormData] 新表单数据:', newData);
+      return newData;
+    });
+  });
 
   return {
     // 数据
@@ -179,5 +293,7 @@ export const useConfigurationState = () => {
     handleSave,
     handleDelete,
     updateFormData,
+    // 组件
+    ConfirmDialogComponent,
   };
 };

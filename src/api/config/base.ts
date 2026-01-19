@@ -14,7 +14,7 @@ import type {
   AutomationModule,
   Workflow,
   BaseDataResponse,
-} from './types';
+} from '@/types';
 
 // ============ 基础配置 CRUD API ============
 export const baseConfigApi = {

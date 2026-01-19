@@ -20,9 +20,13 @@ export const ParamGroupsManagement: React.FC = () => {
     try {
       setLoading(true);
       const response = await configApi.getParamGroups();
-      setGroups(response.data || []);
+      console.log('参数组合响应:', response);
+      // 确保response.data是数组
+      const groupsData = Array.isArray(response?.data) ? response.data : [];
+      setGroups(groupsData);
     } catch (error) {
       console.error('加载参数组合失败:', error);
+      setGroups([]);
     } finally {
       setLoading(false);
     }
@@ -32,9 +36,12 @@ export const ParamGroupsManagement: React.FC = () => {
   const loadParamDefs = async () => {
     try {
       const response = await configApi.getParamDefs();
-      setAllParamDefs(response.data || []);
+      console.log('参数定义响应:', response);
+      const paramDefsData = Array.isArray(response?.data) ? response.data : [];
+      setAllParamDefs(paramDefsData);
     } catch (error) {
       console.error('加载参数定义失败:', error);
+      setAllParamDefs([]);
     }
   };
 
@@ -42,9 +49,12 @@ export const ParamGroupsManagement: React.FC = () => {
   const loadGroupParams = async (groupId: number) => {
     try {
       const response = await configApi.getParamGroupParams(groupId);
-      setGroupParams(response.data || []);
+      console.log('组合参数响应:', response);
+      const paramsData = Array.isArray(response?.data) ? response.data : [];
+      setGroupParams(paramsData);
     } catch (error) {
       console.error('加载组合参数失败:', error);
+      setGroupParams([]);
     }
   };
 
@@ -65,7 +75,9 @@ export const ParamGroupsManagement: React.FC = () => {
       if (editingGroup?.id) {
         await configApi.updateParamGroup(editingGroup.id, data);
       } else {
-        await configApi.createParamGroup(data);
+        await configApi.createParamGroup(
+          data as { name: string; description?: string; sort?: number }
+        );
       }
       setShowGroupModal(false);
       setEditingGroup(null);
