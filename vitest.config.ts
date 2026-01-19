@@ -6,8 +6,8 @@ export default mergeConfig(
   viteConfig({ mode: 'test', command: 'serve' }),
   defineConfig({
     test: {
-      // 使用 jsdom 模拟浏览器环境
-      environment: 'jsdom',
+      // 使用 happy-dom 模拟浏览器环境，降低内存占用
+      environment: 'happy-dom',
 
       // 全局导入 test, expect, describe 等
       globals: true,
@@ -49,6 +49,17 @@ export default mergeConfig(
 
       // 测试超时时间
       testTimeout: 10000,
+
+      // 降低并发避免内存溢出
+      pool: 'forks',
+      poolOptions: {
+        forks: {
+          isolate: true,
+        },
+      },
+      fileParallelism: false,
+      isolate: true,
+      maxConcurrency: 1,
 
       // 报告器
       reporters: ['verbose'],

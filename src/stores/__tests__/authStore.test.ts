@@ -53,8 +53,8 @@ describe('useAuthStore', () => {
     vi.clearAllMocks();
     localStorage.clear();
     // Set up spies before each test (after clearAllMocks)
-    setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
-    removeItemSpy = vi.spyOn(Storage.prototype, 'removeItem');
+    setItemSpy = vi.spyOn(window.localStorage, 'setItem');
+    removeItemSpy = vi.spyOn(window.localStorage, 'removeItem');
     // Reset store state
     useAuthStore.setState({
       user: null,
@@ -134,22 +134,28 @@ describe('useAuthStore', () => {
 
   describe('login', () => {
     it('应该能登录用户', async () => {
-      // Set up users first
-      useAuthStore.setState({ users: mockUsers });
+      vi.mocked(authApi.login).mockResolvedValue({
+        data: {
+          token: 'test-token-123',
+          user: mockUsers[0],
+        },
+      });
 
       const { login } = useAuthStore.getState();
 
       await act(async () => {
-        await login('user-1');
+        await login('admin@example.com');
       });
 
       const state = useAuthStore.getState();
       expect(state.user).toEqual(mockUsers[0]);
+      expect(state.token).toBe('test-token-123');
+      expect(setItemSpy).toHaveBeenCalledWith('auth_token', 'test-token-123');
       expect(state.isLoading).toBe(false);
     });
 
     it('用户不存在时不应该设置用户', async () => {
-      useAuthStore.setState({ users: mockUsers });
+      vi.mocked(authApi.login).mockResolvedValue({ data: {} });
 
       const { login } = useAuthStore.getState();
 
@@ -159,6 +165,7 @@ describe('useAuthStore', () => {
 
       const state = useAuthStore.getState();
       expect(state.user).toBeNull();
+      expect(state.isLoading).toBe(false);
     });
   });
 

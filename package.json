@@ -13,7 +13,7 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "fix:all": "npm run lint:fix && npm run format",
     "check:all": "npm run lint && npm run format:check && npm run build",
-    "test": "vitest",
+    "test": "set NODE_OPTIONS=--max-old-space-size=8192 && node ./node_modules/vitest/vitest.mjs run src/api/__tests__/client.test.ts && node ./node_modules/vitest/vitest.mjs run src/hooks/__tests__/useFormState.test.ts && node ./node_modules/vitest/vitest.mjs run src/hooks/__tests__/useTheme.test.ts && node ./node_modules/vitest/vitest.mjs run src/hooks/__tests__/validateForm.test.ts && node ./node_modules/vitest/vitest.mjs run src/stores/__tests__/authStore.test.ts && node ./node_modules/vitest/vitest.mjs run src/stores/__tests__/uiStore.test.ts && node ./node_modules/vitest/vitest.mjs run src/components/ui/__tests__/Button.test.tsx && node ./node_modules/vitest/vitest.mjs run src/components/ui/__tests__/Card.test.tsx && node ./node_modules/vitest/vitest.mjs run src/components/ui/__tests__/Input.test.tsx && node ./node_modules/vitest/vitest.mjs run src/components/ui/__tests__/Modal.test.tsx && node ./node_modules/vitest/vitest.mjs run src/features/config/queries/__tests__/useProjects.test.tsx && node ./node_modules/vitest/vitest.mjs run src/features/config/queries/__tests__/useSimTypes.test.tsx",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "prepare": "husky install"
@@ -63,6 +63,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.0.0",
     "@vitest/coverage-v8": "^2.1.0",
+    "happy-dom": "^14.12.1",
     "autoprefixer": "^10.4.0",
     "eslint": "^9.0.0",
     "eslint-plugin-react-hooks": "^5.0.0",

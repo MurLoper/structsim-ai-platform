@@ -1,8 +1,9 @@
 /**
  * useFormState Hook 测试
  */
+import React, { createRef, forwardRef, useImperativeHandle } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act, waitFor } from '@testing-library/react';
+import { render, act, cleanup } from '@testing-library/react';
 import { useFormState } from '../useFormState';
 
 interface TestFormData {
@@ -11,18 +12,48 @@ interface TestFormData {
   age: number;
 }
 
+type UseFormStateReturn = ReturnType<typeof useFormState<TestFormData>>;
+
+interface TestComponentProps {
+  initialData?: Partial<TestFormData> | null;
+  onSubmit?: (data: Partial<TestFormData>) => Promise<void>;
+}
+
+const TestComponent = forwardRef<UseFormStateReturn, TestComponentProps>(
+  ({ initialData, onSubmit }, ref) => {
+    const formState = useFormState<TestFormData>(initialData, onSubmit);
+    useImperativeHandle(ref, () => formState, [formState]);
+    return null;
+  }
+);
+
+TestComponent.displayName = 'TestComponent';
+
+const setup = (
+  initialData?: Partial<TestFormData> | null,
+  onSubmit?: TestComponentProps['onSubmit']
+) => {
+  const ref = createRef<UseFormStateReturn>();
+  render(React.createElement(TestComponent, { ref, initialData, onSubmit }));
+  if (!ref.current) {
+    throw new Error('Form state not initialized');
+  }
+  return { ref };
+};
+
 describe('useFormState', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    cleanup();
   });
 
   describe('初始化', () => {
     it('没有初始数据时应该返回空表单', () => {
-      const { result } = renderHook(() => useFormState<TestFormData>());
+      const { ref } = setup();
 
-      expect(result.current.formData).toEqual({});
-      expect(result.current.errors).toEqual({});
-      expect(result.current.isSubmitting).toBe(false);
+      expect(ref.current!.formData).toEqual({});
+      expect(ref.current!.errors).toEqual({});
+      expect(ref.current!.isSubmitting).toBe(false);
     });
 
     it('有初始数据时应该初始化表单', () => {
@@ -31,27 +62,27 @@ describe('useFormState', () => {
         email: 'john@example.com',
       };
 
-      const { result } = renderHook(() => useFormState<TestFormData>(initialData));
+      const { ref } = setup(initialData);
 
-      expect(result.current.formData).toEqual(initialData);
+      expect(ref.current!.formData).toEqual(initialData);
     });
 
     it('初始数据为 null 时应该返回空表单', () => {
-      const { result } = renderHook(() => useFormState<TestFormData>(null));
+      const { ref } = setup(null);
 
-      expect(result.current.formData).toEqual({});
+      expect(ref.current!.formData).toEqual({});
     });
   });
 
   describe('updateField', () => {
     it('应该能更新单个字段', () => {
-      const { result } = renderHook(() => useFormState<TestFormData>());
+      const { ref } = setup();
 
       act(() => {
-        result.current.updateField('name', 'Alice');
+        ref.current!.updateField('name', 'Alice');
       });
 
-      expect(result.current.formData.name).toBe('Alice');
+      expect(ref.current!.formData.name).toBe('Alice');
     });
 
     it('应该保留其他字段的值', () => {
@@ -60,13 +91,13 @@ describe('useFormState', () => {
         email: 'john@example.com',
       };
 
-      const { result } = renderHook(() => useFormState<TestFormData>(initialData));
+      const { ref } = setup(initialData);
 
       act(() => {
-        result.current.updateField('age', 25);
+        ref.current!.updateField('age', 25);
       });
 
-      expect(result.current.formData).toEqual({
+      expect(ref.current!.formData).toEqual({
         name: 'John',
         email: 'john@example.com',
         age: 25,
@@ -74,37 +105,35 @@ describe('useFormState', () => {
     });
 
     it('更新字段时应该清除该字段的错误', () => {
-      const { result } = renderHook(() => useFormState<TestFormData>());
+      const { ref } = setup();
 
-      // Set an error first
       act(() => {
-        result.current.setErrors({ name: '名称必填' });
+        ref.current!.setErrors({ name: '名称必填' });
       });
 
-      expect(result.current.errors.name).toBe('名称必填');
+      expect(ref.current!.errors.name).toBe('名称必填');
 
-      // Update the field
       act(() => {
-        result.current.updateField('name', 'Alice');
+        ref.current!.updateField('name', 'Alice');
       });
 
-      expect(result.current.errors.name).toBeUndefined();
+      expect(ref.current!.errors.name).toBeUndefined();
     });
   });
 
   describe('updateFields', () => {
     it('应该能批量更新多个字段', () => {
-      const { result } = renderHook(() => useFormState<TestFormData>());
+      const { ref } = setup();
 
       act(() => {
-        result.current.updateFields({
+        ref.current!.updateFields({
           name: 'Bob',
           email: 'bob@example.com',
           age: 30,
         });
       });
 
-      expect(result.current.formData).toEqual({
+      expect(ref.current!.formData).toEqual({
         name: 'Bob',
         email: 'bob@example.com',
         age: 30,
@@ -112,13 +141,13 @@ describe('useFormState', () => {
     });
 
     it('应该合并而不是替换现有数据', () => {
-      const { result } = renderHook(() => useFormState<TestFormData>({ name: 'John' }));
+      const { ref } = setup({ name: 'John' });
 
       act(() => {
-        result.current.updateFields({ email: 'john@example.com' });
+        ref.current!.updateFields({ email: 'john@example.com' });
       });
 
-      expect(result.current.formData).toEqual({
+      expect(ref.current!.formData).toEqual({
         name: 'John',
         email: 'john@example.com',
       });
@@ -129,78 +158,71 @@ describe('useFormState', () => {
     it('有初始数据时应该重置到初始状态', () => {
       const initialData: Partial<TestFormData> = { name: 'John' };
 
-      const { result } = renderHook(() => useFormState<TestFormData>(initialData));
+      const { ref } = setup(initialData);
 
-      // Modify the form
       act(() => {
-        result.current.updateField('name', 'Alice');
-        result.current.updateField('email', 'alice@example.com');
+        ref.current!.updateField('name', 'Alice');
+        ref.current!.updateField('email', 'alice@example.com');
       });
 
-      // Reset
       act(() => {
-        result.current.resetForm();
+        ref.current!.resetForm();
       });
 
-      expect(result.current.formData).toEqual(initialData);
+      expect(ref.current!.formData).toEqual(initialData);
     });
 
     it('没有初始数据时应该重置为空对象', () => {
-      const { result } = renderHook(() => useFormState<TestFormData>());
+      const { ref } = setup();
 
-      // Add some data
       act(() => {
-        result.current.updateField('name', 'Alice');
+        ref.current!.updateField('name', 'Alice');
       });
 
-      // Reset
       act(() => {
-        result.current.resetForm();
+        ref.current!.resetForm();
       });
 
-      expect(result.current.formData).toEqual({});
+      expect(ref.current!.formData).toEqual({});
     });
 
     it('重置时应该清除错误', () => {
-      const { result } = renderHook(() => useFormState<TestFormData>());
+      const { ref } = setup();
 
-      // Set errors
       act(() => {
-        result.current.setErrors({ name: '错误' });
+        ref.current!.setErrors({ name: '错误' });
       });
 
-      // Reset
       act(() => {
-        result.current.resetForm();
+        ref.current!.resetForm();
       });
 
-      expect(result.current.errors).toEqual({});
+      expect(ref.current!.errors).toEqual({});
     });
   });
 
   describe('handleSubmit', () => {
     it('没有 onSubmit 回调时应该直接返回', async () => {
-      const { result } = renderHook(() => useFormState<TestFormData>());
+      const { ref } = setup();
 
       await act(async () => {
-        await result.current.handleSubmit();
+        await ref.current!.handleSubmit();
       });
 
-      // Should not throw or change state
-      expect(result.current.isSubmitting).toBe(false);
+      expect(ref.current!.isSubmitting).toBe(false);
     });
 
     it('应该正确处理表单提交', async () => {
       const onSubmit = vi.fn().mockResolvedValue(undefined);
 
-      const { result } = renderHook(() => useFormState<TestFormData>({ name: 'John' }, onSubmit));
+      const { ref } = setup({ name: 'John' }, onSubmit);
 
       await act(async () => {
-        await result.current.handleSubmit();
+        await ref.current!.handleSubmit();
       });
 
       expect(onSubmit).toHaveBeenCalledWith({ name: 'John' });
-      expect(result.current.isSubmitting).toBe(false);
+      expect(ref.current!.isSubmitting).toBe(false);
     });
 
     it('提交过程中应该设置 isSubmitting 为 true', async () => {
@@ -211,50 +233,51 @@ describe('useFormState', () => {
         })
       );
 
-      const { result } = renderHook(() => useFormState<TestFormData>({ name: 'John' }, onSubmit));
+      const { ref } = setup({ name: 'John' }, onSubmit);
 
-      // Start submit but don't await
       let submitPromise: Promise<void>;
       act(() => {
-        submitPromise = result.current.handleSubmit();
+        submitPromise = ref.current!.handleSubmit();
       });
 
-      // Check isSubmitting during submission
-      expect(result.current.isSubmitting).toBe(true);
+      expect(ref.current!.isSubmitting).toBe(true);
 
-      // Complete submission
       await act(async () => {
         resolveSubmit!();
         await submitPromise;
       });
 
-      expect(result.current.isSubmitting).toBe(false);
+      expect(ref.current!.isSubmitting).toBe(false);
     });
 
     it('提交失败时应该设置错误并抛出', async () => {
       const error = { errors: { name: '名称已存在' } };
       const onSubmit = vi.fn().mockRejectedValue(error);
 
-      const { result } = renderHook(() => useFormState<TestFormData>({ name: 'John' }, onSubmit));
+      const { ref } = setup({ name: 'John' }, onSubmit);
 
-      await expect(
-        act(async () => {
-          await result.current.handleSubmit();
-        })
-      ).rejects.toEqual(error);
+      let thrown: unknown;
+      await act(async () => {
+        try {
+          await ref.current!.handleSubmit();
+        } catch (err) {
+          thrown = err;
+        }
+      });
 
-      expect(result.current.errors).toEqual({ name: '名称已存在' });
-      expect(result.current.isSubmitting).toBe(false);
+      expect(thrown).toEqual(error);
+      expect(ref.current!.errors).toEqual({ name: '名称已存在' });
+      expect(ref.current!.isSubmitting).toBe(false);
     });
 
     it('应该阻止表单默认提交行为', async () => {
       const onSubmit = vi.fn().mockResolvedValue(undefined);
       const mockEvent = { preventDefault: vi.fn() } as unknown as React.FormEvent;
 
-      const { result } = renderHook(() => useFormState<TestFormData>({ name: 'John' }, onSubmit));
+      const { ref } = setup({ name: 'John' }, onSubmit);
 
       await act(async () => {
-        await result.current.handleSubmit(mockEvent);
+        await ref.current!.handleSubmit(mockEvent);
       });
 
       expect(mockEvent.preventDefault).toHaveBeenCalled();
@@ -263,13 +286,13 @@ describe('useFormState', () => {
 
   describe('setFormData', () => {
     it('应该能直接设置表单数据', () => {
-      const { result } = renderHook(() => useFormState<TestFormData>());
+      const { ref } = setup();
 
       act(() => {
-        result.current.setFormData({ name: 'Direct', email: 'direct@test.com' });
+        ref.current!.setFormData({ name: 'Direct', email: 'direct@test.com' });
       });
 
-      expect(result.current.formData).toEqual({
+      expect(ref.current!.formData).toEqual({
         name: 'Direct',
         email: 'direct@test.com',
       });
@@ -278,16 +301,16 @@ describe('useFormState', () => {
 
   describe('setErrors', () => {
     it('应该能设置错误信息', () => {
-      const { result } = renderHook(() => useFormState<TestFormData>());
+      const { ref } = setup();
 
       act(() => {
-        result.current.setErrors({
+        ref.current!.setErrors({
           name: '名称必填',
           email: '邮箱格式错误',
         });
       });
 
-      expect(result.current.errors).toEqual({
+      expect(ref.current!.errors).toEqual({
         name: '名称必填',
         email: '邮箱格式错误',
       });
@@ -296,15 +319,16 @@ describe('useFormState', () => {
 
   describe('初始数据变化', () => {
     it('初始数据变化时应该更新表单', () => {
-      const { result, rerender } = renderHook(({ data }) => useFormState<TestFormData>(data), {
-        initialProps: { data: { name: 'John' } as Partial<TestFormData> },
-      });
+      const ref = createRef<UseFormStateReturn>();
+      const { rerender } = render(
+        React.createElement(TestComponent, { ref, initialData: { name: 'John' } })
+      );
 
-      expect(result.current.formData.name).toBe('John');
+      expect(ref.current!.formData.name).toBe('John');
 
-      rerender({ data: { name: 'Alice' } });
+      rerender(React.createElement(TestComponent, { ref, initialData: { name: 'Alice' } }));
 
-      expect(result.current.formData.name).toBe('Alice');
+      expect(ref.current!.formData.name).toBe('Alice');
     });
   });
 });
