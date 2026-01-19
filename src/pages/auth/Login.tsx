@@ -6,8 +6,8 @@ const Login: React.FC = () => {
   const { users, login } = useAuthStore();
   const navigate = useNavigate();
 
-  const handleLogin = async (id: string) => {
-    await login(id);
+  const handleLogin = async (email: string) => {
+    await login(email);
     navigate('/');
   };
 
@@ -28,7 +28,7 @@ const Login: React.FC = () => {
           {users.map(u => (
             <button
               key={u.id}
-              onClick={() => handleLogin(u.id)}
+              onClick={() => handleLogin(u.email)}
               className="w-full p-4 text-left border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 dark:border-slate-600 flex items-center gap-4 transition-all group"
             >
               <div className="w-12 h-12 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-600 flex items-center justify-center font-bold text-lg">

@@ -14,7 +14,7 @@ interface AuthState {
   // Actions
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
-  login: (userId: string) => Promise<void>;
+  login: (email: string) => Promise<void>;
   logout: () => void;
   fetchUsers: () => Promise<void>;
   hasPermission: (perm: Permission) => boolean;
@@ -40,19 +40,23 @@ export const useAuthStore = create<AuthState>()(
         set({ token });
       },
 
-      login: async (userId: string) => {
+      login: async (email: string) => {
         set({ isLoading: true });
         try {
-          const users = get().users;
-          const user = users.find(u => u.id === userId);
-          if (user) {
-            // For demo, we just set the user directly
-            // In production, call authApi.login()
+          const response = await authApi.login({ email });
+          const payload = response?.data;
+          if (payload?.token) {
+            get().setToken(payload.token);
+          }
+          if (payload?.user) {
+            const perms = payload.user.permissions ?? payload.user.permissionCodes ?? [];
             set({
-              user: { ...user, permissions: user.permissions ?? [] },
+              user: { ...payload.user, permissions: perms },
               isLoading: false,
               isAuthenticated: true,
             });
+          } else {
+            set({ isLoading: false });
           }
         } catch (error) {
           set({ isLoading: false });

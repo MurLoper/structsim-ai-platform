@@ -10,6 +10,7 @@ import {
   PlusCircleIcon,
   LanguageIcon,
   Cog6ToothIcon,
+  ShieldCheckIcon,
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
 } from '@heroicons/react/24/outline';
@@ -41,6 +42,12 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
       perm: 'CREATE_REQUEST' as const,
     },
     { name: t('nav.config'), path: '/config', icon: Cog6ToothIcon, perm: 'MANAGE_CONFIG' as const },
+    {
+      name: t('nav.access'),
+      path: '/access',
+      icon: ShieldCheckIcon,
+      perm: 'MANAGE_USERS' as const,
+    },
   ];
 
   const navItems = allNavItems.filter(item => hasPermission(item.perm));

@@ -8,7 +8,13 @@ import { ProtectedLayout, PublicLayout } from './layouts';
 import { PageSuspense, RouteErrorBoundary } from './components';
 
 // 导入路由模块
-import { authRoutes, dashboardRoutes, configRoutes, submissionRoutes } from './routes';
+import {
+  authRoutes,
+  dashboardRoutes,
+  configRoutes,
+  submissionRoutes,
+  accessRoutes,
+} from './routes';
 
 /**
  * 应用路由表
@@ -35,6 +41,8 @@ export const appRoutes: RouteObject[] = [
       ...configRoutes,
       // 提单
       ...submissionRoutes,
+      // 访问权限
+      ...accessRoutes,
     ],
   },
 ];
