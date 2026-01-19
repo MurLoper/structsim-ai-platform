@@ -85,7 +85,7 @@ export const routes: RouteObject[] = [
   {
     path: '/create',
     element: (
-      <ProtectedRoute perm="CREATE_REQUEST">
+      <ProtectedRoute perm="CREATE_ORDER">
         <SuspenseWrapper>
           <Layout noContainer>
             <Submission />

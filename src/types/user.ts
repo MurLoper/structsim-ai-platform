@@ -1,7 +1,6 @@
 // User & Auth Types
 export type Permission =
   | 'VIEW_DASHBOARD'
-  | 'CREATE_REQUEST'
   | 'MANAGE_CONFIG'
   | 'VIEW_RESULTS'
   | 'MANAGE_USERS'

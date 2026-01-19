@@ -39,7 +39,7 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
       name: t('nav.new_request'),
       path: '/create',
       icon: PlusCircleIcon,
-      perm: 'CREATE_REQUEST' as const,
+      perm: 'CREATE_ORDER' as const,
     },
     { name: t('nav.config'), path: '/config', icon: Cog6ToothIcon, perm: 'MANAGE_CONFIG' as const },
     {

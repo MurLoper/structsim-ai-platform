@@ -16,7 +16,7 @@ export const submissionRoutes: RouteObject[] = [
     element: <Submission />,
     handle: {
       title: '在线提单',
-      permission: 'CREATE_REQUEST',
+      permission: 'CREATE_ORDER',
       noContainer: true,
     },
   },

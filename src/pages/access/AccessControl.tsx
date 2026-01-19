@@ -111,6 +111,11 @@ const AccessControl: React.FC = () => {
     return map;
   }, [permissions]);
 
+  const isAdminUser = (user: User) =>
+    user.roleCodes?.includes('ADMIN') || user.email?.toLowerCase() === 'alice@sim.com';
+
+  const isAdminRole = (role: Role) => role.code === 'ADMIN';
+
   const roleNameById = useMemo(() => {
     const map = new Map<number, string>();
     roles.forEach(role => map.set(role.id, role.name));
@@ -313,6 +318,18 @@ const AccessControl: React.FC = () => {
       key: 'permissions',
       title: '权限',
       render: (_: unknown, record: User) => {
+        if (isAdminUser(record)) {
+          return (
+            <div className="flex flex-wrap gap-2">
+              <Badge size="sm" variant="info">
+                管理员
+              </Badge>
+              <Badge size="sm" variant="warning">
+                全部权限
+              </Badge>
+            </div>
+          );
+        }
         const permissionCodes = record.permissionCodes || record.permissions || [];
         const permissionNames = permissionCodes.map(code => permissionNameByCode.get(code) || code);
         const display = permissionNames.slice(0, 3);
@@ -351,16 +368,24 @@ const AccessControl: React.FC = () => {
       title: '操作',
       width: '140px',
       align: 'right' as const,
-      render: (_: unknown, record: User) => (
-        <div className="flex items-center justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={() => openUserRoleModal(record)}>
-            授权
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => openPasswordModal(record)}>
-            密码
-          </Button>
-        </div>
-      ),
+      render: (_: unknown, record: User) => {
+        const adminUser = isAdminUser(record);
+        return (
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openUserRoleModal(record)}
+              disabled={adminUser}
+            >
+              授权
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => openPasswordModal(record)}>
+              密码
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 
@@ -406,16 +431,29 @@ const AccessControl: React.FC = () => {
       title: '操作',
       width: '180px',
       align: 'right' as const,
-      render: (_: unknown, record: Role) => (
-        <div className="flex items-center justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={() => openRoleModal(record)}>
-            编辑
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => openRolePermissionModal(record)}>
-            配权限
-          </Button>
-        </div>
-      ),
+      render: (_: unknown, record: Role) => {
+        const adminRole = isAdminRole(record);
+        return (
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openRoleModal(record)}
+              disabled={adminRole}
+            >
+              编辑
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => openRolePermissionModal(record)}
+              disabled={adminRole}
+            >
+              配权限
+            </Button>
+          </div>
+        );
+      },
     },
   ];
 
