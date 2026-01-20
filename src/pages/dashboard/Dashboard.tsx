@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUIStore, useConfigStore } from '@/stores';
+import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
 import { Button, Card, Badge } from '@/components/ui';
 import { ArrowRightIcon, BeakerIcon } from '@heroicons/react/24/outline';
 import { SimulationType, SubmissionRequest, SimConfiguration, ParamStrategy } from '@/types';
+import { useStatusDefs } from '@/features/config/queries/useCompositeConfigs';
+import { DataTable } from '@/components/tables/DataTable';
+import type { ColumnDef } from '@tanstack/react-table';
 
 // Helper to create mock data
 const createMockProcess = (workflowId: string, statusId: string) => ({
@@ -60,11 +63,13 @@ const MOCK_REQUESTS: SubmissionRequest[] = [
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { language } = useUIStore();
-  const { getStatus } = useConfigStore();
+  const { data: statusDefs } = useStatusDefs();
   const t = (key: string) => RESOURCES[language][key] || key;
 
   const getStatusBadge = (statusId: string) => {
-    const config = getStatus(Number(statusId));
+    const config = statusDefs?.find(
+      status => status.code === statusId || String(status.id) === String(statusId)
+    );
     if (!config) return <Badge>Unknown</Badge>;
 
     const variant = statusId.includes('success')
@@ -84,6 +89,81 @@ const Dashboard: React.FC = () => {
     return Math.min(Math.round((current / totalSteps) * 100), 100);
   };
 
+  const columns = useMemo<ColumnDef<SubmissionRequest>[]>(
+    () => [
+      {
+        header: t('dash.col.id'),
+        accessorKey: 'id',
+        cell: ({ row }) => (
+          <span className="font-mono text-xs text-slate-500">{row.original.id}</span>
+        ),
+      },
+      {
+        header: t('dash.col.name'),
+        accessorKey: 'projectNameSnapshot',
+        cell: ({ row }) => (
+          <div>
+            <div className="font-medium text-slate-900 dark:text-slate-100">
+              {row.original.projectNameSnapshot}
+            </div>
+            <div className="text-xs text-slate-500">{row.original.projectId}</div>
+          </div>
+        ),
+      },
+      {
+        header: t('dash.col.types'),
+        accessorKey: 'configurations',
+        cell: ({ row }) => (
+          <div className="flex gap-1 flex-wrap">
+            {row.original.configurations.map(c => (
+              <Badge key={c.type} size="sm">
+                {c.type.split(' ')[0]}
+              </Badge>
+            ))}
+          </div>
+        ),
+      },
+      {
+        header: t('dash.col.status'),
+        accessorKey: 'process',
+        cell: ({ row }) => getStatusBadge(row.original.process.statusId),
+      },
+      {
+        header: t('dash.col.progress'),
+        accessorKey: 'createdAt',
+        cell: ({ row }) => {
+          const progress = calculateProgress(row.original);
+          return (
+            <div>
+              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 max-w-[100px]">
+                <div
+                  className="h-1.5 rounded-full bg-brand-500 transition-all duration-1000"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+              <span className="text-xs text-slate-400 mt-1 block">{progress}%</span>
+            </div>
+          );
+        },
+      },
+      {
+        header: t('dash.col.action'),
+        accessorKey: 'id',
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <button
+              onClick={() => navigate(`/results/${row.original.id}`)}
+              className="text-brand-600 hover:text-brand-700 font-medium text-sm flex items-center gap-1"
+            >
+              {t('dash.view_results')} <ArrowRightIcon className="w-4 h-4" />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [navigate, t]
+  );
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex justify-between items-end">
@@ -99,64 +179,15 @@ const Dashboard: React.FC = () => {
       </div>
 
       <Card padding="none">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              <th className="px-6 py-4">{t('dash.col.id')}</th>
-              <th className="px-6 py-4">{t('dash.col.name')}</th>
-              <th className="px-6 py-4">{t('dash.col.types')}</th>
-              <th className="px-6 py-4">{t('dash.col.status')}</th>
-              <th className="px-6 py-4">{t('dash.col.progress')}</th>
-              <th className="px-6 py-4 text-right">{t('dash.col.action')}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-            {MOCK_REQUESTS.map(task => {
-              const progress = calculateProgress(task);
-              return (
-                <tr
-                  key={task.id}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors group"
-                >
-                  <td className="px-6 py-4 font-mono text-xs text-slate-500">{task.id}</td>
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-slate-900 dark:text-slate-100">
-                      {task.projectNameSnapshot}
-                    </div>
-                    <div className="text-xs text-slate-500">{task.projectId}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-1 flex-wrap">
-                      {task.configurations.map(c => (
-                        <Badge key={c.type} size="sm">
-                          {c.type.split(' ')[0]}
-                        </Badge>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">{getStatusBadge(task.process.statusId)}</td>
-                  <td className="px-6 py-4">
-                    <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 max-w-[100px]">
-                      <div
-                        className="h-1.5 rounded-full bg-brand-500 transition-all duration-1000"
-                        style={{ width: `${progress}%` }}
-                      />
-                    </div>
-                    <span className="text-xs text-slate-400 mt-1 block">{progress}%</span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => navigate(`/results/${task.id}`)}
-                      className="text-brand-600 hover:text-brand-700 font-medium text-sm flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      {t('dash.view_results')} <ArrowRightIcon className="w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <DataTable
+          data={MOCK_REQUESTS}
+          columns={columns}
+          containerHeight={480}
+          enableSorting={false}
+          showCount={false}
+          className="border-none"
+          wrapperClassName="p-4"
+        />
       </Card>
     </div>
   );
