@@ -1,6 +1,35 @@
 import { useState, useCallback, useMemo } from 'react';
-import { useConfigStore } from '@/stores';
-import { configApi } from '@/api';
+import {
+  useProjects,
+  useCreateProject,
+  useUpdateProject,
+  useDeleteProject,
+  useSimTypes,
+  useCreateSimType,
+  useUpdateSimType,
+  useDeleteSimType,
+  useParamDefs,
+  useCreateParamDef,
+  useUpdateParamDef,
+  useDeleteParamDef,
+  useSolvers,
+  useCreateSolver,
+  useUpdateSolver,
+  useDeleteSolver,
+  useConditionDefs,
+  useCreateConditionDef,
+  useUpdateConditionDef,
+  useDeleteConditionDef,
+  useOutputDefs,
+  useCreateOutputDef,
+  useUpdateOutputDef,
+  useDeleteOutputDef,
+  useFoldTypes,
+  useCreateFoldType,
+  useUpdateFoldType,
+  useDeleteFoldType,
+  useWorkflows,
+} from '@/features/config/queries';
 import { useToast, useConfirmDialog } from '@/components/ui';
 import { useStableCallback } from '@/hooks/useStableCallback';
 import { useFormState } from '@/hooks/useFormState';
@@ -57,23 +86,42 @@ const getDefaultFormData = (type: ModalType) => {
 };
 
 export const useConfigurationState = () => {
-  const {
-    projects,
-    paramDefs,
-    workflows,
-    simTypes,
-    solvers,
-    conditionDefs,
-    outputDefs,
-    foldTypes,
-    refreshProjects,
-    refreshSimTypes,
-    refreshParamDefs,
-    refreshSolvers,
-    refreshConditionDefs,
-    refreshOutputDefs,
-    refreshFoldTypes,
-  } = useConfigStore();
+  const { data: projects = [] } = useProjects();
+  const { data: paramDefs = [] } = useParamDefs();
+  const { data: workflows = [] } = useWorkflows();
+  const { data: simTypes = [] } = useSimTypes();
+  const { data: solvers = [] } = useSolvers();
+  const { data: conditionDefs = [] } = useConditionDefs();
+  const { data: outputDefs = [] } = useOutputDefs();
+  const { data: foldTypes = [] } = useFoldTypes();
+
+  const createProject = useCreateProject();
+  const updateProject = useUpdateProject();
+  const deleteProject = useDeleteProject();
+
+  const createSimType = useCreateSimType();
+  const updateSimType = useUpdateSimType();
+  const deleteSimType = useDeleteSimType();
+
+  const createParamDef = useCreateParamDef();
+  const updateParamDef = useUpdateParamDef();
+  const deleteParamDef = useDeleteParamDef();
+
+  const createSolver = useCreateSolver();
+  const updateSolver = useUpdateSolver();
+  const deleteSolver = useDeleteSolver();
+
+  const createConditionDef = useCreateConditionDef();
+  const updateConditionDef = useUpdateConditionDef();
+  const deleteConditionDef = useDeleteConditionDef();
+
+  const createOutputDef = useCreateOutputDef();
+  const updateOutputDef = useUpdateOutputDef();
+  const deleteOutputDef = useDeleteOutputDef();
+
+  const createFoldType = useCreateFoldType();
+  const updateFoldType = useUpdateFoldType();
+  const deleteFoldType = useDeleteFoldType();
 
   const { showToast } = useToast();
   const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
@@ -93,73 +141,59 @@ export const useConfigurationState = () => {
     async data => {
       if (modalType === 'project') {
         if (editingItem) {
-          await configApi.updateProject(editingItem.id as number, data);
+          await updateProject.mutateAsync({ id: editingItem.id as number, data });
           showToast('success', '项目更新成功');
-          await refreshProjects();
         } else {
-          await configApi.createProject(data);
+          await createProject.mutateAsync(data);
           showToast('success', '项目创建成功');
-          await refreshProjects();
         }
       } else if (modalType === 'simType') {
         if (editingItem) {
-          await configApi.updateSimType(editingItem.id, data);
+          await updateSimType.mutateAsync({ id: editingItem.id as number, data });
           showToast('success', '仿真类型更新成功');
-          await refreshSimTypes();
         } else {
-          await configApi.createSimType(data);
+          await createSimType.mutateAsync(data);
           showToast('success', '仿真类型创建成功');
-          await refreshSimTypes();
         }
       } else if (modalType === 'paramDef') {
         if (editingItem) {
-          await configApi.updateParamDef(editingItem.id, data);
+          await updateParamDef.mutateAsync({ id: editingItem.id as number, data });
           showToast('success', '参数定义更新成功');
-          await refreshParamDefs();
         } else {
-          await configApi.createParamDef(data);
+          await createParamDef.mutateAsync(data);
           showToast('success', '参数定义创建成功');
-          await refreshParamDefs();
         }
       } else if (modalType === 'solver') {
         if (editingItem) {
-          await configApi.updateSolver(editingItem.id, data);
+          await updateSolver.mutateAsync({ id: editingItem.id as number, data });
           showToast('success', '求解器更新成功');
-          await refreshSolvers();
         } else {
-          await configApi.createSolver(data);
+          await createSolver.mutateAsync(data);
           showToast('success', '求解器创建成功');
-          await refreshSolvers();
         }
       } else if (modalType === 'conditionDef') {
         if (editingItem) {
-          await configApi.updateConditionDef(editingItem.id, data);
+          await updateConditionDef.mutateAsync({ id: editingItem.id as number, data });
           showToast('success', '工况定义更新成功');
-          await refreshConditionDefs();
         } else {
-          await configApi.createConditionDef(data);
+          await createConditionDef.mutateAsync(data);
           showToast('success', '工况定义创建成功');
-          await refreshConditionDefs();
         }
       } else if (modalType === 'outputDef') {
         if (editingItem) {
-          await configApi.updateOutputDef(editingItem.id, data);
+          await updateOutputDef.mutateAsync({ id: editingItem.id as number, data });
           showToast('success', '输出定义更新成功');
-          await refreshOutputDefs();
         } else {
-          await configApi.createOutputDef(data);
+          await createOutputDef.mutateAsync(data);
           showToast('success', '输出定义创建成功');
-          await refreshOutputDefs();
         }
       } else if (modalType === 'foldType') {
         if (editingItem) {
-          await configApi.updateFoldType(editingItem.id, data);
+          await updateFoldType.mutateAsync({ id: editingItem.id as number, data });
           showToast('success', '姿态类型更新成功');
-          await refreshFoldTypes();
         } else {
-          await configApi.createFoldType(data);
+          await createFoldType.mutateAsync(data);
           showToast('success', '姿态类型创建成功');
-          await refreshFoldTypes();
         }
       }
     }
@@ -198,26 +232,19 @@ export const useConfigurationState = () => {
         async () => {
           try {
             if (type === 'project') {
-              await configApi.deleteProject(id);
-              await refreshProjects();
+              await deleteProject.mutateAsync(id);
             } else if (type === 'simType') {
-              await configApi.deleteSimType(id);
-              await refreshSimTypes();
+              await deleteSimType.mutateAsync(id);
             } else if (type === 'paramDef') {
-              await configApi.deleteParamDef(id);
-              await refreshParamDefs();
+              await deleteParamDef.mutateAsync(id);
             } else if (type === 'solver') {
-              await configApi.deleteSolver(id);
-              await refreshSolvers();
+              await deleteSolver.mutateAsync(id);
             } else if (type === 'conditionDef') {
-              await configApi.deleteConditionDef(id);
-              await refreshConditionDefs();
+              await deleteConditionDef.mutateAsync(id);
             } else if (type === 'outputDef') {
-              await configApi.deleteOutputDef(id);
-              await refreshOutputDefs();
+              await deleteOutputDef.mutateAsync(id);
             } else if (type === 'foldType') {
-              await configApi.deleteFoldType(id);
-              await refreshFoldTypes();
+              await deleteFoldType.mutateAsync(id);
             }
 
             showToast('success', '删除成功');
@@ -232,13 +259,13 @@ export const useConfigurationState = () => {
     [
       showConfirm,
       showToast,
-      refreshProjects,
-      refreshSimTypes,
-      refreshParamDefs,
-      refreshSolvers,
-      refreshConditionDefs,
-      refreshOutputDefs,
-      refreshFoldTypes,
+      deleteProject,
+      deleteSimType,
+      deleteParamDef,
+      deleteSolver,
+      deleteConditionDef,
+      deleteOutputDef,
+      deleteFoldType,
     ]
   );
 

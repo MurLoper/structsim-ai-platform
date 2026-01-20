@@ -2,38 +2,69 @@ import React, { createRef, forwardRef, useImperativeHandle } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, act, cleanup } from '@testing-library/react';
 import { useConfigurationState } from '../useConfigurationState';
-import { useConfigStore } from '@/stores';
-import { configApi } from '@/api';
+import {
+  useProjects,
+  useSimTypes,
+  useParamDefs,
+  useSolvers,
+  useConditionDefs,
+  useOutputDefs,
+  useFoldTypes,
+  useWorkflows,
+  useCreateProject,
+  useUpdateProject,
+  useDeleteProject,
+  useCreateSimType,
+  useUpdateSimType,
+  useDeleteSimType,
+  useCreateParamDef,
+  useUpdateParamDef,
+  useDeleteParamDef,
+  useCreateSolver,
+  useUpdateSolver,
+  useDeleteSolver,
+  useCreateConditionDef,
+  useUpdateConditionDef,
+  useDeleteConditionDef,
+  useCreateOutputDef,
+  useUpdateOutputDef,
+  useDeleteOutputDef,
+  useCreateFoldType,
+  useUpdateFoldType,
+  useDeleteFoldType,
+} from '@/features/config/queries';
 import { useToast, useConfirmDialog } from '@/components/ui';
 
-vi.mock('@/stores', () => ({
-  useConfigStore: vi.fn(),
-}));
-
-vi.mock('@/api', () => ({
-  configApi: {
-    createProject: vi.fn(),
-    updateProject: vi.fn(),
-    createSimType: vi.fn(),
-    updateSimType: vi.fn(),
-    createParamDef: vi.fn(),
-    updateParamDef: vi.fn(),
-    createSolver: vi.fn(),
-    updateSolver: vi.fn(),
-    createConditionDef: vi.fn(),
-    updateConditionDef: vi.fn(),
-    createOutputDef: vi.fn(),
-    updateOutputDef: vi.fn(),
-    createFoldType: vi.fn(),
-    updateFoldType: vi.fn(),
-    deleteProject: vi.fn(),
-    deleteSimType: vi.fn(),
-    deleteParamDef: vi.fn(),
-    deleteSolver: vi.fn(),
-    deleteConditionDef: vi.fn(),
-    deleteOutputDef: vi.fn(),
-    deleteFoldType: vi.fn(),
-  },
+vi.mock('@/features/config/queries', () => ({
+  useProjects: vi.fn(),
+  useSimTypes: vi.fn(),
+  useParamDefs: vi.fn(),
+  useSolvers: vi.fn(),
+  useConditionDefs: vi.fn(),
+  useOutputDefs: vi.fn(),
+  useFoldTypes: vi.fn(),
+  useWorkflows: vi.fn(),
+  useCreateProject: vi.fn(),
+  useUpdateProject: vi.fn(),
+  useDeleteProject: vi.fn(),
+  useCreateSimType: vi.fn(),
+  useUpdateSimType: vi.fn(),
+  useDeleteSimType: vi.fn(),
+  useCreateParamDef: vi.fn(),
+  useUpdateParamDef: vi.fn(),
+  useDeleteParamDef: vi.fn(),
+  useCreateSolver: vi.fn(),
+  useUpdateSolver: vi.fn(),
+  useDeleteSolver: vi.fn(),
+  useCreateConditionDef: vi.fn(),
+  useUpdateConditionDef: vi.fn(),
+  useDeleteConditionDef: vi.fn(),
+  useCreateOutputDef: vi.fn(),
+  useUpdateOutputDef: vi.fn(),
+  useDeleteOutputDef: vi.fn(),
+  useCreateFoldType: vi.fn(),
+  useUpdateFoldType: vi.fn(),
+  useDeleteFoldType: vi.fn(),
 }));
 
 vi.mock('@/components/ui', () => ({
@@ -70,36 +101,105 @@ const setup = () => {
 };
 
 describe('useConfigurationState', () => {
-  const refreshMocks = {
-    refreshProjects: vi.fn().mockResolvedValue(undefined),
-    refreshSimTypes: vi.fn().mockResolvedValue(undefined),
-    refreshParamDefs: vi.fn().mockResolvedValue(undefined),
-    refreshSolvers: vi.fn().mockResolvedValue(undefined),
-    refreshConditionDefs: vi.fn().mockResolvedValue(undefined),
-    refreshOutputDefs: vi.fn().mockResolvedValue(undefined),
-    refreshFoldTypes: vi.fn().mockResolvedValue(undefined),
+  const mutationMocks = {
+    createProject: vi.fn().mockResolvedValue(undefined),
+    updateProject: vi.fn().mockResolvedValue(undefined),
+    deleteProject: vi.fn().mockResolvedValue(undefined),
+    createSimType: vi.fn().mockResolvedValue(undefined),
+    updateSimType: vi.fn().mockResolvedValue(undefined),
+    deleteSimType: vi.fn().mockResolvedValue(undefined),
+    createParamDef: vi.fn().mockResolvedValue(undefined),
+    updateParamDef: vi.fn().mockResolvedValue(undefined),
+    deleteParamDef: vi.fn().mockResolvedValue(undefined),
+    createSolver: vi.fn().mockResolvedValue(undefined),
+    updateSolver: vi.fn().mockResolvedValue(undefined),
+    deleteSolver: vi.fn().mockResolvedValue(undefined),
+    createConditionDef: vi.fn().mockResolvedValue(undefined),
+    updateConditionDef: vi.fn().mockResolvedValue(undefined),
+    deleteConditionDef: vi.fn().mockResolvedValue(undefined),
+    createOutputDef: vi.fn().mockResolvedValue(undefined),
+    updateOutputDef: vi.fn().mockResolvedValue(undefined),
+    deleteOutputDef: vi.fn().mockResolvedValue(undefined),
+    createFoldType: vi.fn().mockResolvedValue(undefined),
+    updateFoldType: vi.fn().mockResolvedValue(undefined),
+    deleteFoldType: vi.fn().mockResolvedValue(undefined),
   };
 
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
 
-    vi.mocked(useConfigStore).mockReturnValue({
-      projects: [],
-      paramDefs: [],
-      workflows: [],
-      simTypes: [],
-      solvers: [],
-      conditionDefs: [],
-      outputDefs: [],
-      foldTypes: [],
-      refreshProjects: refreshMocks.refreshProjects,
-      refreshSimTypes: refreshMocks.refreshSimTypes,
-      refreshParamDefs: refreshMocks.refreshParamDefs,
-      refreshSolvers: refreshMocks.refreshSolvers,
-      refreshConditionDefs: refreshMocks.refreshConditionDefs,
-      refreshOutputDefs: refreshMocks.refreshOutputDefs,
-      refreshFoldTypes: refreshMocks.refreshFoldTypes,
+    vi.mocked(useProjects).mockReturnValue({ data: [] } as any);
+    vi.mocked(useParamDefs).mockReturnValue({ data: [] } as any);
+    vi.mocked(useWorkflows).mockReturnValue({ data: [] } as any);
+    vi.mocked(useSimTypes).mockReturnValue({ data: [] } as any);
+    vi.mocked(useSolvers).mockReturnValue({ data: [] } as any);
+    vi.mocked(useConditionDefs).mockReturnValue({ data: [] } as any);
+    vi.mocked(useOutputDefs).mockReturnValue({ data: [] } as any);
+    vi.mocked(useFoldTypes).mockReturnValue({ data: [] } as any);
+
+    vi.mocked(useCreateProject).mockReturnValue({
+      mutateAsync: mutationMocks.createProject,
+    } as any);
+    vi.mocked(useUpdateProject).mockReturnValue({
+      mutateAsync: mutationMocks.updateProject,
+    } as any);
+    vi.mocked(useDeleteProject).mockReturnValue({
+      mutateAsync: mutationMocks.deleteProject,
+    } as any);
+
+    vi.mocked(useCreateSimType).mockReturnValue({
+      mutateAsync: mutationMocks.createSimType,
+    } as any);
+    vi.mocked(useUpdateSimType).mockReturnValue({
+      mutateAsync: mutationMocks.updateSimType,
+    } as any);
+    vi.mocked(useDeleteSimType).mockReturnValue({
+      mutateAsync: mutationMocks.deleteSimType,
+    } as any);
+
+    vi.mocked(useCreateParamDef).mockReturnValue({
+      mutateAsync: mutationMocks.createParamDef,
+    } as any);
+    vi.mocked(useUpdateParamDef).mockReturnValue({
+      mutateAsync: mutationMocks.updateParamDef,
+    } as any);
+    vi.mocked(useDeleteParamDef).mockReturnValue({
+      mutateAsync: mutationMocks.deleteParamDef,
+    } as any);
+
+    vi.mocked(useCreateSolver).mockReturnValue({ mutateAsync: mutationMocks.createSolver } as any);
+    vi.mocked(useUpdateSolver).mockReturnValue({ mutateAsync: mutationMocks.updateSolver } as any);
+    vi.mocked(useDeleteSolver).mockReturnValue({ mutateAsync: mutationMocks.deleteSolver } as any);
+
+    vi.mocked(useCreateConditionDef).mockReturnValue({
+      mutateAsync: mutationMocks.createConditionDef,
+    } as any);
+    vi.mocked(useUpdateConditionDef).mockReturnValue({
+      mutateAsync: mutationMocks.updateConditionDef,
+    } as any);
+    vi.mocked(useDeleteConditionDef).mockReturnValue({
+      mutateAsync: mutationMocks.deleteConditionDef,
+    } as any);
+
+    vi.mocked(useCreateOutputDef).mockReturnValue({
+      mutateAsync: mutationMocks.createOutputDef,
+    } as any);
+    vi.mocked(useUpdateOutputDef).mockReturnValue({
+      mutateAsync: mutationMocks.updateOutputDef,
+    } as any);
+    vi.mocked(useDeleteOutputDef).mockReturnValue({
+      mutateAsync: mutationMocks.deleteOutputDef,
+    } as any);
+
+    vi.mocked(useCreateFoldType).mockReturnValue({
+      mutateAsync: mutationMocks.createFoldType,
+    } as any);
+    vi.mocked(useUpdateFoldType).mockReturnValue({
+      mutateAsync: mutationMocks.updateFoldType,
+    } as any);
+    vi.mocked(useDeleteFoldType).mockReturnValue({
+      mutateAsync: mutationMocks.deleteFoldType,
     } as any);
 
     vi.mocked(useToast).mockReturnValue({ showToast: vi.fn() });
@@ -107,47 +207,36 @@ describe('useConfigurationState', () => {
       showConfirm: vi.fn(),
       ConfirmDialogComponent: () => null,
     });
-
-    const api = configApi as Record<string, any>;
-    Object.keys(api).forEach(key => {
-      if (vi.isMockFunction(api[key])) {
-        api[key].mockResolvedValue({});
-      }
-    });
   });
 
   const cases: Array<{
     type: ModalType;
-    createMethod: keyof typeof configApi;
-    updateMethod: keyof typeof configApi;
-    refresh: keyof typeof refreshMocks;
+    createMock: keyof typeof mutationMocks;
+    updateMock: keyof typeof mutationMocks;
     createData: Record<string, any>;
     updateData: Record<string, any>;
     id: number;
   }> = [
     {
       type: 'project',
-      createMethod: 'createProject',
-      updateMethod: 'updateProject',
-      refresh: 'refreshProjects',
+      createMock: 'createProject',
+      updateMock: 'updateProject',
       createData: { name: '项目A', code: 'P-A', sort: 10, remark: '备注A' },
       updateData: { name: '项目B', code: 'P-B', sort: 20, remark: '备注B' },
       id: 1,
     },
     {
       type: 'simType',
-      createMethod: 'createSimType',
-      updateMethod: 'updateSimType',
-      refresh: 'refreshSimTypes',
+      createMock: 'createSimType',
+      updateMock: 'updateSimType',
       createData: { name: '结构仿真', code: 'ST', category: 'STRUCTURE', sort: 5 },
       updateData: { name: '热分析', code: 'TH', category: 'THERMAL', sort: 6 },
       id: 2,
     },
     {
       type: 'paramDef',
-      createMethod: 'createParamDef',
-      updateMethod: 'updateParamDef',
-      refresh: 'refreshParamDefs',
+      createMock: 'createParamDef',
+      updateMock: 'updateParamDef',
       createData: {
         name: '长度',
         key: 'len',
@@ -174,9 +263,8 @@ describe('useConfigurationState', () => {
     },
     {
       type: 'solver',
-      createMethod: 'createSolver',
-      updateMethod: 'updateSolver',
-      refresh: 'refreshSolvers',
+      createMock: 'createSolver',
+      updateMock: 'updateSolver',
       createData: {
         name: 'NASTRAN',
         code: 'NST',
@@ -205,9 +293,8 @@ describe('useConfigurationState', () => {
     },
     {
       type: 'conditionDef',
-      createMethod: 'createConditionDef',
-      updateMethod: 'updateConditionDef',
-      refresh: 'refreshConditionDefs',
+      createMock: 'createConditionDef',
+      updateMock: 'updateConditionDef',
       createData: {
         name: '载荷',
         code: 'LOAD',
@@ -228,9 +315,8 @@ describe('useConfigurationState', () => {
     },
     {
       type: 'outputDef',
-      createMethod: 'createOutputDef',
-      updateMethod: 'updateOutputDef',
-      refresh: 'refreshOutputDefs',
+      createMock: 'createOutputDef',
+      updateMock: 'updateOutputDef',
       createData: {
         name: '位移',
         code: 'DISP',
@@ -251,9 +337,8 @@ describe('useConfigurationState', () => {
     },
     {
       type: 'foldType',
-      createMethod: 'createFoldType',
-      updateMethod: 'updateFoldType',
-      refresh: 'refreshFoldTypes',
+      createMock: 'createFoldType',
+      updateMock: 'updateFoldType',
       createData: { name: '折叠A', code: 'F1', angle: 30, sort: 1, remark: '备注1' },
       updateData: { name: '折叠B', code: 'F2', angle: 45, sort: 2, remark: '备注2' },
       id: 7,
@@ -282,11 +367,9 @@ describe('useConfigurationState', () => {
         await ref.current!.handleSave();
       });
 
-      const api = configApi as Record<string, any>;
-      expect(api[testCase.createMethod]).toHaveBeenCalledWith(
+      expect(mutationMocks[testCase.createMock]).toHaveBeenCalledWith(
         expect.objectContaining(testCase.createData)
       );
-      expect(refreshMocks[testCase.refresh]).toHaveBeenCalled();
     });
 
     it(`编辑 ${testCase.type} 时应提交所有字段`, async () => {
@@ -304,12 +387,10 @@ describe('useConfigurationState', () => {
         await ref.current!.handleSave();
       });
 
-      const api = configApi as Record<string, any>;
-      expect(api[testCase.updateMethod]).toHaveBeenCalledWith(
-        testCase.id,
-        expect.objectContaining(testCase.updateData)
-      );
-      expect(refreshMocks[testCase.refresh]).toHaveBeenCalled();
+      expect(mutationMocks[testCase.updateMock]).toHaveBeenCalledWith({
+        id: testCase.id,
+        data: expect.objectContaining(testCase.updateData),
+      });
     });
   });
 });
