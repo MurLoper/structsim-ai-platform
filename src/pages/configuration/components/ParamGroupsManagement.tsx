@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { configApi } from '@/api';
+import { useFormState } from '@/hooks/useFormState';
 import type { ParamGroup, ParamInGroup } from '@/types/configGroups';
 import type { ParamDef } from '@/api';
 
@@ -20,7 +21,6 @@ export const ParamGroupsManagement: React.FC = () => {
     try {
       setLoading(true);
       const response = await configApi.getParamGroups();
-      console.log('参数组合响应:', response);
       // 确保response.data是数组
       const groupsData = Array.isArray(response?.data) ? response.data : [];
       setGroups(groupsData);
@@ -36,7 +36,6 @@ export const ParamGroupsManagement: React.FC = () => {
   const loadParamDefs = async () => {
     try {
       const response = await configApi.getParamDefs();
-      console.log('参数定义响应:', response);
       const paramDefsData = Array.isArray(response?.data) ? response.data : [];
       setAllParamDefs(paramDefsData);
     } catch (error) {
@@ -49,7 +48,6 @@ export const ParamGroupsManagement: React.FC = () => {
   const loadGroupParams = async (groupId: number) => {
     try {
       const response = await configApi.getParamGroupParams(groupId);
-      console.log('组合参数响应:', response);
       const paramsData = Array.isArray(response?.data) ? response.data : [];
       setGroupParams(paramsData);
     } catch (error) {
@@ -282,11 +280,16 @@ const GroupModal: React.FC<{
   onSave: (data: Partial<ParamGroup>) => void;
   onClose: () => void;
 }> = ({ group, onSave, onClose }) => {
-  const [formData, setFormData] = useState({
-    name: group?.name || '',
-    description: group?.description || '',
-    sort: group?.sort || 100,
-  });
+  const initialData = useMemo(
+    () => ({
+      name: group?.name || '',
+      description: group?.description || '',
+      sort: group?.sort ?? 100,
+    }),
+    [group]
+  );
+
+  const { formData, updateField } = useFormState(initialData);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -297,16 +300,16 @@ const GroupModal: React.FC<{
             <label className="block text-sm font-medium mb-1">名称</label>
             <input
               type="text"
-              value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              value={formData.name || ''}
+              onChange={e => updateField('name', e.target.value)}
               className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
             />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">描述</label>
             <textarea
-              value={formData.description}
-              onChange={e => setFormData({ ...formData, description: e.target.value })}
+              value={formData.description || ''}
+              onChange={e => updateField('description', e.target.value)}
               className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
               rows={3}
             />
@@ -315,8 +318,8 @@ const GroupModal: React.FC<{
             <label className="block text-sm font-medium mb-1">排序</label>
             <input
               type="number"
-              value={formData.sort}
-              onChange={e => setFormData({ ...formData, sort: parseInt(e.target.value) })}
+              value={formData.sort ?? 100}
+              onChange={e => updateField('sort', Number(e.target.value))}
               className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
             />
           </div>
@@ -347,11 +350,19 @@ const AddParamModal: React.FC<{
   onAdd: (paramDefId: number, defaultValue?: string) => void;
   onClose: () => void;
 }> = ({ paramDefs, existingParams, onAdd, onClose }) => {
-  const [selectedParamId, setSelectedParamId] = useState<number | null>(null);
-  const [defaultValue, setDefaultValue] = useState('');
+  const initialData = useMemo(
+    () => ({
+      selectedParamId: null as number | null,
+      defaultValue: '',
+    }),
+    []
+  );
+
+  const { formData, updateField } = useFormState(initialData);
 
   const existingParamIds = new Set(existingParams.map(p => p.paramDefId));
   const availableParams = paramDefs.filter(p => !existingParamIds.has(p.id));
+  const selectedParamId = formData.selectedParamId ?? null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -361,8 +372,13 @@ const AddParamModal: React.FC<{
           <div>
             <label className="block text-sm font-medium mb-1">选择参数</label>
             <select
-              value={selectedParamId || ''}
-              onChange={e => setSelectedParamId(parseInt(e.target.value))}
+              value={selectedParamId ?? ''}
+              onChange={e =>
+                updateField(
+                  'selectedParamId',
+                  e.target.value ? Number(e.target.value) : (null as number | null)
+                )
+              }
               className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
             >
               <option value="">请选择</option>
@@ -377,8 +393,8 @@ const AddParamModal: React.FC<{
             <label className="block text-sm font-medium mb-1">默认值（可选）</label>
             <input
               type="text"
-              value={defaultValue}
-              onChange={e => setDefaultValue(e.target.value)}
+              value={formData.defaultValue || ''}
+              onChange={e => updateField('defaultValue', e.target.value)}
               className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
             />
           </div>
@@ -391,7 +407,9 @@ const AddParamModal: React.FC<{
             取消
           </button>
           <button
-            onClick={() => selectedParamId && onAdd(selectedParamId, defaultValue || undefined)}
+            onClick={() =>
+              selectedParamId && onAdd(selectedParamId, formData.defaultValue || undefined)
+            }
             disabled={!selectedParamId}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >

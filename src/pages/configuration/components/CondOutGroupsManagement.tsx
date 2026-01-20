@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import { configApi } from '@/api';
+import { useFormState } from '@/hooks/useFormState';
 import type { CondOutGroup, ConditionInGroup, OutputInGroup } from '@/types/configGroups';
 import type { ConditionDef, OutputDef } from '@/api';
 
@@ -374,11 +375,16 @@ const GroupModal: React.FC<{
   onSave: (data: Partial<CondOutGroup>) => void;
   onClose: () => void;
 }> = ({ group, onSave, onClose }) => {
-  const [formData, setFormData] = useState({
-    name: group?.name || '',
-    description: group?.description || '',
-    sort: group?.sort || 100,
-  });
+  const initialData = useMemo(
+    () => ({
+      name: group?.name || '',
+      description: group?.description || '',
+      sort: group?.sort ?? 100,
+    }),
+    [group]
+  );
+
+  const { formData, updateField } = useFormState(initialData);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -389,16 +395,16 @@ const GroupModal: React.FC<{
             <label className="block text-sm font-medium mb-1">名称</label>
             <input
               type="text"
-              value={formData.name}
-              onChange={e => setFormData({ ...formData, name: e.target.value })}
+              value={formData.name || ''}
+              onChange={e => updateField('name', e.target.value)}
               className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
             />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">描述</label>
             <textarea
-              value={formData.description}
-              onChange={e => setFormData({ ...formData, description: e.target.value })}
+              value={formData.description || ''}
+              onChange={e => updateField('description', e.target.value)}
               className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
               rows={3}
             />
@@ -430,16 +436,24 @@ const AddConditionModal: React.FC<{
   onAdd: (conditionDefId: number, configData?: Record<string, any>) => void;
   onClose: () => void;
 }> = ({ conditionDefs, existingConditions, onAdd, onClose }) => {
-  const [selectedCondId, setSelectedCondId] = useState<number | null>(null);
-  const [configData, setConfigData] = useState('{}');
+  const initialData = useMemo(
+    () => ({
+      selectedCondId: null as number | null,
+      configData: '{}',
+    }),
+    []
+  );
+
+  const { formData, updateField } = useFormState(initialData);
 
   const existingCondIds = new Set(existingConditions.map(c => c.conditionDefId));
   const availableConds = conditionDefs.filter(c => !existingCondIds.has(c.id));
+  const selectedCondId = formData.selectedCondId ?? null;
 
   const handleAdd = () => {
     if (!selectedCondId) return;
     try {
-      const parsed = JSON.parse(configData);
+      const parsed = JSON.parse(formData.configData || '{}');
       onAdd(selectedCondId, parsed);
     } catch (error) {
       alert('配置数据格式错误，请输入有效的JSON');
@@ -454,8 +468,13 @@ const AddConditionModal: React.FC<{
           <div>
             <label className="block text-sm font-medium mb-1">选择工况</label>
             <select
-              value={selectedCondId || ''}
-              onChange={e => setSelectedCondId(parseInt(e.target.value))}
+              value={selectedCondId ?? ''}
+              onChange={e =>
+                updateField(
+                  'selectedCondId',
+                  e.target.value ? Number(e.target.value) : (null as number | null)
+                )
+              }
               className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
             >
               <option value="">请选择</option>
@@ -469,8 +488,8 @@ const AddConditionModal: React.FC<{
           <div>
             <label className="block text-sm font-medium mb-1">配置数据（JSON格式）</label>
             <textarea
-              value={configData}
-              onChange={e => setConfigData(e.target.value)}
+              value={formData.configData || '{}'}
+              onChange={e => updateField('configData', e.target.value)}
               className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 font-mono text-xs"
               rows={4}
               placeholder='{"key": "value"}'
@@ -504,10 +523,18 @@ const AddOutputModal: React.FC<{
   onAdd: (outputDefId: number) => void;
   onClose: () => void;
 }> = ({ outputDefs, existingOutputs, onAdd, onClose }) => {
-  const [selectedOutputId, setSelectedOutputId] = useState<number | null>(null);
+  const initialData = useMemo(
+    () => ({
+      selectedOutputId: null as number | null,
+    }),
+    []
+  );
+
+  const { formData, updateField } = useFormState(initialData);
 
   const existingOutputIds = new Set(existingOutputs.map(o => o.outputDefId));
   const availableOutputs = outputDefs.filter(o => !existingOutputIds.has(o.id));
+  const selectedOutputId = formData.selectedOutputId ?? null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -517,8 +544,13 @@ const AddOutputModal: React.FC<{
           <div>
             <label className="block text-sm font-medium mb-1">选择输出</label>
             <select
-              value={selectedOutputId || ''}
-              onChange={e => setSelectedOutputId(parseInt(e.target.value))}
+              value={selectedOutputId ?? ''}
+              onChange={e =>
+                updateField(
+                  'selectedOutputId',
+                  e.target.value ? Number(e.target.value) : (null as number | null)
+                )
+              }
               className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
             >
               <option value="">请选择</option>

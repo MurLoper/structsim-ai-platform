@@ -34,6 +34,22 @@ const CATEGORY_OPTIONS = [
   { value: 'ACOUSTIC', label: '声学' },
 ];
 
+const COLOR_TAG_CLASSES: Record<string, string> = {
+  gray: 'bg-gray-500',
+  red: 'bg-red-500',
+  orange: 'bg-orange-500',
+  yellow: 'bg-yellow-500',
+  green: 'bg-green-500',
+  teal: 'bg-teal-500',
+  blue: 'bg-blue-500',
+  indigo: 'bg-indigo-500',
+  purple: 'bg-purple-500',
+  pink: 'bg-pink-500',
+};
+
+const getColorTagClass = (colorTag?: string) =>
+  COLOR_TAG_CLASSES[colorTag ?? 'gray'] || COLOR_TAG_CLASSES.gray;
+
 const Configuration: React.FC = () => {
   const { language } = useUIStore();
   const t = (key: string) => RESOURCES[language][key] || key;
@@ -161,7 +177,7 @@ const Configuration: React.FC = () => {
                     key={st.id}
                     title={st.name}
                     subtitle={`${st.code} | ${st.category}`}
-                    colorDot={`bg-${st.colorTag}-500`}
+                    colorDot={getColorTagClass(st.colorTag)}
                     onEdit={() => state.openModal('simType', st)}
                     onDelete={() => state.handleDelete('simType', st.id, st.name)}
                   />
@@ -466,34 +482,20 @@ const Configuration: React.FC = () => {
                   <FormInput
                     label="最小值"
                     value={state.formData.minVal ?? 0}
-                    onChange={v => {
-                      console.log('🔵 [最小值] 输入值:', v, '类型:', typeof v);
-                      console.log('🔵 [最小值] 转换后:', Number(v));
-                      console.log('🔵 [最小值] 当前 formData:', state.formData);
-                      state.updateFormData('minVal', Number(v));
-                    }}
+                    onChange={v => state.updateFormData('minVal', Number(v))}
                     type="number"
                   />
                   <FormInput
                     label="最大值"
                     value={state.formData.maxVal ?? 100}
-                    onChange={v => {
-                      console.log('🟡 [最大值] 输入值:', v, '类型:', typeof v);
-                      console.log('🟡 [最大值] 转换后:', Number(v));
-                      console.log('🟡 [最大值] 当前 formData:', state.formData);
-                      state.updateFormData('maxVal', Number(v));
-                    }}
+                    onChange={v => state.updateFormData('maxVal', Number(v))}
                     type="number"
                   />
                 </div>
                 <FormInput
                   label="默认值"
                   value={state.formData.defaultVal || ''}
-                  onChange={v => {
-                    console.log('🟢 [默认值] 输入值:', v, '类型:', typeof v);
-                    console.log('🟢 [默认值] 当前 formData:', state.formData);
-                    state.updateFormData('defaultVal', v);
-                  }}
+                  onChange={v => state.updateFormData('defaultVal', v)}
                   placeholder="请输入默认值"
                 />
                 <div className="grid grid-cols-2 gap-4">

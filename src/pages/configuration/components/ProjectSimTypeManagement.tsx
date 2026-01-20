@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui';
 import { PlusIcon, TrashIcon, StarIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { configApi } from '@/api';
+import { useFormState } from '@/hooks/useFormState';
 import type { ProjectSimTypeRel } from '@/types/configGroups';
 import type { Project, SimType } from '@/types/config';
 
@@ -229,14 +230,22 @@ const AddSimTypeModal: React.FC<AddSimTypeModalProps> = ({
   onAdd,
   onClose,
 }) => {
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [isDefault, setIsDefault] = useState(0);
+  const initialData = useMemo(
+    () => ({
+      selectedId: null as number | null,
+      isDefault: 0,
+    }),
+    []
+  );
+
+  const { formData, updateField } = useFormState(initialData);
 
   const availableSimTypes = simTypes.filter(st => !existingIds.has(st.id));
+  const selectedId = formData.selectedId ?? null;
 
   const handleSubmit = () => {
     if (selectedId) {
-      onAdd(selectedId, isDefault);
+      onAdd(selectedId, formData.isDefault ?? 0);
     }
   };
 
@@ -250,8 +259,13 @@ const AddSimTypeModal: React.FC<AddSimTypeModalProps> = ({
           <div>
             <label className="block text-sm font-medium mb-2">选择仿真类型</label>
             <select
-              value={selectedId || ''}
-              onChange={e => setSelectedId(Number(e.target.value))}
+              value={selectedId ?? ''}
+              onChange={e =>
+                updateField(
+                  'selectedId',
+                  e.target.value ? Number(e.target.value) : (null as number | null)
+                )
+              }
               className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
             >
               <option value="">请选择...</option>
@@ -266,8 +280,8 @@ const AddSimTypeModal: React.FC<AddSimTypeModalProps> = ({
             <input
               type="checkbox"
               id="isDefault"
-              checked={isDefault === 1}
-              onChange={e => setIsDefault(e.target.checked ? 1 : 0)}
+              checked={(formData.isDefault ?? 0) === 1}
+              onChange={e => updateField('isDefault', e.target.checked ? 1 : 0)}
               className="rounded"
             />
             <label htmlFor="isDefault" className="text-sm">

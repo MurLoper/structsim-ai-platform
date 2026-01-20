@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui';
 import { PlusIcon, TrashIcon, StarIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { configApi } from '@/api';
+import { useFormState } from '@/hooks/useFormState';
 import type {
   SimTypeParamGroupRel,
   SimTypeCondOutGroupRel,
@@ -538,10 +539,18 @@ const AddRelationModal: React.FC<{
   getItemLabel: (item: any) => string;
   getItemSubLabel?: (item: any) => string | undefined;
 }> = ({ title, items, existingIds, onAdd, onClose, getItemLabel, getItemSubLabel }) => {
-  const [selectedId, setSelectedId] = useState<number | null>(null);
-  const [isDefault, setIsDefault] = useState(0);
+  const initialData = useMemo(
+    () => ({
+      selectedId: null as number | null,
+      isDefault: 0,
+    }),
+    []
+  );
+
+  const { formData, updateField } = useFormState(initialData);
 
   const availableItems = items.filter(item => !existingIds.has(item.id));
+  const selectedId = formData.selectedId ?? null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -551,8 +560,13 @@ const AddRelationModal: React.FC<{
           <div>
             <label className="block text-sm font-medium mb-1">选择配置</label>
             <select
-              value={selectedId || ''}
-              onChange={e => setSelectedId(parseInt(e.target.value))}
+              value={selectedId ?? ''}
+              onChange={e =>
+                updateField(
+                  'selectedId',
+                  e.target.value ? Number(e.target.value) : (null as number | null)
+                )
+              }
               className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
             >
               <option value="">请选择</option>
@@ -568,8 +582,8 @@ const AddRelationModal: React.FC<{
             <input
               type="checkbox"
               id="isDefault"
-              checked={isDefault === 1}
-              onChange={e => setIsDefault(e.target.checked ? 1 : 0)}
+              checked={(formData.isDefault ?? 0) === 1}
+              onChange={e => updateField('isDefault', e.target.checked ? 1 : 0)}
               className="rounded"
             />
             <label htmlFor="isDefault" className="text-sm">
@@ -585,7 +599,7 @@ const AddRelationModal: React.FC<{
             取消
           </button>
           <button
-            onClick={() => selectedId && onAdd(selectedId, isDefault)}
+            onClick={() => selectedId && onAdd(selectedId, formData.isDefault ?? 0)}
             disabled={!selectedId}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >

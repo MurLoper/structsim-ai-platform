@@ -23,6 +23,22 @@ interface AutomationModule {
   remark?: string;
 }
 
+const STATUS_COLOR_CLASSES: Record<string, string> = {
+  gray: 'bg-gray-500',
+  red: 'bg-red-500',
+  orange: 'bg-orange-500',
+  yellow: 'bg-yellow-500',
+  green: 'bg-green-500',
+  teal: 'bg-teal-500',
+  blue: 'bg-blue-500',
+  indigo: 'bg-indigo-500',
+  purple: 'bg-purple-500',
+  pink: 'bg-pink-500',
+};
+
+const getStatusColorClass = (colorTag?: string) =>
+  STATUS_COLOR_CLASSES[colorTag ?? 'gray'] || STATUS_COLOR_CLASSES.gray;
+
 export const SystemConfigManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'status' | 'automation'>('status');
   const [statusDefs, setStatusDefs] = useState<StatusDef[]>([]);
@@ -113,7 +129,7 @@ export const SystemConfigManagement: React.FC = () => {
                   >
                     <div className="flex items-center gap-3">
                       <span
-                        className={`w-3 h-3 rounded-full bg-${status.colorTag || 'gray'}-500`}
+                        className={`w-3 h-3 rounded-full ${getStatusColorClass(status.colorTag)}`}
                       />
                       <div>
                         <div className="font-medium">{status.name}</div>
