@@ -1,8 +1,10 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
 import { Button } from '@/components/ui';
+import { useForm, useWatch } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import {
   FolderIcon,
   CubeIcon,
@@ -12,6 +14,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 import { useSubmissionState, useCanvasInteraction } from './hooks';
+import { submissionFormSchema, type SubmissionFormValues } from './types';
 import {
   CanvasNode,
   ConnectionLine,
@@ -30,8 +33,33 @@ const Submission: React.FC = () => {
   const t = (key: string) => RESOURCES[language][key] || key;
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const form = useForm<SubmissionFormValues>({
+    resolver: zodResolver(submissionFormSchema),
+    defaultValues: {
+      projectId: null,
+      originFile: { type: 1, path: '', name: '' },
+      foldTypeId: 1,
+      remark: '',
+      simTypeIds: [],
+    },
+    mode: 'onChange',
+    reValidateMode: 'onChange',
+    shouldFocusError: true,
+  });
+
+  const selectedProjectId = useWatch({ control: form.control, name: 'projectId' }) ?? null;
+  const originFile = useWatch({ control: form.control, name: 'originFile' }) ?? {
+    type: 1,
+    path: '',
+    name: '',
+  };
+  const foldTypeId = useWatch({ control: form.control, name: 'foldTypeId' }) ?? 1;
+  const simTypeError = form.formState.errors.simTypeIds?.message;
+  const isSubmitted = form.formState.isSubmitted;
+  const showSimTypeError = isSubmitted ? simTypeError : undefined;
+
   // 使用自定义 hooks
-  const state = useSubmissionState();
+  const state = useSubmissionState(selectedProjectId);
   const canvas = useCanvasInteraction({
     transform: state.transform,
     setTransform: state.setTransform,
@@ -40,6 +68,18 @@ const Submission: React.FC = () => {
     startPan: state.startPan,
     setStartPan: state.setStartPan,
   });
+
+  useEffect(() => {
+    form.setValue('simTypeIds', state.selectedSimTypeIds, { shouldValidate: isSubmitted });
+  }, [form, state.selectedSimTypeIds, isSubmitted]);
+
+  useEffect(() => {
+    if (state.safeFoldTypes.length === 0) return;
+    const currentFoldTypeId = form.getValues('foldTypeId');
+    if (!state.safeFoldTypes.some(ft => ft.id === currentFoldTypeId)) {
+      form.setValue('foldTypeId', state.safeFoldTypes[0].id, { shouldValidate: true });
+    }
+  }, [form, state.safeFoldTypes]);
 
   // 打开抽屉方法
   const openProjectDrawer = () => {
@@ -66,35 +106,46 @@ const Submission: React.FC = () => {
   };
 
   // 提交处理
-  const handleSubmit = () => {
-    if (!state.selectedProjectId) {
-      alert(t('sub.error.project') || '请选择项目');
-      return;
-    }
-    if (state.selectedSimTypeIds.length === 0) {
-      alert(t('sub.error.sim_type') || '请至少选择一个仿真类型');
-      return;
-    }
-    if (!state.originFile.path && !state.originFile.name) {
-      alert(t('sub.error.source') || '请填写源文件信息');
-      return;
-    }
+  const handleSubmit = form.handleSubmit(
+    values => {
+      const orderData = {
+        projectId: values.projectId,
+        originFile: values.originFile,
+        foldTypeId: values.foldTypeId,
+        remark: values.remark,
+        simTypeIds: values.simTypeIds,
+        simTypeConfigs: state.selectedSimTypeIds.map(id => state.simTypeConfigs[id]),
+      };
 
-    const orderData = {
-      projectId: state.selectedProjectId,
-      originFile: state.originFile,
-      foldTypeId: state.foldTypeId,
-      remark: state.remark,
-      simTypeIds: state.selectedSimTypeIds,
-      simTypeConfigs: state.selectedSimTypeIds.map(id => state.simTypeConfigs[id]),
-    };
-
-    // TODO: 调用 API 提交订单
-    // eslint-disable-next-line no-console
-    console.log('提交订单:', orderData);
-    alert('提交成功！（演示）');
-    navigate('/orders');
-  };
+      // TODO: 调用 API 提交订单
+      // eslint-disable-next-line no-console
+      console.log('提交订单:', orderData);
+      alert('提交成功！（演示）');
+      navigate('/orders');
+    },
+    errors => {
+      if (errors.projectId || errors.originFile || errors.foldTypeId || errors.remark) {
+        openProjectDrawer();
+        requestAnimationFrame(() => {
+          if (errors.projectId) {
+            form.setFocus('projectId');
+            return;
+          }
+          if (errors.originFile?.path) {
+            form.setFocus('originFile.path');
+            return;
+          }
+          if (errors.originFile?.name) {
+            form.setFocus('originFile.name');
+            return;
+          }
+          if (errors.foldTypeId) {
+            form.setFocus('foldTypeId');
+          }
+        });
+      }
+    }
+  );
 
   // 获取抽屉标题
   const getDrawerTitle = () => {
@@ -152,6 +203,11 @@ const Submission: React.FC = () => {
               <ArrowsPointingOutIcon className="w-5 h-5" />
             </button>
           </div>
+          {showSimTypeError && (
+            <span className="text-sm text-destructive" role="alert">
+              {showSimTypeError}
+            </span>
+          )}
           <Button variant="primary" onClick={handleSubmit}>
             {t('sub.submit')}
           </Button>
@@ -183,7 +239,7 @@ const Submission: React.FC = () => {
             width={PROJECT_NODE_WIDTH}
             icon={<FolderIcon className="w-6 h-6" />}
             isActive={!!state.selectedProject}
-            isComplete={!!state.selectedProject && !!state.originFile.path}
+            isComplete={!!state.selectedProject && !!(originFile.path || originFile.name)}
             onClick={openProjectDrawer}
           >
             {state.selectedProject ? (
@@ -191,13 +247,13 @@ const Submission: React.FC = () => {
                 <div className="flex justify-between">
                   <span>源文件:</span>
                   <span className="font-mono text-slate-700 dark:text-slate-300 truncate max-w-[180px]">
-                    {state.originFile.path || state.originFile.name || '-'}
+                    {originFile.path || originFile.name || '-'}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span>折叠类型:</span>
                   <span className="font-medium">
-                    {state.safeFoldTypes.find(f => f.id === state.foldTypeId)?.name || '-'}
+                    {state.safeFoldTypes.find(f => f.id === foldTypeId)?.name || '-'}
                   </span>
                 </div>
               </div>
@@ -297,15 +353,9 @@ const Submission: React.FC = () => {
         {state.drawerMode === 'project' ? (
           <ProjectDrawerContent
             projects={state.projects}
-            selectedProjectId={state.selectedProjectId}
-            onProjectChange={state.setSelectedProjectId}
-            originFile={state.originFile}
-            onOriginFileChange={state.setOriginFile}
             foldTypes={state.safeFoldTypes}
-            foldTypeId={state.foldTypeId}
-            onFoldTypeChange={state.setFoldTypeId}
-            remark={state.remark}
-            onRemarkChange={state.setRemark}
+            control={form.control}
+            setValue={form.setValue}
             t={t}
           />
         ) : state.drawerMode === 'params' &&

@@ -13,13 +13,12 @@ import {
 import type {
   SimTypeConfig,
   GlobalSolverConfig,
-  OriginFile,
   DrawerMode,
   CanvasTransform,
   SolverConfig,
 } from '../types';
 
-export const useSubmissionState = () => {
+export const useSubmissionState = (selectedProjectId: number | null) => {
   const { data: projects = [] } = useProjects();
   const { data: simTypes = [] } = useSimTypes();
   const { data: foldTypes = [] } = useFoldTypes();
@@ -35,11 +34,7 @@ export const useSubmissionState = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [startPan, setStartPan] = useState({ x: 0, y: 0 });
 
-  // 表单状态
-  const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
-  const [originFile, setOriginFile] = useState<OriginFile>({ type: 1, path: '', name: '' });
-  const [foldTypeId, setFoldTypeId] = useState<number>(1);
-  const [remark, setRemark] = useState('');
+  // 仿真类型与配置状态
   const [selectedSimTypeIds, setSelectedSimTypeIds] = useState<number[]>([]);
   const [simTypeConfigs, setSimTypeConfigs] = useState<Record<number, SimTypeConfig>>({});
 
@@ -195,15 +190,7 @@ export const useSubmissionState = () => {
     setIsDragging,
     startPan,
     setStartPan,
-    // 表单状态
-    selectedProjectId,
-    setSelectedProjectId,
-    originFile,
-    setOriginFile,
-    foldTypeId,
-    setFoldTypeId,
-    remark,
-    setRemark,
+    // 仿真类型与配置状态
     selectedSimTypeIds,
     simTypeConfigs,
     globalSolver,

@@ -1,3 +1,5 @@
+import { z } from 'zod';
+
 // ============ 提单页面类型定义 ============
 
 // 求解器配置
@@ -55,3 +57,41 @@ export interface CanvasTransform {
 
 // 抽屉模式
 export type DrawerMode = 'project' | 'params' | 'condOut' | 'solver';
+
+export const submissionFormSchema = z.object({
+  projectId: z
+    .number()
+    .nullable()
+    .refine(value => value !== null, { message: '请选择项目' }),
+  originFile: z
+    .object({
+      type: z.number(),
+      path: z.string().optional().default(''),
+      name: z.string().optional().default(''),
+    })
+    .superRefine((value, ctx) => {
+      const path = (value.path || '').trim();
+      const name = (value.name || '').trim();
+      if (value.type === 1 || value.type === 2) {
+        if (!path) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: value.type === 1 ? '请输入源文件路径' : '请输入源文件ID',
+            path: ['path'],
+          });
+        }
+      }
+      if (value.type === 3 && !name && !path) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: '请填写上传文件名',
+          path: ['name'],
+        });
+      }
+    }),
+  foldTypeId: z.number().int().positive({ message: '请选择折叠类型' }),
+  remark: z.string().max(500, { message: '备注不能超过500字' }).optional().default(''),
+  simTypeIds: z.array(z.number().int()).min(1, { message: '请至少选择一个仿真类型' }),
+});
+
+export type SubmissionFormValues = z.infer<typeof submissionFormSchema>;

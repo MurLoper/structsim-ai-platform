@@ -9,3 +9,6 @@ export * from './config';
 
 // 画布模块
 export * from './canvas';
+
+// 订单模块
+export * from './orders';

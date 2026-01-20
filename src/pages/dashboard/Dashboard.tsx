@@ -4,120 +4,93 @@ import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
 import { Button, Card, Badge } from '@/components/ui';
 import { ArrowRightIcon, BeakerIcon } from '@heroicons/react/24/outline';
-import { SimulationType, SubmissionRequest, SimConfiguration, ParamStrategy } from '@/types';
 import { useStatusDefs } from '@/features/config/queries/useCompositeConfigs';
+import { useProjects, useSimTypes } from '@/features/config/queries';
+import { useOrders } from '@/features/orders/queries';
 import { DataTable } from '@/components/tables/DataTable';
 import type { ColumnDef } from '@tanstack/react-table';
-
-// Helper to create mock data
-const createMockProcess = (workflowId: string, statusId: string) => ({
-  workflowId,
-  currentStepIndex: 3,
-  statusId,
-  steps: [],
-});
-
-const createMockSimConfig = (type: SimulationType): SimConfiguration => ({
-  id: `sim_${type}`,
-  type,
-  isActive: true,
-  parameters: [],
-  selectedLoadCases: [],
-  optConfig: { strategy: ParamStrategy.DOE, rounds: 5, samples: 20 },
-  outputMetrics: [],
-  solverConfig: { version: '2023.R1', processors: 16, memory: 64, precision: 'DOUBLE' },
-});
-
-// Mock data - will be replaced with API calls
-const MOCK_REQUESTS: SubmissionRequest[] = [
-  {
-    id: 'REQ-2023-001',
-    projectId: 'p1',
-    projectNameSnapshot: 'Chassis Stiffness',
-    workflowId: 'wf_req_std',
-    process: createMockProcess('wf_req_std', 's_success'),
-    configurations: [createMockSimConfig(SimulationType.STATIC)],
-    createdAt: '2023-10-15',
-    sourceType: 'path',
-    sourceValue: '/data/chassis_v1.stp',
-    attitudeId: 0,
-    participantIds: ['u1', 'u2'],
-    remarks: 'Initial run',
-  },
-  {
-    id: 'REQ-2023-002',
-    projectId: 'p2',
-    projectNameSnapshot: 'Battery Pack',
-    workflowId: 'wf_req_std',
-    process: createMockProcess('wf_req_std', 's_running'),
-    configurations: [createMockSimConfig(SimulationType.THERMAL)],
-    createdAt: '2023-10-16',
-    sourceType: 'id',
-    sourceValue: 'CAD-99283',
-    attitudeId: 90,
-    participantIds: ['u2'],
-    remarks: 'Thermal check',
-  },
-];
+import type { OrderListItem } from '@/types/order';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { language } = useUIStore();
   const { data: statusDefs } = useStatusDefs();
+  const { data: projects = [] } = useProjects();
+  const { data: simTypes = [] } = useSimTypes();
+  const { data: ordersPage } = useOrders({ page: 1, pageSize: 20 });
+  const orders = ordersPage?.items || [];
   const t = (key: string) => RESOURCES[language][key] || key;
 
-  const getStatusBadge = (statusId: string) => {
-    const config = statusDefs?.find(
-      status => status.code === statusId || String(status.id) === String(statusId)
-    );
-    if (!config) return <Badge>Unknown</Badge>;
+  const projectMap = useMemo(
+    () => new Map(projects.map(project => [project.id, project])),
+    [projects]
+  );
+  const simTypeMap = useMemo(
+    () => new Map(simTypes.map(simType => [simType.id, simType])),
+    [simTypes]
+  );
 
-    const variant = statusId.includes('success')
+  const getStatusBadge = (statusId: number) => {
+    const config = statusDefs?.find(
+      status => String(status.id) === String(statusId) || status.code === String(statusId)
+    );
+    const statusCode = config?.code || String(statusId);
+    const variant = statusCode.includes('success')
       ? 'success'
-      : statusId.includes('failed')
+      : statusCode.includes('failed')
         ? 'error'
-        : statusId.includes('running')
+        : statusCode.includes('running')
           ? 'info'
           : 'default';
 
-    return <Badge variant={variant}>{config.name}</Badge>;
+    return <Badge variant={variant}>{config?.name || statusCode}</Badge>;
   };
 
-  const calculateProgress = (req: SubmissionRequest) => {
-    const totalSteps = 3;
-    const current = req.process.currentStepIndex;
-    return Math.min(Math.round((current / totalSteps) * 100), 100);
+  const calculateProgress = (order: OrderListItem) => {
+    const progress = order.progress ?? 0;
+    return Math.min(Math.max(progress, 0), 100);
   };
 
-  const columns = useMemo<ColumnDef<SubmissionRequest>[]>(
+  const formatCreatedAt = (timestamp?: number) => {
+    if (!timestamp) return '-';
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString();
+  };
+
+  const columns = useMemo<ColumnDef<OrderListItem>[]>(
     () => [
       {
         header: t('dash.col.id'),
-        accessorKey: 'id',
+        accessorKey: 'orderNo',
         cell: ({ row }) => (
-          <span className="font-mono text-xs text-slate-500">{row.original.id}</span>
+          <span className="font-mono text-xs text-slate-500">
+            {row.original.orderNo || row.original.id}
+          </span>
         ),
       },
       {
         header: t('dash.col.name'),
-        accessorKey: 'projectNameSnapshot',
-        cell: ({ row }) => (
-          <div>
-            <div className="font-medium text-slate-900 dark:text-slate-100">
-              {row.original.projectNameSnapshot}
+        accessorKey: 'projectId',
+        cell: ({ row }) => {
+          const project = projectMap.get(row.original.projectId);
+          return (
+            <div>
+              <div className="font-medium text-slate-900 dark:text-slate-100">
+                {project?.name || `#${row.original.projectId}`}
+              </div>
+              <div className="text-xs text-slate-500">{row.original.projectId}</div>
             </div>
-            <div className="text-xs text-slate-500">{row.original.projectId}</div>
-          </div>
-        ),
+          );
+        },
       },
       {
         header: t('dash.col.types'),
-        accessorKey: 'configurations',
+        accessorKey: 'simTypeIds',
         cell: ({ row }) => (
           <div className="flex gap-1 flex-wrap">
-            {row.original.configurations.map(c => (
-              <Badge key={c.type} size="sm">
-                {c.type.split(' ')[0]}
+            {(row.original.simTypeIds || []).map(simTypeId => (
+              <Badge key={simTypeId} size="sm">
+                {simTypeMap.get(simTypeId)?.name || `#${simTypeId}`}
               </Badge>
             ))}
           </div>
@@ -125,12 +98,12 @@ const Dashboard: React.FC = () => {
       },
       {
         header: t('dash.col.status'),
-        accessorKey: 'process',
-        cell: ({ row }) => getStatusBadge(row.original.process.statusId),
+        accessorKey: 'status',
+        cell: ({ row }) => getStatusBadge(row.original.status),
       },
       {
         header: t('dash.col.progress'),
-        accessorKey: 'createdAt',
+        accessorKey: 'progress',
         cell: ({ row }) => {
           const progress = calculateProgress(row.original);
           return (
@@ -147,6 +120,13 @@ const Dashboard: React.FC = () => {
         },
       },
       {
+        header: t('dash.col.submitted_at'),
+        accessorKey: 'createdAt',
+        cell: ({ row }) => (
+          <span className="text-xs text-slate-500">{formatCreatedAt(row.original.createdAt)}</span>
+        ),
+      },
+      {
         header: t('dash.col.action'),
         accessorKey: 'id',
         cell: ({ row }) => (
@@ -161,7 +141,7 @@ const Dashboard: React.FC = () => {
         ),
       },
     ],
-    [navigate, t]
+    [navigate, t, projectMap, simTypeMap, statusDefs]
   );
 
   return (
@@ -180,7 +160,7 @@ const Dashboard: React.FC = () => {
 
       <Card padding="none">
         <DataTable
-          data={MOCK_REQUESTS}
+          data={orders}
           columns={columns}
           containerHeight={480}
           enableSorting={false}
