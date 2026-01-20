@@ -1,5 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useConfigStore } from '@/stores';
+import {
+  useProjects,
+  useSimTypes,
+  useFoldTypes,
+  useParamDefs,
+  useSolvers,
+  useOutputDefs,
+  useConditionDefs,
+  useParamTplSets,
+  useCondOutSets,
+} from '@/features/config/queries';
 import type {
   SimTypeConfig,
   GlobalSolverConfig,
@@ -10,17 +20,15 @@ import type {
 } from '../types';
 
 export const useSubmissionState = () => {
-  const {
-    projects,
-    simTypes,
-    foldTypes,
-    paramDefs,
-    solvers,
-    outputDefs,
-    conditionDefs,
-    paramTplSets,
-    condOutSets,
-  } = useConfigStore();
+  const { data: projects = [] } = useProjects();
+  const { data: simTypes = [] } = useSimTypes();
+  const { data: foldTypes = [] } = useFoldTypes();
+  const { data: paramDefs = [] } = useParamDefs();
+  const { data: solvers = [] } = useSolvers();
+  const { data: outputDefs = [] } = useOutputDefs();
+  const { data: conditionDefs = [] } = useConditionDefs();
+  const { data: paramTplSets = [] } = useParamTplSets();
+  const { data: condOutSets = [] } = useCondOutSets();
 
   // 画布状态
   const [transform, setTransform] = useState<CanvasTransform>({ x: 60, y: 60, scale: 0.85 });
