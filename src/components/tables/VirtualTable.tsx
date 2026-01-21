@@ -27,6 +27,7 @@ import {
 } from '@tanstack/react-table';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { cn } from '@/lib/utils';
+import { Spinner } from '@/components/ui';
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 
 export interface VirtualTableProps<TData> {
@@ -150,7 +151,7 @@ export function VirtualTable<TData>({
         style={{ height: containerHeight }}
       >
         <div className="flex items-center gap-2 text-muted-foreground">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <Spinner size="sm" />
           <span>加载中...</span>
         </div>
       </div>

@@ -7,6 +7,19 @@ import { baseConfigApi } from '@/api/config/base';
 import { queryKeys } from '@/lib/queryClient';
 import type { Project } from '@/types/config';
 
+const toProjectPayload = (data: Partial<Project>) => {
+  const payload: Record<string, unknown> = { ...data };
+  if (data.defaultSimTypeId !== undefined) {
+    payload.default_sim_type_id = data.defaultSimTypeId;
+    delete payload.defaultSimTypeId;
+  }
+  if (data.defaultSolverId !== undefined) {
+    payload.default_solver_id = data.defaultSolverId;
+    delete payload.defaultSolverId;
+  }
+  return payload;
+};
+
 /**
  * 获取项目列表
  */
@@ -42,7 +55,8 @@ export function useCreateProject() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Partial<Project>) => baseConfigApi.createProject(data),
+    mutationFn: (data: Partial<Project>) =>
+      baseConfigApi.createProject(toProjectPayload(data) as Partial<Project>),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
     },
@@ -57,7 +71,7 @@ export function useUpdateProject() {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<Project> }) =>
-      baseConfigApi.updateProject(id, data),
+      baseConfigApi.updateProject(id, toProjectPayload(data) as Partial<Project>),
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.detail(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.list() });

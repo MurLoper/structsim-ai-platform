@@ -9,34 +9,60 @@ let isInitialized = false;
  * 初始化 Sentry 错误监控
  * 仅在生产环境启用
  */
+function parseSampleRate(value: string | undefined, fallback: number) {
+  if (value === undefined || value === null || value === '') {
+    return fallback;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.min(1, Math.max(0, parsed));
+}
+
 export function initSentry() {
   // 防止重复初始化
   if (isInitialized) {
     return;
   }
 
-  // 开发环境跳过
-  if (import.meta.env.DEV) {
-    console.log('[Sentry] Skipped in development mode');
-    return;
-  }
-
   const dsn = import.meta.env.VITE_SENTRY_DSN;
+  const enabledByEnv = import.meta.env.VITE_SENTRY_ENABLED === 'true';
+  const isProd = import.meta.env.PROD;
+
   if (!dsn) {
     console.warn('[Sentry] DSN not configured, error tracking disabled');
     return;
   }
 
+  if (!isProd && !enabledByEnv) {
+    console.log('[Sentry] Skipped in non-prod mode');
+    return;
+  }
+
+  const environment = import.meta.env.VITE_SENTRY_ENV || import.meta.env.MODE;
+  const tracesSampleRate = parseSampleRate(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE, 0.1);
+  const replaysSessionSampleRate = parseSampleRate(
+    import.meta.env.VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE,
+    0.1
+  );
+  const replaysOnErrorSampleRate = parseSampleRate(
+    import.meta.env.VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE,
+    1.0
+  );
+
   Sentry.init({
     dsn,
-    environment: import.meta.env.MODE,
+    environment,
     release: import.meta.env.VITE_APP_VERSION || '1.0.0',
+    enabled: isProd || enabledByEnv,
+    debug: import.meta.env.VITE_SENTRY_DEBUG === 'true',
     // 性能追踪采样率
-    tracesSampleRate: 0.1,
+    tracesSampleRate,
     // 会话回放采样率
-    replaysSessionSampleRate: 0.1,
+    replaysSessionSampleRate,
     // 错误回放采样率
-    replaysOnErrorSampleRate: 1.0,
+    replaysOnErrorSampleRate,
     integrations: [
       Sentry.browserTracingIntegration({
         enableInp: true,
@@ -83,13 +109,13 @@ export function isSentryInitialized(): boolean {
  * 手动捕获错误并发送到 Sentry
  */
 export function captureError(error: Error, context?: Record<string, unknown>) {
-  if (import.meta.env.PROD) {
+  if (isInitialized) {
     Sentry.captureException(error, {
       extra: context,
     });
-  } else {
-    console.error('Error captured:', error, context);
+    return;
   }
+  console.error('Error captured:', error, context);
 }
 
 /**

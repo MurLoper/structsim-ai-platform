@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { VirtualTable } from '@/components/tables/VirtualTable';
 import { configApi } from '@/api';
 import { useFormState } from '@/hooks/useFormState';
+import type { ColumnDef } from '@tanstack/react-table';
 import type { ParamGroup, ParamInGroup } from '@/types/configGroups';
 import type { ParamDef } from '@/api';
 
@@ -112,16 +114,59 @@ export const ParamGroupsManagement: React.FC = () => {
   };
 
   // 从组合移除参数
-  const handleRemoveParam = async (paramId: number) => {
+  const handleRemoveParam = async (paramDefId: number) => {
     if (!selectedGroup) return;
     if (!confirm('确定要移除这个参数吗？')) return;
     try {
-      await configApi.removeParamFromGroup(selectedGroup.id, paramId);
+      await configApi.removeParamFromGroup(selectedGroup.id, paramDefId);
       loadGroupParams(selectedGroup.id);
     } catch (error) {
       console.error('移除参数失败:', error);
     }
   };
+
+  const paramColumns: ColumnDef<ParamInGroup>[] = [
+    {
+      header: '参数名称',
+      accessorKey: 'paramName',
+      cell: ({ row }) => <span className="font-medium">{row.original.paramName}</span>,
+    },
+    {
+      header: 'Key',
+      accessorKey: 'paramKey',
+      cell: ({ row }) => (
+        <span className="text-slate-500 font-mono text-xs">{row.original.paramKey}</span>
+      ),
+      size: 140,
+    },
+    {
+      header: '默认值',
+      accessorKey: 'defaultValue',
+      cell: ({ row }) => <span className="text-slate-500">{row.original.defaultValue || '-'}</span>,
+      size: 120,
+    },
+    {
+      header: '单位',
+      accessorKey: 'unit',
+      cell: ({ row }) => <span className="text-slate-500">{row.original.unit || '-'}</span>,
+      size: 100,
+    },
+    {
+      header: '操作',
+      id: 'actions',
+      size: 80,
+      cell: ({ row }) => (
+        <div className="flex justify-end">
+          <button
+            onClick={() => handleRemoveParam(row.original.paramDefId)}
+            className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -215,35 +260,15 @@ export const ParamGroupsManagement: React.FC = () => {
             ) : groupParams.length === 0 ? (
               <div className="text-center py-12 text-slate-500">该组合暂无参数</div>
             ) : (
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-100 dark:bg-slate-700">
-                  <tr>
-                    <th className="p-3">参数名称</th>
-                    <th className="p-3">Key</th>
-                    <th className="p-3">默认值</th>
-                    <th className="p-3">单位</th>
-                    <th className="p-3 w-24">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {groupParams.map(param => (
-                    <tr key={param.id} className="border-b dark:border-slate-700">
-                      <td className="p-3 font-medium">{param.paramName}</td>
-                      <td className="p-3 text-slate-500 font-mono text-xs">{param.paramKey}</td>
-                      <td className="p-3 text-slate-500">{param.defaultValue || '-'}</td>
-                      <td className="p-3 text-slate-500">{param.unit || '-'}</td>
-                      <td className="p-3">
-                        <button
-                          onClick={() => handleRemoveParam(param.id)}
-                          className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <VirtualTable
+                data={groupParams}
+                columns={paramColumns}
+                getRowId={record => String(record.id)}
+                containerHeight={360}
+                rowHeight={48}
+                enableSorting={false}
+                emptyText="该组合暂无参数"
+              />
             )}
           </div>
         </Card>

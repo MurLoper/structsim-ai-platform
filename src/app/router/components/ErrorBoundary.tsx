@@ -12,6 +12,7 @@
  */
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
+import { captureError } from '@/lib/sentry';
 
 export interface ErrorBoundaryProps {
   children: ReactNode;
@@ -46,11 +47,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({ errorInfo });
     this.props.onError?.(error, errorInfo);
-
-    // 在这里可以上报错误到 Sentry
-    if (import.meta.env.PROD) {
-      // TODO: Sentry.captureException(error, { extra: errorInfo });
-    }
+    captureError(error, { componentStack: errorInfo.componentStack });
   }
 
   handleRetry = () => {
@@ -132,7 +129,7 @@ export function RouteErrorBoundary({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary
       onError={(error, errorInfo) => {
-        console.error('Route Error:', error, errorInfo);
+        captureError(error, { componentStack: errorInfo.componentStack });
       }}
     >
       {children}

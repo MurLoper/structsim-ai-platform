@@ -39,3 +39,15 @@ export const STORAGE_KEYS = {
   THEME: 'theme',
   LANGUAGE: 'language',
 } as const;
+
+// 结果分析分页
+export const RESULTS_PAGE_SIZE = 500 as const;
+
+// 结果分析图表最大点数
+export const RESULTS_CHART_MAX_POINTS = 2000 as const;
+
+// 兼容旧版结果API地址
+export const LEGACY_API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1').replace(
+  /\/api\/v1\/?$/,
+  '/api'
+);

@@ -1,7 +1,9 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
+// 开发环境使用相对路径，通过 Vite 代理转发到后端
+// 生产环境可通过环境变量配置完整 URL
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
 
 // 统一响应结构
 interface ApiResponse<T = unknown> {

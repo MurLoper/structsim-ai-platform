@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui';
 import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
+import { VirtualTable } from '@/components/tables/VirtualTable';
 import { configApi } from '@/api';
 import { useFormState } from '@/hooks/useFormState';
+import type { ColumnDef } from '@tanstack/react-table';
 import type { CondOutGroup, ConditionInGroup, OutputInGroup } from '@/types/configGroups';
 import type { ConditionDef, OutputDef } from '@/api';
 
@@ -126,11 +128,11 @@ export const CondOutGroupsManagement: React.FC = () => {
   };
 
   // 从组合移除工况
-  const handleRemoveCondition = async (condId: number) => {
+  const handleRemoveCondition = async (conditionDefId: number) => {
     if (!selectedGroup) return;
     if (!confirm('确定要移除这个工况吗？')) return;
     try {
-      await configApi.removeConditionFromGroup(selectedGroup.id, condId);
+      await configApi.removeConditionFromGroup(selectedGroup.id, conditionDefId);
       loadGroupDetails(selectedGroup.id);
     } catch (error) {
       console.error('移除工况失败:', error);
@@ -150,16 +152,53 @@ export const CondOutGroupsManagement: React.FC = () => {
   };
 
   // 从组合移除输出
-  const handleRemoveOutput = async (outputId: number) => {
+  const handleRemoveOutput = async (outputDefId: number) => {
     if (!selectedGroup) return;
     if (!confirm('确定要移除这个输出吗？')) return;
     try {
-      await configApi.removeOutputFromGroup(selectedGroup.id, outputId);
+      await configApi.removeOutputFromGroup(selectedGroup.id, outputDefId);
       loadGroupDetails(selectedGroup.id);
     } catch (error) {
       console.error('移除输出失败:', error);
     }
   };
+
+  const outputColumns: ColumnDef<OutputInGroup>[] = [
+    {
+      header: '输出名称',
+      accessorKey: 'outputName',
+      cell: ({ row }) => <span className="font-medium">{row.original.outputName}</span>,
+    },
+    {
+      header: '代码',
+      accessorKey: 'outputCode',
+      cell: ({ row }) => (
+        <span className="text-slate-500 font-mono text-xs">{row.original.outputCode}</span>
+      ),
+      size: 140,
+    },
+    {
+      header: '单位',
+      accessorKey: 'unit',
+      cell: ({ row }) => <span className="text-slate-500">{row.original.unit || '-'}</span>,
+      size: 100,
+    },
+    {
+      header: '操作',
+      id: 'actions',
+      size: 80,
+      cell: ({ row }) => (
+        <div className="flex justify-end">
+          <button
+            onClick={() => handleRemoveOutput(row.original.outputDefId)}
+            className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -270,7 +309,7 @@ export const CondOutGroupsManagement: React.FC = () => {
                       )}
                     </div>
                     <button
-                      onClick={() => handleRemoveCondition(cond.id)}
+                      onClick={() => handleRemoveCondition(cond.conditionDefId)}
                       className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
                     >
                       <TrashIcon className="w-4 h-4" />
@@ -304,33 +343,15 @@ export const CondOutGroupsManagement: React.FC = () => {
             ) : groupOutputs.length === 0 ? (
               <div className="text-center py-12 text-slate-500">该组合暂无输出</div>
             ) : (
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-100 dark:bg-slate-700">
-                  <tr>
-                    <th className="p-3">输出名称</th>
-                    <th className="p-3">代码</th>
-                    <th className="p-3">单位</th>
-                    <th className="p-3 w-24">操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {groupOutputs.map(output => (
-                    <tr key={output.id} className="border-b dark:border-slate-700">
-                      <td className="p-3 font-medium">{output.outputName}</td>
-                      <td className="p-3 text-slate-500 font-mono text-xs">{output.outputCode}</td>
-                      <td className="p-3 text-slate-500">{output.unit || '-'}</td>
-                      <td className="p-3">
-                        <button
-                          onClick={() => handleRemoveOutput(output.id)}
-                          className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
-                        >
-                          <TrashIcon className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <VirtualTable
+                data={groupOutputs}
+                columns={outputColumns}
+                getRowId={record => String(record.id)}
+                containerHeight={320}
+                rowHeight={48}
+                enableSorting={false}
+                emptyText="该组合暂无输出"
+              />
             )}
           </div>
         </Card>

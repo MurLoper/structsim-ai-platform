@@ -7,6 +7,31 @@ import { baseConfigApi } from '@/api/config/base';
 import { queryKeys } from '@/lib/queryClient';
 import type { ParamDef } from '@/types/config';
 
+const toParamDefPayload = (data: Partial<ParamDef>) => {
+  const payload: Record<string, unknown> = { ...data };
+  if (data.valType !== undefined) {
+    payload.val_type = data.valType;
+    delete payload.valType;
+  }
+  if (data.minVal !== undefined) {
+    payload.min_val = data.minVal;
+    delete payload.minVal;
+  }
+  if (data.maxVal !== undefined) {
+    payload.max_val = data.maxVal;
+    delete payload.maxVal;
+  }
+  if (data.defaultVal !== undefined) {
+    payload.default_val = data.defaultVal;
+    delete payload.defaultVal;
+  }
+  if (data.enumOptions !== undefined) {
+    payload.enum_options = data.enumOptions;
+    delete payload.enumOptions;
+  }
+  return payload;
+};
+
 /**
  * 获取参数定义列表
  */
@@ -28,7 +53,8 @@ export function useCreateParamDef() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Partial<ParamDef>) => baseConfigApi.createParamDef(data),
+    mutationFn: (data: Partial<ParamDef>) =>
+      baseConfigApi.createParamDef(toParamDefPayload(data) as Partial<ParamDef>),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.paramDefs.all });
     },
@@ -43,7 +69,7 @@ export function useUpdateParamDef() {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<ParamDef> }) =>
-      baseConfigApi.updateParamDef(id, data),
+      baseConfigApi.updateParamDef(id, toParamDefPayload(data) as Partial<ParamDef>),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.paramDefs.all });
     },

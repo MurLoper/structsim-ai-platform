@@ -2,7 +2,9 @@ import React, { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
-import { Button } from '@/components/ui';
+import { Button, useToast } from '@/components/ui';
+import { ordersApi } from '@/api';
+import { queryClient, queryKeys } from '@/lib/queryClient';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -30,6 +32,7 @@ import { CANVAS_LAYOUT } from '@/constants/submission';
 const Submission: React.FC = () => {
   const navigate = useNavigate();
   const { language } = useUIStore();
+  const { showToast } = useToast();
   const t = (key: string) => RESOURCES[language][key] || key;
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -107,21 +110,47 @@ const Submission: React.FC = () => {
 
   // 提交处理
   const handleSubmit = form.handleSubmit(
-    values => {
-      const orderData = {
-        projectId: values.projectId,
-        originFile: values.originFile,
-        foldTypeId: values.foldTypeId,
-        remark: values.remark,
-        simTypeIds: values.simTypeIds,
-        simTypeConfigs: state.selectedSimTypeIds.map(id => state.simTypeConfigs[id]),
-      };
+    async values => {
+      try {
+        const optParam = state.selectedSimTypeIds.reduce<Record<string, unknown>>(
+          (acc, simTypeId) => {
+            const config = state.simTypeConfigs[simTypeId];
+            if (config) {
+              acc[String(simTypeId)] = config;
+            }
+            return acc;
+          },
+          {}
+        );
 
-      // TODO: 调用 API 提交订单
-      // eslint-disable-next-line no-console
-      console.log('提交订单:', orderData);
-      alert('提交成功！（演示）');
-      navigate('/orders');
+        const originFile = {
+          type: values.originFile.type,
+          path: values.originFile.path,
+          name: values.originFile.name,
+          fileId:
+            values.originFile.type === 2
+              ? Number(values.originFile.path || '') || null
+              : null,
+        };
+
+        const response = await ordersApi.createOrder({
+          projectId: values.projectId!,
+          originFile,
+          foldTypeId: values.foldTypeId,
+          remark: values.remark,
+          simTypeIds: values.simTypeIds,
+          optParam,
+          clientMeta: { lang: language },
+        });
+
+        showToast('success', '提交成功');
+        queryClient.invalidateQueries({ queryKey: queryKeys.orders.list() });
+        navigate(`/results/${response.data.id}`);
+      } catch (error) {
+        console.error('提交订单失败:', error);
+        const message = (error as { message?: string })?.message || '提交失败，请稍后重试';
+        showToast('error', message);
+      }
     },
     errors => {
       if (errors.projectId || errors.originFile || errors.foldTypeId || errors.remark) {
@@ -203,12 +232,25 @@ const Submission: React.FC = () => {
               <ArrowsPointingOutIcon className="w-5 h-5" />
             </button>
           </div>
+          {state.configError && (
+            <div className="flex items-center gap-2 text-sm text-red-600">
+              <span>基础数据加载失败</span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={state.retryConfig}
+                disabled={state.isConfigLoading}
+              >
+                重试
+              </Button>
+            </div>
+          )}
           {showSimTypeError && (
             <span className="text-sm text-destructive" role="alert">
               {showSimTypeError}
             </span>
           )}
-          <Button variant="primary" onClick={handleSubmit}>
+          <Button variant="primary" onClick={handleSubmit} disabled={form.formState.isSubmitting}>
             {t('sub.submit')}
           </Button>
         </div>

@@ -14,12 +14,41 @@ import type { OrderListItem } from '@/types/order';
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { language } = useUIStore();
-  const { data: statusDefs } = useStatusDefs();
-  const { data: projects = [] } = useProjects();
-  const { data: simTypes = [] } = useSimTypes();
-  const { data: ordersPage } = useOrders({ page: 1, pageSize: 20 });
+  const {
+    data: statusDefs,
+    error: statusDefsError,
+    isLoading: statusDefsLoading,
+    refetch: refetchStatusDefs,
+  } = useStatusDefs();
+  const {
+    data: projects = [],
+    error: projectsError,
+    isLoading: projectsLoading,
+    refetch: refetchProjects,
+  } = useProjects();
+  const {
+    data: simTypes = [],
+    error: simTypesError,
+    isLoading: simTypesLoading,
+    refetch: refetchSimTypes,
+  } = useSimTypes();
+  const {
+    data: ordersPage,
+    isLoading: ordersLoading,
+    error: ordersError,
+    refetch: refetchOrders,
+  } = useOrders({ page: 1, pageSize: 20 });
   const orders = ordersPage?.items || [];
   const t = (key: string) => RESOURCES[language][key] || key;
+  const emptyText = RESOURCES[language]['dash.empty'] || '暂无订单';
+  const hasLoadError = Boolean(ordersError || projectsError || simTypesError || statusDefsError);
+  const tableLoading = ordersLoading || projectsLoading || simTypesLoading || statusDefsLoading;
+  const handleRetry = () => {
+    void refetchOrders();
+    void refetchProjects();
+    void refetchSimTypes();
+    void refetchStatusDefs();
+  };
 
   const projectMap = useMemo(
     () => new Map(projects.map(project => [project.id, project])),
@@ -159,12 +188,20 @@ const Dashboard: React.FC = () => {
       </div>
 
       <Card padding="none">
+        {hasLoadError && (
+          <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-slate-200 bg-red-50 text-red-700">
+            <span className="text-sm">订单或配置数据加载失败，请重试。</span>
+            <Button size="sm" variant="outline" onClick={handleRetry}>重试</Button>
+          </div>
+        )}
         <DataTable
           data={orders}
           columns={columns}
           containerHeight={480}
           enableSorting={false}
           showCount={false}
+          loading={tableLoading}
+          emptyText={emptyText}
           className="border-none"
           wrapperClassName="p-4"
         />

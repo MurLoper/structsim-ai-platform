@@ -16,10 +16,11 @@ import {
   Input,
   Modal,
   Select,
-  Table,
   Tabs,
 } from '@/components/ui';
 import { BulkAssignPanel, PermissionMatrix, PermissionTree } from '@/components/access';
+import { VirtualTable } from '@/components/tables/VirtualTable';
+import type { ColumnDef } from '@tanstack/react-table';
 import type { PermissionItem, Role, User } from '@/types';
 
 const getStatusVariant = (status?: string | number) => {
@@ -276,29 +277,33 @@ const AccessControl: React.FC = () => {
     await loadData();
   };
 
-  const userColumns = [
+  const userColumns: ColumnDef<User>[] = [
     {
-      key: 'name',
-      title: '用户',
-      render: (_: unknown, record: User) => (
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-600 flex items-center justify-center font-semibold">
-            {(record.name || record.username || record.email || 'U').charAt(0)}
-          </div>
-          <div>
-            <div className="font-medium text-slate-900 dark:text-white">
-              {record.name || record.username || '未命名用户'}
+      header: '用户',
+      accessorKey: 'name',
+      cell: ({ row }) => {
+        const record = row.original;
+        return (
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-600 flex items-center justify-center font-semibold">
+              {(record.name || record.username || record.email || 'U').charAt(0)}
             </div>
-            <div className="text-xs text-slate-500">{record.email}</div>
+            <div>
+              <div className="font-medium text-slate-900 dark:text-white">
+                {record.name || record.username || '未命名用户'}
+              </div>
+              <div className="text-xs text-slate-500">{record.email}</div>
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
-      key: 'role',
-      title: '角色',
-      width: '180px',
-      render: (_: unknown, record: User) => {
+      header: '角色',
+      id: 'roles',
+      size: 180,
+      cell: ({ row }) => {
+        const record = row.original;
         const roleLabels = record.roleNames?.length
           ? record.roleNames
           : (record.roleIds || []).map(id => roleNameById.get(id) || `角色${id}`);
@@ -315,9 +320,10 @@ const AccessControl: React.FC = () => {
       },
     },
     {
-      key: 'permissions',
-      title: '权限',
-      render: (_: unknown, record: User) => {
+      header: '权限',
+      id: 'permissions',
+      cell: ({ row }) => {
+        const record = row.original;
         if (isAdminUser(record)) {
           return (
             <div className="flex flex-wrap gap-2">
@@ -352,23 +358,26 @@ const AccessControl: React.FC = () => {
       },
     },
     {
-      key: 'status',
-      title: '状态',
-      width: '120px',
-      render: (_: unknown, record: User) => (
-        <Badge variant={getStatusVariant(record.valid ?? record.status)}>
-          {record.valid === 0 || record.status === 'disabled' || record.status === 'inactive'
-            ? '禁用'
-            : '启用'}
-        </Badge>
-      ),
+      header: '状态',
+      id: 'status',
+      size: 120,
+      cell: ({ row }) => {
+        const record = row.original;
+        return (
+          <Badge variant={getStatusVariant(record.valid ?? record.status)}>
+            {record.valid === 0 || record.status === 'disabled' || record.status === 'inactive'
+              ? '禁用'
+              : '启用'}
+          </Badge>
+        );
+      },
     },
     {
-      key: 'actions',
-      title: '操作',
-      width: '140px',
-      align: 'right' as const,
-      render: (_: unknown, record: User) => {
+      header: '操作',
+      id: 'actions',
+      size: 140,
+      cell: ({ row }) => {
+        const record = row.original;
         const adminUser = isAdminUser(record);
         return (
           <div className="flex items-center justify-end gap-2">
@@ -389,49 +398,52 @@ const AccessControl: React.FC = () => {
     },
   ];
 
-  const roleColumns = [
+  const roleColumns: ColumnDef<Role>[] = [
     {
-      key: 'name',
-      title: '角色',
-      render: (_: unknown, record: Role) => (
-        <div>
-          <div className="font-medium text-slate-900 dark:text-white">{record.name}</div>
-          {record.description && <div className="text-xs text-slate-500">{record.description}</div>}
-        </div>
-      ),
+      header: '角色',
+      accessorKey: 'name',
+      cell: ({ row }) => {
+        const record = row.original;
+        return (
+          <div>
+            <div className="font-medium text-slate-900 dark:text-white">{record.name}</div>
+            {record.description && <div className="text-xs text-slate-500">{record.description}</div>}
+          </div>
+        );
+      },
     },
     {
-      key: 'code',
-      title: '编码',
-      width: '160px',
-      render: (_: unknown, record: Role) => <Badge size="sm">{record.code || '—'}</Badge>,
+      header: '编码',
+      id: 'code',
+      size: 160,
+      cell: ({ row }) => <Badge size="sm">{row.original.code || '—'}</Badge>,
     },
     {
-      key: 'permissionCount',
-      title: '权限数',
-      width: '120px',
-      render: (_: unknown, record: Role) => (
+      header: '权限数',
+      id: 'permissionCount',
+      size: 120,
+      cell: ({ row }) => (
         <span className="text-sm text-slate-600 dark:text-slate-300">
-          {(record.permissionIds || []).length}
+          {(row.original.permissionIds || []).length}
         </span>
       ),
     },
     {
-      key: 'status',
-      title: '状态',
-      width: '120px',
-      render: (_: unknown, record: Role) => (
-        <Badge variant={getStatusVariant(record.valid)}>
-          {record.valid === 0 ? '禁用' : '启用'}
+      header: '状态',
+      id: 'status',
+      size: 120,
+      cell: ({ row }) => (
+        <Badge variant={getStatusVariant(row.original.valid)}>
+          {row.original.valid === 0 ? '禁用' : '启用'}
         </Badge>
       ),
     },
     {
-      key: 'actions',
-      title: '操作',
-      width: '180px',
-      align: 'right' as const,
-      render: (_: unknown, record: Role) => {
+      header: '操作',
+      id: 'actions',
+      size: 180,
+      cell: ({ row }) => {
+        const record = row.original;
         const adminRole = isAdminRole(record);
         return (
           <div className="flex items-center justify-end gap-2">
@@ -457,58 +469,62 @@ const AccessControl: React.FC = () => {
     },
   ];
 
-  const permissionColumns = [
+  const permissionColumns: ColumnDef<PermissionItem>[] = [
     {
-      key: 'name',
-      title: '权限点',
-      render: (_: unknown, record: PermissionItem) => (
-        <div>
-          <div className="font-medium text-slate-900 dark:text-white">{record.name}</div>
-          {record.description && <div className="text-xs text-slate-500">{record.description}</div>}
-        </div>
+      header: '权限点',
+      accessorKey: 'name',
+      cell: ({ row }) => {
+        const record = row.original;
+        return (
+          <div>
+            <div className="font-medium text-slate-900 dark:text-white">{record.name}</div>
+            {record.description && <div className="text-xs text-slate-500">{record.description}</div>}
+          </div>
+        );
+      },
+    },
+    {
+      header: '编码',
+      id: 'code',
+      size: 180,
+      cell: ({ row }) => <Badge size="sm">{row.original.code}</Badge>,
+    },
+    {
+      header: '类型',
+      id: 'type',
+      size: 120,
+      cell: ({ row }) => <Badge size="sm">{row.original.type || 'OTHER'}</Badge>,
+    },
+    {
+      header: '资源',
+      id: 'resource',
+      size: 180,
+      cell: ({ row }) => (
+        <span className="text-sm text-slate-600 dark:text-slate-300">
+          {row.original.resource || '—'}
+        </span>
       ),
     },
     {
-      key: 'code',
-      title: '编码',
-      width: '180px',
-      render: (_: unknown, record: PermissionItem) => <Badge size="sm">{record.code}</Badge>,
-    },
-    {
-      key: 'type',
-      title: '类型',
-      width: '120px',
-      render: (_: unknown, record: PermissionItem) => (
-        <Badge size="sm">{record.type || 'OTHER'}</Badge>
-      ),
-    },
-    {
-      key: 'resource',
-      title: '资源',
-      width: '180px',
-      render: (_: unknown, record: PermissionItem) => (
-        <span className="text-sm text-slate-600 dark:text-slate-300">{record.resource || '—'}</span>
-      ),
-    },
-    {
-      key: 'status',
-      title: '状态',
-      width: '120px',
-      render: (_: unknown, record: PermissionItem) => (
-        <Badge variant={getStatusVariant(record.valid)}>
-          {record.valid === 0 ? '禁用' : '启用'}
+      header: '状态',
+      id: 'status',
+      size: 120,
+      cell: ({ row }) => (
+        <Badge variant={getStatusVariant(row.original.valid)}>
+          {row.original.valid === 0 ? '禁用' : '启用'}
         </Badge>
       ),
     },
     {
-      key: 'actions',
-      title: '操作',
-      width: '120px',
-      align: 'right' as const,
-      render: (_: unknown, record: PermissionItem) => (
-        <Button variant="ghost" size="sm" onClick={() => openPermissionModal(record)}>
-          编辑
-        </Button>
+      header: '操作',
+      id: 'actions',
+      size: 120,
+      cell: ({ row }) => (
+        <div className="flex justify-end">
+          <Button variant="ghost" size="sm" onClick={() => openPermissionModal(row.original)}>
+            编辑
+          </Button>
+        </div>
       ),
     },
   ];
@@ -609,12 +625,15 @@ const AccessControl: React.FC = () => {
               </div>
             </div>
 
-            <Table
+            <VirtualTable
               columns={userColumns}
               data={filteredUsers}
-              rowKey="id"
+              getRowId={record => String(record.id)}
               loading={loading}
               emptyText="暂无用户数据"
+              containerHeight={420}
+              rowHeight={56}
+              enableSorting={false}
             />
           </div>
         )}
@@ -635,12 +654,15 @@ const AccessControl: React.FC = () => {
               </Button>
             </div>
 
-            <Table
+            <VirtualTable
               columns={roleColumns}
               data={roles}
-              rowKey="id"
+              getRowId={record => String(record.id)}
               loading={loading}
               emptyText="暂无角色"
+              containerHeight={360}
+              rowHeight={52}
+              enableSorting={false}
             />
 
             <BulkAssignPanel
@@ -683,12 +705,15 @@ const AccessControl: React.FC = () => {
               </Button>
             </div>
 
-            <Table
+            <VirtualTable
               columns={permissionColumns}
               data={permissions}
-              rowKey="id"
+              getRowId={record => String(record.id)}
               loading={loading}
               emptyText="暂无权限点"
+              containerHeight={360}
+              rowHeight={52}
+              enableSorting={false}
             />
 
             <div className="space-y-2">

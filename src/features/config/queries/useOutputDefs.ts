@@ -7,6 +7,32 @@ import { baseConfigApi } from '@/api/config/base';
 import { queryKeys } from '@/lib/queryClient';
 import type { OutputDef } from '@/types/config';
 
+const DATA_TYPE_TO_VAL_TYPE: Record<string, number> = {
+  float: 1,
+  int: 2,
+  string: 3,
+};
+
+const mapValTypeToDataType = (valType?: number) => {
+  if (valType === 2) return 'int';
+  if (valType === 3) return 'string';
+  return 'float';
+};
+
+const normalizeOutputDef = (item: any): OutputDef => ({
+  ...item,
+  dataType: item.dataType ?? mapValTypeToDataType(item.valType ?? item.val_type),
+});
+
+const toOutputDefPayload = (data: Partial<OutputDef>) => {
+  const payload: Record<string, unknown> = { ...data };
+  if (data.dataType) {
+    payload.val_type = DATA_TYPE_TO_VAL_TYPE[data.dataType] ?? 1;
+    delete payload.dataType;
+  }
+  return payload;
+};
+
 /**
  * 获取输出定义列表
  */
@@ -15,7 +41,8 @@ export function useOutputDefs() {
     queryKey: queryKeys.outputDefs.list(),
     queryFn: async () => {
       const response = await baseConfigApi.getOutputDefs();
-      return response.data || [];
+      const items = response.data || [];
+      return items.map(normalizeOutputDef);
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -28,7 +55,8 @@ export function useCreateOutputDef() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Partial<OutputDef>) => baseConfigApi.createOutputDef(data),
+    mutationFn: (data: Partial<OutputDef>) =>
+      baseConfigApi.createOutputDef(toOutputDefPayload(data) as Partial<OutputDef>),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.outputDefs.all });
     },
@@ -43,7 +71,7 @@ export function useUpdateOutputDef() {
 
   return useMutation({
     mutationFn: ({ id, data }: { id: number; data: Partial<OutputDef> }) =>
-      baseConfigApi.updateOutputDef(id, data),
+      baseConfigApi.updateOutputDef(id, toOutputDefPayload(data) as Partial<OutputDef>),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.outputDefs.all });
     },

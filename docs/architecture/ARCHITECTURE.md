@@ -1,39 +1,94 @@
 # 前端架构设计文档
 
+> **版本**: v2.0
+> **最后更新**: 2025-01-19
+> **状态**: ✅ 生产就绪
+
 ## 1. 架构总览
 
 ### 1.1 技术栈
 
-| 技术         | 版本   | 用途           |
-| ------------ | ------ | -------------- |
-| React        | 19.2.0 | UI 框架        |
-| TypeScript   | 5.8    | 类型安全       |
-| Vite         | 6.2    | 构建工具       |
-| TailwindCSS  | 3.4    | 样式系统       |
-| Zustand      | 5.0    | 客户端状态管理 |
-| Axios        | 1.7    | HTTP 客户端    |
-| React Router | 7.12   | 路由管理       |
-| Recharts     | 3.6    | 图表可视化     |
-| i18next      | -      | 国际化         |
+#### 核心框架
+| 技术 | 版本 | 用途 | 状态 |
+|------|------|------|------|
+| React | 19.2.0 | UI 框架 | ✅ |
+| TypeScript | 5.8 | 类型安全 | ✅ |
+| Vite | 6.2 | 构建工具 | ✅ |
+
+#### 状态管理
+| 技术 | 版本 | 用途 | 状态 |
+|------|------|------|------|
+| Zustand | 5.0 | 客户端状态 | ✅ |
+| TanStack Query | 5.60 | 服务端状态 | ✅ |
+
+#### UI 与样式
+| 技术 | 版本 | 用途 | 状态 |
+|------|------|------|------|
+| Tailwind CSS | 3.4 | 样式框架 | ✅ |
+| Shadcn/ui | - | 基础组件库 (Radix UI) | ✅ |
+| Lucide React | 0.460 | 图标库 | ✅ |
+| Framer Motion | 11.12 | 动画库 | ✅ |
+| class-variance-authority | 0.7 | 组件变体 | ✅ |
+
+#### 表单与验证
+| 技术 | 版本 | 用途 | 状态 |
+|------|------|------|------|
+| React Hook Form | 7.53 | 表单管理 | ✅ |
+| Zod | 3.23 | Schema 验证 | ✅ |
+| @hookform/resolvers | 3.9 | RHF + Zod 集成 | ✅ |
+
+#### 数据可视化
+| 技术 | 版本 | 用途 | 状态 |
+|------|------|------|------|
+| ECharts | 5.5 | 2D 图表 | ✅ |
+| echarts-for-react | 3.0 | ECharts React 封装 | ✅ |
+| Recharts | 3.6 | 简单图表 | ✅ |
+| React Flow (@xyflow/react) | 12.3 | 流程图/画布 | ✅ |
+
+#### 表格与虚拟化
+| 技术 | 版本 | 用途 | 状态 |
+|------|------|------|------|
+| TanStack Table | 8.20 | 表格管理 | ✅ |
+| TanStack Virtual | 3.10 | 虚拟滚动 | ✅ |
+
+#### 路由与网络
+| 技术 | 版本 | 用途 | 状态 |
+|------|------|------|------|
+| React Router | 7.12 | 路由管理 | ✅ |
+| Axios | 1.7 | HTTP 客户端 | ✅ |
+
+#### 监控与质量
+| 技术 | 版本 | 用途 | 状态 |
+|------|------|------|------|
+| Sentry | 8.0 | 错误监控 | ✅ |
+| Vitest | 2.1 | 单元测试 | ✅ |
+| Testing Library | 16.0 | 组件测试 | ✅ |
+| MSW | 2.6 | API Mock | ✅ |
 
 ### 1.2 分层架构
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        Pages (页面层)                        │
-│    Dashboard / Submission / Configuration / Results         │
+│    Dashboard / Submission / Configuration / Access          │
+├─────────────────────────────────────────────────────────────┤
+│                     Features (功能模块)                      │
+│      config/queries / config/schemas / orders/queries       │
 ├─────────────────────────────────────────────────────────────┤
 │                     Components (组件层)                      │
-│         UI Components / Layout / Business Components        │
+│    UI (Shadcn) / Layout / Forms / Tables / Charts          │
 ├─────────────────────────────────────────────────────────────┤
 │                       Hooks (逻辑层)                         │
-│    useFormState / useConfigurationState / useValidation     │
+│   useFormState / useTheme / useStableCallback              │
 ├─────────────────────────────────────────────────────────────┤
 │                       Stores (状态层)                        │
-│         authStore / configStore / uiStore / orderStore      │
+│         authStore / configStore / uiStore                   │
 ├─────────────────────────────────────────────────────────────┤
 │                        API (数据层)                          │
-│            authApi / configApi / orderApi / client          │
+│      client / auth / config / orders / rbac                 │
+├─────────────────────────────────────────────────────────────┤
+│                        Lib (基础设施)                        │
+│         queryClient / sentry / utils                        │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -41,107 +96,158 @@
 
 ```
 src/
-├── api/                    # API 调用层
-│   ├── client.ts           # Axios 客户端配置
-│   ├── authApi.ts          # 认证 API
-│   ├── configApi.ts        # 配置 API
-│   └── orderApi.ts         # 订单 API
+├── app/                        # 应用配置层
+│   ├── providers/              # 全局 Providers
+│   │   ├── index.tsx           # Provider 组合
+│   │   └── ThemeProvider.tsx   # 主题 Provider
+│   └── router/                 # 路由配置
+│       ├── config.tsx          # 路由配置
+│       ├── guards/             # 路由守卫
+│       ├── layouts/            # 路由布局
+│       └── routes/             # 路由定义
 │
-├── components/             # 组件层
-│   ├── ui/                 # 通用 UI 组件
+├── api/                        # API 调用层
+│   ├── client.ts               # Axios 客户端配置
+│   ├── auth.ts                 # 认证 API
+│   ├── projects.ts             # 项目 API
+│   ├── orders.ts               # 订单 API
+│   ├── rbac.ts                 # 权限 API
+│   ├── simulations.ts          # 仿真 API
+│   └── config/                 # 配置 API 模块
+│       ├── base.ts             # 基础配置 API
+│       ├── groups.ts           # 组合配置 API
+│       └── index.ts
+│
+├── components/                 # 组件层
+│   ├── ui/                     # 通用 UI 组件 (Shadcn/ui 风格)
 │   │   ├── Button.tsx
 │   │   ├── Input.tsx
 │   │   ├── Modal.tsx
 │   │   ├── Table.tsx
-│   │   └── Toast.tsx
-│   ├── layout/             # 布局组件
+│   │   ├── Tabs.tsx
+│   │   ├── Card.tsx
+│   │   ├── Badge.tsx
+│   │   ├── Toast.tsx
+│   │   ├── Loading.tsx
+│   │   ├── ConfirmDialog.tsx
+│   │   ├── ThemeSwitcher.tsx
+│   │   └── index.ts
+│   ├── layout/                 # 布局组件
 │   │   ├── Layout.tsx
 │   │   ├── Sidebar.tsx
 │   │   └── Header.tsx
-│   └── config/             # 配置业务组件
-│       ├── ConfigTable.tsx
-│       └── ConfigForm.tsx
+│   ├── forms/                  # 表单组件
+│   ├── tables/                 # 表格组件
+│   ├── charts/                 # 图表组件
+│   └── access/                 # 权限组件
 │
-├── hooks/                  # 自定义 Hooks
-│   ├── useFormState.ts     # 表单状态管理
-│   ├── useConfigurationState.ts
-│   └── useValidation.ts
+├── features/                   # 功能模块 (Feature-based)
+│   ├── config/                 # 配置管理功能
+│   │   ├── queries/            # TanStack Query Hooks
+│   │   │   ├── useProjects.ts
+│   │   │   ├── useSimTypes.ts
+│   │   │   ├── useParamDefs.ts
+│   │   │   ├── useSolvers.ts
+│   │   │   ├── useConditionDefs.ts
+│   │   │   ├── useOutputDefs.ts
+│   │   │   ├── useFoldTypes.ts
+│   │   │   ├── useCompositeConfigs.ts
+│   │   │   └── index.ts
+│   │   └── schemas/            # Zod 验证 Schemas
+│   │       ├── project.schema.ts
+│   │       ├── simType.schema.ts
+│   │       ├── paramDef.schema.ts
+│   │       ├── solver.schema.ts
+│   │       ├── conditionDef.schema.ts
+│   │       ├── outputDef.schema.ts
+│   │       ├── foldType.schema.ts
+│   │       └── index.ts
+│   ├── orders/                 # 订单功能
+│   │   └── queries/
+│   └── canvas/                 # 画布功能 (React Flow)
+│       └── components/
 │
-├── pages/                  # 页面组件
-│   ├── Dashboard/
-│   ├── Submission/
-│   ├── Configuration/
-│   └── Results/
+├── hooks/                      # 自定义 Hooks
+│   ├── useFormState.ts         # 通用表单状态管理
+│   ├── useTheme.ts             # 主题管理
+│   └── useStableCallback.ts    # 稳定回调 (解决闭包问题)
 │
-├── stores/                 # Zustand 状态管理
-│   ├── authStore.ts        # 认证状态
-│   ├── configStore.ts      # 配置状态
-│   └── uiStore.ts          # UI 状态
+├── pages/                      # 页面组件
+│   ├── auth/                   # 认证页面
+│   │   └── Login.tsx
+│   ├── dashboard/              # 仪表盘
+│   │   └── Dashboard.tsx
+│   ├── configuration/          # 配置管理
+│   │   ├── Configuration.tsx
+│   │   └── hooks/
+│   │       └── useConfigurationState.ts
+│   ├── submission/             # 申请单
+│   │   └── Submission.tsx
+│   └── access/                 # 权限管理
+│       └── AccessManagement.tsx
 │
-├── types/                  # TypeScript 类型定义
-│   ├── api.ts
-│   ├── config.ts
-│   └── order.ts
+├── stores/                     # Zustand 状态管理
+│   ├── authStore.ts            # 认证状态
+│   ├── configStore.ts          # 配置状态 (迁移中)
+│   ├── uiStore.ts              # UI 状态 (主题/侧边栏)
+│   └── index.ts
 │
-├── locales/                # 国际化文件
-│   ├── en/
-│   └── zh/
+├── types/                      # TypeScript 类型定义
+│   ├── index.ts                # 类型导出
+│   ├── config.ts               # 配置类型
+│   ├── configGroups.ts         # 配置组合类型
+│   ├── simulation.ts           # 仿真类型
+│   ├── order.ts                # 订单类型
+│   ├── user.ts                 # 用户类型
+│   ├── process.ts              # 流程类型
+│   └── enums.ts                # 枚举类型
 │
-├── constants/              # 常量定义
-│   └── config.ts
+├── lib/                        # 库配置
+│   ├── queryClient.ts          # TanStack Query 配置
+│   ├── sentry.ts               # Sentry 配置
+│   └── utils.ts                # 工具函数 (cn, etc.)
 │
-├── utils/                  # 工具函数
-│   └── helpers.ts
+├── locales/                    # 国际化
+│   ├── index.ts
+│   └── modules/
+│       ├── common.ts
+│       └── config.ts
 │
-├── App.tsx                 # 应用入口
-├── main.tsx                # 渲染入口
-└── router.tsx              # 路由配置
+├── constants/                  # 常量定义
+│   ├── index.ts
+│   ├── common.ts
+│   └── submission/
+│
+├── styles/                     # 样式文件
+│   └── themes.css              # 主题 CSS 变量
+│
+├── test/                       # 测试配置
+│   ├── setup.ts
+│   └── test-utils.tsx
+│
+├── routes/                     # 路由入口
+│   └── index.tsx
+│
+├── App.tsx                     # 应用入口
+├── main.tsx                    # 渲染入口
+└── index.css                   # 全局样式
 ```
 
 ---
 
 ## 2. 状态管理架构
 
-### 2.1 当前方案：Zustand + Axios
+### 2.1 当前方案：TanStack Query + Zustand + React Hook Form
 
 **职责划分**:
 
-- **Zustand Store**: 管理所有状态（客户端状态 + 服务端缓存数据）
-- **Axios API**: 纯粹的 HTTP 请求封装
+| 状态类型 | 管理工具 | 示例 | 状态 |
+|----------|----------|------|------|
+| 服务端状态 | TanStack Query | 项目列表、配置数据、订单数据 | ✅ 已实现 |
+| 客户端状态 | Zustand | 主题、语言、侧边栏展开状态 | ✅ 已实现 |
+| 表单状态 | React Hook Form + Zod | 提单表单、配置编辑表单 | ✅ 已实现 |
 
 **数据流**:
-
-```
-Component -> Store Action -> API Call -> Store State Update -> Component Re-render
-```
-
-**代码示例**:
-
-```typescript
-// stores/configStore.ts
-export const useConfigStore = create<ConfigState>((set, get) => ({
-  projects: [],
-  loading: false,
-
-  fetchProjects: async () => {
-    set({ loading: true });
-    const data = await configApi.getProjects();
-    set({ projects: data, loading: false });
-  },
-}));
-```
-
-### 2.2 升级方案：TanStack Query + Zustand
-
-**职责划分**:
-
-| 状态类型   | 管理工具        | 示例                         |
-| ---------- | --------------- | ---------------------------- |
-| 服务端状态 | TanStack Query  | 项目列表、配置数据、订单数据 |
-| 客户端状态 | Zustand         | 主题、语言、侧边栏展开状态   |
-| 表单状态   | React Hook Form | 提单表单、配置编辑表单       |
-
-**升级后数据流**:
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
@@ -154,48 +260,134 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
 └──────────────────────────────────────────────────────────────┘
 ```
 
+### 2.2 TanStack Query 使用示例
+
+```typescript
+// features/config/queries/useProjects.ts
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { baseConfigApi } from '@/api/config/base';
+import { queryKeys } from '@/lib/queryClient';
+
+// 查询 Hook
+export function useProjects() {
+  return useQuery({
+    queryKey: queryKeys.projects.list(),
+    queryFn: async () => {
+      const response = await baseConfigApi.getProjects();
+      return response.data || [];
+    },
+    staleTime: 5 * 60 * 1000, // 5分钟
+  });
+}
+
+// 变更 Hook
+export function useCreateProject() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: baseConfigApi.createProject,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.projects.all });
+    },
+  });
+}
+```
+
+### 2.3 Zustand Store 使用示例
+
+```typescript
+// stores/uiStore.ts
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+type Theme = 'light' | 'dark' | 'eyecare';
+
+interface UiState {
+  theme: Theme;
+  sidebarCollapsed: boolean;
+  setTheme: (theme: Theme) => void;
+  toggleSidebar: () => void;
+}
+
+export const useUiStore = create<UiState>()(
+  persist(
+    (set) => ({
+      theme: 'light',
+      sidebarCollapsed: false,
+      setTheme: (theme) => set({ theme }),
+      toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+    }),
+    { name: 'ui-storage' }
+  )
+);
+```
+
+### 2.4 React Hook Form + Zod 使用示例
+
+```typescript
+// features/config/schemas/project.schema.ts
+import { z } from 'zod';
+
+export const projectSchema = z.object({
+  name: z.string().min(1, '项目名称必填').max(100),
+  code: z.string().max(50).optional(),
+  defaultSimTypeId: z.number().positive().optional(),
+  remark: z.string().optional(),
+});
+
+export type ProjectFormData = z.infer<typeof projectSchema>;
+
+// 组件中使用
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+const form = useForm<ProjectFormData>({
+  resolver: zodResolver(projectSchema),
+  defaultValues: { name: '', code: '' },
+});
+```
+
 ---
 
 ## 3. 数据流架构
 
-### 3.1 请求数据流
-
-**当前方案**:
+### 3.1 服务端数据流 (TanStack Query)
 
 ```
-Component -> useStore().fetchData() -> api.getData() -> setState() -> Re-render
+Component
+    ↓
+useQuery({ queryKey, queryFn })
+    ↓
+TanStack Query Cache (自动管理)
+    ↓
+API 请求 (Axios)
+    ↓
+后端响应
+    ↓
+缓存更新 → 组件重渲染
 ```
 
-**升级方案**:
+### 3.2 表单数据流 (React Hook Form)
 
 ```
-Component -> useQuery({ queryFn: api.getData }) -> 自动缓存 -> Re-render
-```
-
-### 3.2 表单数据流
-
-**当前方案**:
-
-```
-User Input -> useState/useFormState -> 手动验证 -> API Submit
-```
-
-**升级方案**:
-
-```
-User Input -> React Hook Form -> Zod Schema 验证 -> API Submit
-                    ↓
-              非受控组件 (高性能)
+用户输入
+    ↓
+React Hook Form (非受控组件)
+    ↓
+Zod Schema 验证
+    ↓
+useMutation 提交
+    ↓
+invalidateQueries 刷新列表
 ```
 
 ### 3.3 API 响应格式
 
 ```typescript
 interface ApiResponse<T> {
-  code: number; // 0 成功, 其他失败
-  msg: string; // 提示信息
-  data: T; // 响应数据
-  trace_id: string; // 追踪ID
+  code: number;      // 0 成功, 其他失败
+  msg: string;       // 提示信息
+  data: T;           // 响应数据
+  trace_id: string;  // 追踪ID
 }
 
 interface PaginatedResponse<T> {

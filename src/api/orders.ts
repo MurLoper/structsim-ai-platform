@@ -1,5 +1,5 @@
 import { api } from './client';
-import type { OrdersListResponse } from '@/types/order';
+import type { OrdersListResponse, OrderDetail, OrderCreatePayload } from '@/types/order';
 
 export interface OrdersQueryParams {
   page?: number;
@@ -10,4 +10,6 @@ export interface OrdersQueryParams {
 
 export const ordersApi = {
   getOrders: (params?: OrdersQueryParams) => api.get<OrdersListResponse>('/orders', { params }),
+  getOrder: (orderId: number) => api.get<OrderDetail>(`/orders/${orderId}`),
+  createOrder: (payload: OrderCreatePayload) => api.post<OrderDetail>('/orders', payload),
 };

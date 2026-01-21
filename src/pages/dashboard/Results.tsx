@@ -1,140 +1,84 @@
 import React, { useMemo, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
-import { Card, Tabs, Badge, Button, Input, Select, Table } from '@/components/ui';
+import { Card, Tabs, Badge, Button, Input, Select } from '@/components/ui';
 import { LineChart } from '@/components/charts/LineChart';
 import { BarChart } from '@/components/charts/BarChart';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
-
-interface ResultRecord {
-  iteration: number;
-  simType: string;
-  metric: string;
-  value: number;
-  group: string;
-}
-
-const SIM_TYPE_OPTIONS = [
-  { value: 'struct', labelKey: 'res.sim.struct' },
-  { value: 'thermal', labelKey: 'res.sim.thermal' },
-  { value: 'modal', labelKey: 'res.sim.modal' },
-];
-
-const METRIC_OPTIONS = [
-  { value: 'stress', labelKey: 'res.metric.stress' },
-  { value: 'displacement', labelKey: 'res.metric.displacement' },
-  { value: 'mass', labelKey: 'res.metric.mass' },
-];
-
-const buildMockResults = () => {
-  const data: ResultRecord[] = [];
-  SIM_TYPE_OPTIONS.forEach((simType, simIndex) => {
-    METRIC_OPTIONS.forEach((metric, metricIndex) => {
-      for (let i = 1; i <= 30; i += 1) {
-        const base = 80 + simIndex * 35 + metricIndex * 22;
-        const wave = Math.sin(i / 4) * 8 + Math.cos(i / 7) * 6;
-        data.push({
-          iteration: i,
-          simType: simType.value,
-          metric: metric.value,
-          value: Math.round((base + i * 3 + wave) * 100) / 100,
-          group: `G-${metricIndex + 1}`,
-        });
-      }
-    });
-  });
-  return data;
-};
+import { VirtualTable } from '@/components/tables/VirtualTable';
+import { useResultsData, type ResultRecord } from './hooks/useResultsData';
+import type { ColumnDef } from '@tanstack/react-table';
 
 const Results: React.FC = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { language } = useUIStore();
   const t = (key: string) => RESOURCES[language][key] || key;
+  const orderId = Number(id);
+  const resolvedOrderId = Number.isFinite(orderId) ? orderId : null;
+
+  const {
+    displayOrderId,
+    metric,
+    setMetric,
+    metricOptions,
+    metricLabelMap,
+    simTypeLabelMap,
+    selectedSimTypes,
+    toggleSimType,
+    minValue,
+    setMinValue,
+    maxValue,
+    setMaxValue,
+    minIteration,
+    setMinIteration,
+    maxIteration,
+    setMaxIteration,
+    availableSimTypes,
+    filteredResults,
+    trendData,
+    avgBySimType,
+    isResultsLoading,
+    resultsError,
+    retryResults,
+    handleReset,
+  } = useResultsData(resolvedOrderId);
+
   const [activeTab, setActiveTab] = useState('overview');
-  const [metric, setMetric] = useState(METRIC_OPTIONS[0].value);
-  const [selectedSimTypes, setSelectedSimTypes] = useState<string[]>(
-    SIM_TYPE_OPTIONS.map(opt => opt.value)
-  );
-  const [minValue, setMinValue] = useState('');
-  const [maxValue, setMaxValue] = useState('');
-  const [minIteration, setMinIteration] = useState('');
-  const [maxIteration, setMaxIteration] = useState('');
+  const invalidOrderId = resolvedOrderId === null;
+  const resultsErrorMessage = (resultsError as { message?: string })?.message;
+
+  if (invalidOrderId) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex items-center gap-4">
+          <Link
+            to="/"
+            className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">订单不存在</h1>
+            <p className="text-slate-500 text-sm">无效的订单ID，请返回订单列表</p>
+          </div>
+        </div>
+        <Card>
+          <div className="flex items-center justify-between gap-4">
+            <div className="text-sm text-slate-600">无法加载结果数据。</div>
+            <Button variant="secondary" onClick={() => navigate('/')}>返回列表</Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   const tabs = [
     { key: 'overview', label: t('res.tab.overview') },
     { key: 'analysis', label: t('res.tab.analysis') },
     { key: 'process', label: t('res.tab.process') },
   ];
-
-  const results = useMemo(() => buildMockResults(), []);
-
-  const simTypeLabelMap = useMemo(
-    () => new Map(SIM_TYPE_OPTIONS.map(opt => [opt.value, t(opt.labelKey)])),
-    [t]
-  );
-
-  const metricLabelMap = useMemo(
-    () => new Map(METRIC_OPTIONS.map(opt => [opt.value, t(opt.labelKey)])),
-    [t]
-  );
-
-  const metricOptions = useMemo(
-    () => METRIC_OPTIONS.map(opt => ({ value: opt.value, label: t(opt.labelKey) })),
-    [t]
-  );
-
-  const filteredResults = useMemo(() => {
-    const minVal = minValue ? Number(minValue) : Number.NEGATIVE_INFINITY;
-    const maxVal = maxValue ? Number(maxValue) : Number.POSITIVE_INFINITY;
-    const minIter = minIteration ? Number(minIteration) : Number.NEGATIVE_INFINITY;
-    const maxIter = maxIteration ? Number(maxIteration) : Number.POSITIVE_INFINITY;
-
-    return results.filter(record => {
-      if (record.metric !== metric) return false;
-      if (!selectedSimTypes.includes(record.simType)) return false;
-      if (record.value < minVal || record.value > maxVal) return false;
-      if (record.iteration < minIter || record.iteration > maxIter) return false;
-      return true;
-    });
-  }, [results, metric, selectedSimTypes, minValue, maxValue, minIteration, maxIteration]);
-
-  const trendData = useMemo(
-    () =>
-      filteredResults.map(record => ({
-        iteration: record.iteration,
-        simType: simTypeLabelMap.get(record.simType) || record.simType,
-        value: record.value,
-      })),
-    [filteredResults, simTypeLabelMap]
-  );
-
-  const avgBySimType = useMemo(() => {
-    const map = new Map<string, { total: number; count: number }>();
-    filteredResults.forEach(record => {
-      const current = map.get(record.simType) || { total: 0, count: 0 };
-      map.set(record.simType, { total: current.total + record.value, count: current.count + 1 });
-    });
-    return Array.from(map.entries()).map(([simTypeName, stats]) => ({
-      simType: simTypeLabelMap.get(simTypeName) || simTypeName,
-      value: stats.count ? Math.round((stats.total / stats.count) * 100) / 100 : 0,
-    }));
-  }, [filteredResults, simTypeLabelMap]);
-
-  const toggleSimType = (value: string) => {
-    setSelectedSimTypes(prev =>
-      prev.includes(value) ? prev.filter(item => item !== value) : [...prev, value]
-    );
-  };
-
-  const handleReset = () => {
-    setMetric(METRIC_OPTIONS[0].value);
-    setSelectedSimTypes(SIM_TYPE_OPTIONS.map(opt => opt.value));
-    setMinValue('');
-    setMaxValue('');
-    setMinIteration('');
-    setMaxIteration('');
-  };
 
   const downloadFile = (content: string, filename: string, type: string) => {
     const blob = new Blob([content], { type });
@@ -149,9 +93,13 @@ const Results: React.FC = () => {
   const handleExport = (format: 'csv' | 'json') => {
     if (format === 'json') {
       const payload = filteredResults.map(record => ({
-        ...record,
-        simType: simTypeLabelMap.get(record.simType) || record.simType,
-        metric: metricLabelMap.get(record.metric) || record.metric,
+        iteration: record.iteration,
+        simTypeId: record.simTypeId,
+        simType: simTypeLabelMap.get(record.simTypeId) || String(record.simTypeId),
+        metricId: record.metricId,
+        metric: metricLabelMap.get(record.metricId) || String(record.metricId),
+        value: record.value,
+        group: record.group,
       }));
       downloadFile(
         JSON.stringify(payload, null, 2),
@@ -170,8 +118,8 @@ const Results: React.FC = () => {
     ];
     const rows = filteredResults.map(record => [
       record.iteration,
-      simTypeLabelMap.get(record.simType) || record.simType,
-      metricLabelMap.get(record.metric) || record.metric,
+      simTypeLabelMap.get(record.simTypeId) || record.simTypeId,
+      metricLabelMap.get(record.metricId) || record.metricId,
       record.value,
       record.group,
     ]);
@@ -185,6 +133,37 @@ const Results: React.FC = () => {
   );
   const tableCountLabel = t('res.table.count').replace('{count}', String(filteredResults.length));
 
+  const resultColumns = useMemo<ColumnDef<ResultRecord>[]>(
+    () => [
+      {
+        header: t('res.table.iteration'),
+        accessorKey: 'iteration',
+      },
+      {
+        header: t('res.table.sim_type'),
+        accessorKey: 'simTypeId',
+        cell: ({ row }) =>
+          simTypeLabelMap.get(row.original.simTypeId) || String(row.original.simTypeId),
+      },
+      {
+        header: t('res.table.metric'),
+        accessorKey: 'metricId',
+        cell: ({ row }) =>
+          metricLabelMap.get(row.original.metricId) || String(row.original.metricId),
+      },
+      {
+        header: t('res.table.value'),
+        accessorKey: 'value',
+        cell: ({ row }) => row.original.value.toFixed(2),
+      },
+      {
+        header: t('res.table.group'),
+        accessorKey: 'group',
+      },
+    ],
+    [metricLabelMap, simTypeLabelMap, t]
+  );
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center gap-4">
@@ -196,13 +175,27 @@ const Results: React.FC = () => {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            {t('res.title')}: {id}
+            {t('res.title')}: {displayOrderId}
           </h1>
           <p className="text-slate-500 text-sm">{t('res.report')}</p>
         </div>
       </div>
 
       <Tabs items={tabs} activeKey={activeTab} onChange={setActiveTab} variant="pills" />
+
+      {resultsError && (
+        <Card className="border-red-200 bg-red-50 text-red-700">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="font-medium">结果加载失败</div>
+              <div className="text-sm">
+                {resultsErrorMessage || '请检查网络或稍后重试'}
+              </div>
+            </div>
+            <Button variant="outline" onClick={retryResults}>重试</Button>
+          </div>
+        </Card>
+      )}
 
       {activeTab === 'overview' && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -293,20 +286,20 @@ const Results: React.FC = () => {
 
               <div className="flex items-center gap-3 flex-wrap">
                 <span className="text-sm text-slate-500">{t('res.filters.sim_compare')}</span>
-                {SIM_TYPE_OPTIONS.map(opt => {
-                  const active = selectedSimTypes.includes(opt.value);
+                {availableSimTypes.map(simType => {
+                  const active = selectedSimTypes.includes(simType.id);
                   return (
                     <button
-                      key={opt.value}
+                      key={simType.id}
                       type="button"
-                      onClick={() => toggleSimType(opt.value)}
+                      onClick={() => toggleSimType(simType.id)}
                       className={`px-3 py-1 rounded-full text-sm border transition-colors ${
                         active
                           ? 'bg-brand-500 text-white border-brand-500'
                           : 'bg-white dark:bg-slate-800 text-slate-600 border-slate-200 dark:border-slate-600'
                       }`}
                     >
-                      {t(opt.labelKey)}
+                      {simType.name}
                     </button>
                   );
                 })}
@@ -330,7 +323,7 @@ const Results: React.FC = () => {
                     showLegend
                     smooth
                     xAxisTitle={t('res.table.iteration')}
-                    yAxisTitle={metricLabelMap.get(metric) || metric}
+                    yAxisTitle={metricLabelMap.get(Number(metric)) || metric}
                     height={320}
                   />
                 </div>
@@ -359,22 +352,15 @@ const Results: React.FC = () => {
                 <h3 className="text-base font-semibold">{t('res.table.title')}</h3>
                 <span className="text-sm text-slate-500">{tableCountLabel}</span>
               </div>
-              <Table
-                rowKey={record => `${record.simType}-${record.metric}-${record.iteration}`}
+              <VirtualTable
                 data={filteredResults}
-                columns={[
-                  { key: 'iteration', title: t('res.table.iteration'), width: '100px' },
-                  { key: 'simType', title: t('res.table.sim_type'), width: '140px' },
-                  { key: 'metric', title: t('res.table.metric'), width: '160px' },
-                  {
-                    key: 'value',
-                    title: t('res.table.value'),
-                    align: 'right',
-                    render: value => Number(value).toFixed(2),
-                  },
-                  { key: 'group', title: t('res.table.group') },
-                ]}
+                columns={resultColumns}
+                rowHeight={44}
+                containerHeight={360}
+                enableSorting={false}
                 emptyText={t('res.table.empty')}
+                loading={isResultsLoading}
+                getRowId={record => `${record.simTypeId}-${record.metricId}-${record.iteration}`}
               />
             </div>
           </Card>

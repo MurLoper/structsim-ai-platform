@@ -19,15 +19,60 @@ import type {
 } from '../types';
 
 export const useSubmissionState = (selectedProjectId: number | null) => {
-  const { data: projects = [] } = useProjects();
-  const { data: simTypes = [] } = useSimTypes();
-  const { data: foldTypes = [] } = useFoldTypes();
-  const { data: paramDefs = [] } = useParamDefs();
-  const { data: solvers = [] } = useSolvers();
-  const { data: outputDefs = [] } = useOutputDefs();
-  const { data: conditionDefs = [] } = useConditionDefs();
-  const { data: paramTplSets = [] } = useParamTplSets();
-  const { data: condOutSets = [] } = useCondOutSets();
+  const {
+    data: projects = [],
+    error: projectsError,
+    isLoading: projectsLoading,
+    refetch: refetchProjects,
+  } = useProjects();
+  const {
+    data: simTypes = [],
+    error: simTypesError,
+    isLoading: simTypesLoading,
+    refetch: refetchSimTypes,
+  } = useSimTypes();
+  const {
+    data: foldTypes = [],
+    error: foldTypesError,
+    isLoading: foldTypesLoading,
+    refetch: refetchFoldTypes,
+  } = useFoldTypes();
+  const {
+    data: paramDefs = [],
+    error: paramDefsError,
+    isLoading: paramDefsLoading,
+    refetch: refetchParamDefs,
+  } = useParamDefs();
+  const {
+    data: solvers = [],
+    error: solversError,
+    isLoading: solversLoading,
+    refetch: refetchSolvers,
+  } = useSolvers();
+  const {
+    data: outputDefs = [],
+    error: outputDefsError,
+    isLoading: outputDefsLoading,
+    refetch: refetchOutputDefs,
+  } = useOutputDefs();
+  const {
+    data: conditionDefs = [],
+    error: conditionDefsError,
+    isLoading: conditionDefsLoading,
+    refetch: refetchConditionDefs,
+  } = useConditionDefs();
+  const {
+    data: paramTplSets = [],
+    error: paramTplSetsError,
+    isLoading: paramTplSetsLoading,
+    refetch: refetchParamTplSets,
+  } = useParamTplSets();
+  const {
+    data: condOutSets = [],
+    error: condOutSetsError,
+    isLoading: condOutSetsLoading,
+    refetch: refetchCondOutSets,
+  } = useCondOutSets();
 
   // 画布状态
   const [transform, setTransform] = useState<CanvasTransform>({ x: 60, y: 60, scale: 0.85 });
@@ -171,6 +216,38 @@ export const useSubmissionState = (selectedProjectId: number | null) => {
     return (firstY + lastY) / 2;
   }, [safeSimTypes.length]);
 
+  const isConfigLoading =
+    projectsLoading ||
+    simTypesLoading ||
+    foldTypesLoading ||
+    paramDefsLoading ||
+    solversLoading ||
+    outputDefsLoading ||
+    conditionDefsLoading ||
+    paramTplSetsLoading ||
+    condOutSetsLoading;
+  const configError =
+    projectsError ||
+    simTypesError ||
+    foldTypesError ||
+    paramDefsError ||
+    solversError ||
+    outputDefsError ||
+    conditionDefsError ||
+    paramTplSetsError ||
+    condOutSetsError;
+  const retryConfig = () => {
+    void refetchProjects();
+    void refetchSimTypes();
+    void refetchFoldTypes();
+    void refetchParamDefs();
+    void refetchSolvers();
+    void refetchOutputDefs();
+    void refetchConditionDefs();
+    void refetchParamTplSets();
+    void refetchCondOutSets();
+  };
+
   return {
     // 配置数据
     projects: projects || [],
@@ -183,6 +260,9 @@ export const useSubmissionState = (selectedProjectId: number | null) => {
     safeParamTplSets,
     safeCondOutSets,
     selectedProject,
+    isConfigLoading,
+    configError,
+    retryConfig,
     // 画布状态
     transform,
     setTransform,

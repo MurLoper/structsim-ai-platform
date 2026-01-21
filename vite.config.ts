@@ -31,7 +31,11 @@ export default defineConfig(({ mode }) => {
         output: {
           manualChunks: {
             vendor: ['react', 'react-dom', 'react-router-dom'],
-            charts: ['recharts'],
+            query: ['@tanstack/react-query', '@tanstack/react-table', '@tanstack/react-virtual'],
+            charts: ['echarts', 'echarts-for-react'],
+            flow: ['@xyflow/react'],
+            form: ['react-hook-form', '@hookform/resolvers', 'zod'],
+            ui: ['framer-motion', 'lucide-react', 'clsx', 'tailwind-merge'],
           },
         },
       },
