@@ -1,0 +1,110 @@
+{
+  "mq_server_type": [
+    {
+      "mq_server_type_id": 1, // mq_server_type ID
+      "mq_server_type_name": "request_api", // mq_server_type名称
+      "log_dir": "/var/log/structsim/mq/request_api/", // mq_server_type日志目录
+      "desc": "请求API消息队列", // mq_server_type描述
+      "cmdline": "/usr/local/bin/request_api_mq_server", // mq_server_type启动命令
+      "run_dir": "/usr/local/structsim/mq_servers/request_api/", // mq_server_type运行目录
+      "config_path": "/usr/local/structsim/mq_servers/request_api/config.json" // mq_server_type配置文件路径
+    }
+  ],
+  "mq_server_list": [
+    {
+      "mq_server_id": 1, // mq_server ID
+      "mq_server_type_id": 1, // mq_server类型ID
+      "host": "",
+      "port": 0,
+      "pid": 0,
+      "status": 0, // 0: 停止，1：运行中
+      "last_start_time": "", // 上次启动时间
+      "last_stop_time": "", // 上次停止时间
+      "batch_process_count": 4 // 批处理进程数量
+    }
+  ],
+  "server_list": [
+    {
+      "server_id": 1, // server ID
+      "server_name": "主服务器", // server名称
+      "host": 123, // server主机ID
+      "port": 8080, // server端口
+      "desc": "主服务器", // server描述
+      "cpu_cores": 4, // server CPU核心数
+      "ram_size_gb": 16, // server 内存大小，单位GB
+      "disk_size_gb": 500, // server 磁盘大小，单位GB
+      "cpu_usage": 80, // CPU使用率限制，百分比
+      "ram_size_gb_usage": 80, // 内存使用率限制，百分比
+      "disk_size_gb_usage": 90 // 磁盘使用率限制，百分比
+    }
+  ],
+  "server_module_config": [
+    // 有的模块只有名称，没有需要运行的process，只是作为一个模块标记，没有被单独起服务的必要，进作为流程标记，便于用户区分流程
+    // function_name 以 功能+运行平台类型 命名，如 python_linux_server
+    {
+      "process_name": "python_api_server", // 进程名称
+      "function_name": "python_linux_server", // 进程功能名称(同一个功能可能有多个实例，如API服务进程，共用一个function_name，但有多个process_name，区分不同实例资源limit)
+      "max_instance_count": 5, // 最大实例数量
+      "module_id": 1, // 所属模块ID
+      "module_name": "PYTHON_API服务模块", // 所属模块名称
+      "limit_cpu_cores": 64, // CPU核心数限制
+      "limit_ram_size_gb": 128, // 内存大小限制，单位GB
+      "limit_disk_size_gb": 200, // 磁盘大小限制，单位GB
+      "desc": "API服务进程", // 进程描述
+      "cmdline": "/usr/local/bin/request_api_mq_server",
+      "run_server_type": "linux", // 进程运行服务器类型，linux/windows
+      "isroot": 1, // 是否需要root权限运行，1: 是，0：否
+      "platform_type": 1 // 1：智能结构仿真平台，2：实验室测试平台， 3：资料平台
+    },
+    {
+      "process_name": "solver_worker", // 进程名称
+      "function_name": "solver_linux_server", // 进程功能名称(同一个功能可能有多个实例，如API服务进程，共用一个function_name，但有多个process_name，区分不同实例资源limit)
+      "max_instance_count": 20, // 最大实例数量
+      "module_id": 2, // 所属模块ID
+      "module_name": "求解器计算模块", // 所属模块名称
+      "limit_cpu_cores": 256, // CPU核心数限制
+      "limit_ram_size_gb": 512, // 内存大小限制，单位GB
+      "limit_disk_size_gb": 1000, // 磁盘大小限制，单位GB
+      "desc": "求解器计算进程", // 进程描述
+      "cmdline": "/usr/local/bin/solver_worker_mq_server",
+      "run_server_type": "linux", // 进程运行服务器类型，linux/windows
+      "isroot": 0, // 是否需要root权限运行，1: 是，0：否
+      "platform_type": 1 // 1：智能结构仿真平台，2：实验室测试平台， 3：资料平台
+    }
+  ],
+  "platform_type_config": [
+    {
+      "platform_type_id": 1, // 平台类型ID
+      "route_prefix": "/structsim", // 平台类型路由前缀
+      "host": "structsim.example.com", // 平台类型主机名
+      "port": 80, // 平台类型端口
+      "index_path": "/usr/local/structsim-ai-platform/index/dist/index.html", // 平台类型绝对路由前缀
+      "static_file_path": "/usr/local/structsim-ai-platform/index/static", // 平台类型静态文件路径
+      "template_path": "/usr/local/structsim-ai-platform/templates", // 平台类型模板文件路径
+      "login_page": "/structsim/login", // 平台类型登录页面路径
+      "platform_type_name": "智能结构仿真平台" // 平台类型名称
+    },
+    {
+      "platform_type_id": 2, // 平台类型ID
+      "route_prefix": "/labtest", // 平台类型路由前缀
+      "host": "labtest.example.com", // 平台类型主机名
+      "port": 80, // 平台类型端口
+      "index_path": "/usr/local/labtest-platform/index/dist/index.html", // 平台类型绝对路由前缀
+      "static_file_path": "/usr/local/labtest-platform/index/static", // 平台类型静态文件路径
+      "template_path": "/usr/local/labtest-platform/templates", // 平台类型模板文件路径
+      "login_page": "/labtest/login", // 平台类型登录页面路径
+      "platform_type_name": "实验室测试平台" // 平台类型名称
+    },
+    {
+      "platform_type_id": 3, // 平台类型ID
+      "route_prefix": "/dataplat", // 平台类型路由前缀
+      "host": "dataplat.example.com", // 平台类型主机名
+      "port": 80, // 平台类型端口
+      "index_path": "/usr/local/data-platform/index/dist/index.html", // 平台类型绝对路由前缀
+      "static_file_path": "/usr/local/data-platform/index/static", // 平台类型静态文件路径
+      "template_path": "/usr/local/data-platform/templates", // 平台类型模板文件路径
+      "login_page": "/dataplat/login", // 平台类型登录页面路径
+      "platform_type_name": "资料平台" // 平台类型名称
+    }
+  ]
+}

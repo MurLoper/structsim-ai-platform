@@ -14,8 +14,8 @@ export * from './ui';
 // 表格组件
 export * from './tables';
 
-// 表单组件
-export * from './forms';
+// 表单组件 - 使用命名导出避免冲突
+export { FormField, DynamicArrayField, ConditionalField } from './forms';
 
 // 图表组件
 export * from './charts';

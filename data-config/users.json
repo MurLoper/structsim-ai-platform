@@ -1,0 +1,81 @@
+{
+  "user_list": [
+    {
+      "user_id": 12345,
+      "user_name": "test_user",
+      "user_email": "",
+      "user_account": "",
+      "real_name": "Test User",
+      "department": 1,
+      "is_super": 1,
+      "access_token": "abcdefg1234567",
+      "creation_time": "2024-01-01 12:00:00",
+      "last_login_time": "2024-06-01 12:00:00"
+    }
+  ],
+  "department_list": [
+    {
+      "department_id": 1,
+      "department_name": "Engineering"
+    },
+    {
+      "department_id": 2,
+      "department_name": "Research"
+    }
+  ],
+  "user_roles": [
+    [12345, 1],
+    [12345, 2],
+    [12345, 3],
+    [1001, 2],
+    [1002, 2],
+    [1003, 2],
+    [1004, 3],
+    [1005, 1]
+  ],
+  "role_list": [
+    {
+      "role_id": 1,
+      "role_name": "Admin",
+      "permissions": "all",
+      "limit_cpu_cores": 512
+    },
+    {
+      "role_id": 2,
+      "role_name": "Project Manager",
+      "permissions": [
+        1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+        26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48,
+        49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71
+      ],
+      "limit_cpu_cores": 256
+    },
+    {
+      "role_id": 3,
+      "role_name": "Developer",
+      "permissions": [1, 2, 3, 4, 5, 6],
+      "limit_cpu_cores": 128
+    }
+  ],
+  "permission_list": [
+    {
+      "permission_id": 1,
+      "permission_name": "Create Project"
+    },
+    {
+      "permission_id": 2,
+      "permission_name": "Delete Project"
+    }
+  ],
+  "user_settings": {
+    "12345": {
+      "theme": "dark",
+      "notifications": true,
+      "language": "zh-CN",
+      "history_projects": [101, 102, 103],
+      "history_sim_types": [1, 2, 3],
+      "history_care_devices": [10, 20, 30],
+      "history_solvers": [5, 6, 7]
+    }
+  }
+}

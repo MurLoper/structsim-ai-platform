@@ -1,0 +1,214 @@
+{
+  "projject_list": [
+    {
+      "project_name": "test", // 项目名称
+      "project_id": "1753" // 项目ID
+    },
+    {
+      "project_name": "auto_test", // 项目名称
+      "project_id": "1754" // 项目ID
+    }
+  ],
+  "sim_type_list": [
+    {
+      "sim_type_id": 1, // sim_type ID
+      "sim_type_name": "跌落" // sim_type名称
+    },
+    {
+      "sim_type_id": 2, // sim_type ID
+      "sim_type_name": "落球" // sim_type名称
+    }
+  ],
+  "model_level_list": [
+    {
+      "model_level_id": 1, // model_level ID
+      "model_level_name": "整机" // model_level名称
+    },
+    {
+      "model_level_id": 2, // model_level ID
+      "model_level_name": "单件" // model_level名称
+    }
+  ],
+  "fold_type_list": [
+    {
+      "fold_type_id": 0, // fold_type ID
+      "fold_type_name": "展开态" // fold_type名称
+    },
+    {
+      "fold_type_id": 1, // fold_type ID
+      "fold_type_name": "折叠态" // fold_type名称
+    }
+  ],
+  "param_map": [
+    {
+      "opt_param_id": 1, // 优化参数ID
+      "param_name": "x_deg", // 参数名称
+      "param_unit": "°", // 参数单位
+      "param_desc": "X轴旋转角度", // 参数描述
+      "param_default_min": 0, // 参数默认最小值
+      "param_default_max": 90, // 参数默认最大值
+      "param_default_init": 0 // 参数默认初始值
+    },
+    {
+      "opt_param_id": 2, // 优化参数ID
+      "param_name": "y_deg", // 参数名称
+      "param_unit": "°", // 参数单位
+      "param_desc": "Y轴旋转角度", // 参数描述
+      "param_default_min": 0, // 参数默认最小值
+      "param_default_max": 90, // 参数默认最大值
+      "param_default_init": 0 // 参数默认初始值
+    },
+    {
+      "opt_param_id": 3, // 优化参数ID
+      "param_name": "z_deg", // 参数名称
+      "param_unit": "°", // 参数单位
+      "param_desc": "Z轴旋转角度", // 参数描述
+      "param_default_min": 0, // 参数默认最小值
+      "param_default_max": 90, // 参数默认最大值
+      "param_default_init": 0 // 参数默认初始值
+    },
+    {
+      "opt_param_id": 4, // 优化参数ID
+      "param_name": "drop_height", // 参数名称
+      "param_unit": "m", // 参数单位
+      "param_desc": "跌落高度", // 参数描述
+      "param_default_min": 0.5, // 参数默认最小值
+      "param_default_max": 1.5, // 参数默认最大值
+      "param_default_init": 1 // 参数默认初始值
+    },
+    {
+      "opt_param_id": 5, // 优化参数ID
+      "param_name": "drop_time", // 参数名称
+      "param_unit": "s", // 参数单位
+      "param_desc": "跌落时间", // 参数描述
+      "param_default_min": 0.1, // 参数默认最小值
+      "param_default_max": 2.0, // 参数默认最大值
+      "param_default_init": 1.0 // 参数默认初始值
+    },
+    {
+      "opt_param_id": 6, // 优化参数ID
+      "param_name": "mass_scale", // 参数名称
+      "param_unit": "", // 参数单位
+      "param_desc": "质量缩放", // 参数描述
+      "param_default_min": 5e-6, // 参数默认最小值
+      "param_default_max": 5e-6, // 参数默认最大值
+      "param_default_init": 5e-6 // 参数默认初始值
+    },
+    {
+      "opt_param_id": 7, // 优化参数ID
+      "param_name": "ball_weight", // 参数名称
+      "param_unit": "kg", // 参数单位
+      "param_desc": "落球重量", // 参数描述
+      "param_default_min": 0.2, // 参数默认最小值
+      "param_default_max": 1.0, // 参数默认最大值
+      "param_default_init": 0.5 // 参数默认初始值
+    },
+    {
+      "opt_param_id": 8, // 优化参数ID
+      "param_name": "x", // 参数名称
+      "param_unit": "mm", // 参数单位
+      "param_desc": "落球x点位", // 参数描述
+      "param_default_min": 0, // 参数默认最小值
+      "param_default_max": 20, // 参数默认最大值
+      "param_default_init": 10 // 参数默认初始值
+    },
+    {
+      "opt_param_id": 9, // 优化参数ID
+      "param_name": "y", // 参数名称
+      "param_unit": "mm", // 参数单位
+      "param_desc": "落球y点位", // 参数描述
+      "param_default_min": 0, // 参数默认最小值
+      "param_default_max": 20, // 参数默认最大值
+      "param_default_init": 10 // 参数默认初始值
+    },
+    {
+      "opt_param_id": 10, // 优化参数ID
+      "param_name": "z", // 参数名称
+      "param_unit": "mm", // 参数单位
+      "param_desc": "落球z点位", // 参数描述
+      "param_default_min": 0, // 参数默认最小值
+      "param_default_max": 20, // 参数默认最大值
+      "param_default_init": 10 // 参数默认初始值
+    }
+  ],
+  "resp_map": [
+    {
+      "resp_param_id": 1, // 响应参数ID
+      "ouput_type": "LEP1", // 输出类型
+      "component": "35", // 关注输出：35：other抓取output_type的默认值，18：特殊输出
+      "description": "Displacement in X direction at push location", // 输出描述
+      "set": "push", // 输出集合
+      "target_type": "min" // 目标类型：min, max, target, userdefined
+    },
+    {
+      "resp_param_id": 2, // 响应参数ID
+      "ouput_type": "LEP2", // 输出类型
+      "component": "35", // 关注输出：35：other抓取output_type的默认值，18：特殊输出
+      "description": "Displacement in Y direction at push location", // 输出描述
+      "set": "lasdadatqer@adfas", // 输出集合
+      "target_type": "max" // 目标类型：min, max, target, userdefined
+    }
+  ],
+  "running_status": [
+    {
+      "status_id": 0, // 状态ID
+      "status_name": "未开始", // 状态名称
+      "status_color": "#808080" // 状态颜色
+    },
+    {
+      "status_id": 1, // 状态ID
+      "status_name": "运行中", // 状态名称
+      "status_color": "#0000FF" // 状态颜色
+    },
+    {
+      "status_id": 2, // 状态ID
+      "status_name": "已完成", // 状态名称
+      "status_color": "#008000" // 状态颜色
+    },
+    {
+      "status_id": 3, // 状态ID
+      "status_name": "运行失败", // 状态名称
+      "status_color": "#FF0000" // 状态颜色
+    },
+    {
+      "status_id": 4, // 状态ID
+      "status_name": "草稿箱", // 状态名称
+      "status_color": "#0000FF" // 状态颜色
+    },
+    {
+      "status_id": 5, // 状态ID
+      "status_name": "手动终止", // 状态名称
+      "status_color": "#FFA500" // 状态颜色
+    },
+    {
+      "status_id": 6, // 状态ID
+      "status_name": "启动中", // 状态名称
+      "status_color": "#800080" // 状态颜色
+    },
+    {
+      "status_id": 7, // 状态ID
+      "status_name": "小模块完成", // 状态名称
+      "status_color": "#0000FF" // 状态颜色
+    }
+  ],
+  "solver_list": [
+    {
+      "solver_id": 0, // 求解器ID
+      "solver_name": "GPU求解器" // 求解器名称
+    },
+    {
+      "solver_id": 39, // 求解器ID
+      "solver_name": "Abaqus2019" // 求解器名称
+    }
+  ],
+  "solver_resource": [
+    {
+      "resource_id": 1, // 资源ID
+      "resource_name": "标准节点" // 资源名称
+    },
+    {
+      "resource_id": 2, // 资源ID
+      "resource_name": "大内存节点" // 资源名称
+    }
+  ]
+}

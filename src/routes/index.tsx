@@ -11,6 +11,10 @@ const Results = React.lazy(() => import('@/pages/dashboard/Results'));
 const Submission = React.lazy(() => import('@/pages/submission'));
 const Configuration = React.lazy(() => import('@/pages/configuration/Configuration'));
 const NoPermission = React.lazy(() => import('@/pages/auth/NoPermission'));
+const VirtualTableTest = React.lazy(() => import('@/pages/performance-test/VirtualTableTest'));
+const EChartsPerformanceTest = React.lazy(
+  () => import('@/pages/performance-test/EChartsPerformanceTest')
+);
 
 // Protected route wrapper
 interface ProtectedRouteProps {
@@ -113,6 +117,30 @@ export const routes: RouteObject[] = [
         <SuspenseWrapper>
           <Layout>
             <Results />
+          </Layout>
+        </SuspenseWrapper>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/performance-test',
+    element: (
+      <ProtectedRoute>
+        <SuspenseWrapper>
+          <Layout>
+            <VirtualTableTest />
+          </Layout>
+        </SuspenseWrapper>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/echarts-test',
+    element: (
+      <ProtectedRoute>
+        <SuspenseWrapper>
+          <Layout>
+            <EChartsPerformanceTest />
           </Layout>
         </SuspenseWrapper>
       </ProtectedRoute>

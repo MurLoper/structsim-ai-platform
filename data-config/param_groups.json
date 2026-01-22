@@ -1,0 +1,22 @@
+{
+  "opt_param_groups": [
+    {
+      "group_id": 1,
+      "opt_param_ids": [1, 2, 3, 4, 5, 6]
+    },
+    {
+      "group_id": 2,
+      "opt_param_ids": [7, 8, 9, 10]
+    }
+  ],
+  "resp_param_groups": [
+    {
+      "group_id": 1,
+      "resp_param_ids": [1, 2, 3]
+    },
+    {
+      "group_id": 2,
+      "resp_param_ids": [4, 5]
+    }
+  ]
+}
