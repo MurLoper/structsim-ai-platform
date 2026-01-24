@@ -1,0 +1,66 @@
+{
+  "opt_param_groups": [
+    {
+      "group_id": 1,
+      "opt_param_ids": [1, 2, 3, 4, 5, 6],
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "group_id": 2,
+      "opt_param_ids": [7, 8, 9, 10],
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "group_id": 3,
+      "opt_param_ids": [11, 12, 13],
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "group_id": 4,
+      "opt_param_ids": [14, 15, 16],
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "group_id": 5,
+      "opt_param_ids": [17, 18, 19, 20],
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    }
+  ],
+  "resp_param_groups": [
+    {
+      "group_id": 1,
+      "resp_param_ids": [1, 2, 3],
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "group_id": 2,
+      "resp_param_ids": [4, 5],
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "group_id": 3,
+      "resp_param_ids": [6, 7],
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "group_id": 4,
+      "resp_param_ids": [8, 9],
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "group_id": 5,
+      "resp_param_ids": [10, 11],
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    }
+  ]
+}

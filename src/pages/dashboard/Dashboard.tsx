@@ -3,10 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
 import { Button, Card, Badge } from '@/components/ui';
-import { ArrowRightIcon, BeakerIcon } from '@heroicons/react/24/outline';
+import { StatCard } from '@/components/dashboard/StatCard';
+import { LineChart } from '@/components/charts/LineChart';
+import { BarChart } from '@/components/charts/BarChart';
+import {
+  ClipboardList,
+  PlayCircle,
+  CheckCircle,
+  AlertTriangle,
+  ArrowRight,
+  Beaker,
+} from 'lucide-react';
 import { useStatusDefs } from '@/features/config/queries/useCompositeConfigs';
 import { useProjects, useSimTypes } from '@/features/config/queries';
 import { useOrders } from '@/features/orders/queries';
+import {
+  useOrderStatistics,
+  useOrderTrends,
+  useStatusDistribution,
+} from '@/features/orders/queries/useStatistics';
 import { DataTable } from '@/components/tables/DataTable';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { OrderListItem } from '@/types/order';
@@ -14,6 +29,11 @@ import type { OrderListItem } from '@/types/order';
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { language } = useUIStore();
+
+  const { data: stats, isLoading: statsLoading } = useOrderStatistics();
+  const { data: trends, isLoading: trendsLoading } = useOrderTrends(7);
+  const { data: distribution, isLoading: distributionLoading } = useStatusDistribution();
+
   const {
     data: statusDefs,
     error: statusDefsError,
@@ -37,7 +57,7 @@ const Dashboard: React.FC = () => {
     isLoading: ordersLoading,
     error: ordersError,
     refetch: refetchOrders,
-  } = useOrders({ page: 1, pageSize: 20 });
+  } = useOrders({ page: 1, pageSize: 10 });
   const orders = ordersPage?.items || [];
   const t = (key: string) => RESOURCES[language][key] || key;
   const emptyText = RESOURCES[language]['dash.empty'] || '暂无订单';
@@ -164,7 +184,7 @@ const Dashboard: React.FC = () => {
               onClick={() => navigate(`/results/${row.original.id}`)}
               className="text-brand-600 hover:text-brand-700 font-medium text-sm flex items-center gap-1"
             >
-              {t('dash.view_results')} <ArrowRightIcon className="w-4 h-4" />
+              {t('dash.view_results')} <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         ),
@@ -182,7 +202,7 @@ const Dashboard: React.FC = () => {
           </h1>
           <p className="text-slate-500 dark:text-slate-400">{t('dash.subtitle')}</p>
         </div>
-        <Button onClick={() => navigate('/create')} icon={<BeakerIcon className="w-5 h-5" />}>
+        <Button onClick={() => navigate('/create')} icon={<Beaker className="w-5 h-5" />}>
           {t('dash.new_sim')}
         </Button>
       </div>
@@ -191,7 +211,9 @@ const Dashboard: React.FC = () => {
         {hasLoadError && (
           <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-slate-200 bg-red-50 text-red-700">
             <span className="text-sm">订单或配置数据加载失败，请重试。</span>
-            <Button size="sm" variant="outline" onClick={handleRetry}>重试</Button>
+            <Button size="sm" variant="outline" onClick={handleRetry}>
+              重试
+            </Button>
           </div>
         )}
         <DataTable

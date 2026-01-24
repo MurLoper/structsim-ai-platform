@@ -1,0 +1,358 @@
+{
+  "projects": [
+    {
+      "project_id": "1751",
+      "project_name": "折叠屏手机A",
+      "created_at": 1769144848411,
+      "updated_at": 1769231248411
+    },
+    {
+      "project_id": "1752",
+      "project_name": "折叠屏手机B",
+      "created_at": 1769058448411,
+      "updated_at": 1769231248411
+    },
+    {
+      "project_id": "1753",
+      "project_name": "折叠屏平板",
+      "created_at": 1768972048411,
+      "updated_at": 1769231248411
+    },
+    {
+      "project_id": "1754",
+      "project_name": "智能手表",
+      "created_at": 1768885648411,
+      "updated_at": 1769231248411
+    },
+    {
+      "project_id": "1755",
+      "project_name": "笔记本电脑",
+      "created_at": 1768799248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "project_id": "1756",
+      "project_name": "游戏主机",
+      "created_at": 1768712848411,
+      "updated_at": 1769231248411
+    },
+    {
+      "project_id": "1757",
+      "project_name": "VR头显",
+      "created_at": 1768626448411,
+      "updated_at": 1769231248411
+    },
+    {
+      "project_id": "1758",
+      "project_name": "智能音箱",
+      "created_at": 1768540048411,
+      "updated_at": 1769231248411
+    },
+    {
+      "project_id": "1759",
+      "project_name": "车载显示屏",
+      "created_at": 1768453648411,
+      "updated_at": 1769231248411
+    },
+    {
+      "project_id": "1760",
+      "project_name": "工业平板",
+      "created_at": 1768367248411,
+      "updated_at": 1769231248411
+    }
+  ],
+  "sim_types": [
+    {
+      "sim_type_id": 1,
+      "sim_type_name": "跌落",
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "sim_type_id": 2,
+      "sim_type_name": "落球",
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "sim_type_id": 3,
+      "sim_type_name": "振动",
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "sim_type_id": 4,
+      "sim_type_name": "冲击",
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "sim_type_id": 5,
+      "sim_type_name": "热分析",
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    }
+  ],
+  "model_levels": [
+    {
+      "model_level_id": 1,
+      "model_level_name": "整机",
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "model_level_id": 2,
+      "model_level_name": "单件",
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "model_level_id": 3,
+      "model_level_name": "部件",
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    }
+  ],
+  "fold_types": [
+    {
+      "fold_type_id": 0,
+      "fold_type_name": "展开态",
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "fold_type_id": 1,
+      "fold_type_name": "折叠态",
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "fold_type_id": 2,
+      "fold_type_name": "半折叠态",
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    }
+  ],
+  "param_defs": [
+    {
+      "opt_param_id": 1,
+      "param_name": "x_deg",
+      "param_unit": "°",
+      "param_desc": "X轴旋转角度",
+      "param_default_min": 0,
+      "param_default_max": 90,
+      "param_default_init": 0,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 2,
+      "param_name": "y_deg",
+      "param_unit": "°",
+      "param_desc": "Y轴旋转角度",
+      "param_default_min": 0,
+      "param_default_max": 360,
+      "param_default_init": 0,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 3,
+      "param_name": "z_deg",
+      "param_unit": "°",
+      "param_desc": "Z轴旋转角度",
+      "param_default_min": 0,
+      "param_default_max": 90,
+      "param_default_init": 0,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 4,
+      "param_name": "drop_height",
+      "param_unit": "m",
+      "param_desc": "跌落高度",
+      "param_default_min": 0.5,
+      "param_default_max": 2.0,
+      "param_default_init": 1.0,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 5,
+      "param_name": "gravity",
+      "param_unit": "m/s²",
+      "param_desc": "重力加速度",
+      "param_default_min": 9.8,
+      "param_default_max": 9.8,
+      "param_default_init": 9.8,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 6,
+      "param_name": "init_velocity",
+      "param_unit": "m/s",
+      "param_desc": "初始速度",
+      "param_default_min": 0,
+      "param_default_max": 10,
+      "param_default_init": 0,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 7,
+      "param_name": "ball_mass",
+      "param_unit": "kg",
+      "param_desc": "球体质量",
+      "param_default_min": 0.1,
+      "param_default_max": 1.0,
+      "param_default_init": 0.5,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 8,
+      "param_name": "ball_radius",
+      "param_unit": "mm",
+      "param_desc": "球体半径",
+      "param_default_min": 10,
+      "param_default_max": 50,
+      "param_default_init": 25,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 9,
+      "param_name": "impact_x",
+      "param_unit": "mm",
+      "param_desc": "撞击点X坐标",
+      "param_default_min": -100,
+      "param_default_max": 100,
+      "param_default_init": 0,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 10,
+      "param_name": "impact_y",
+      "param_unit": "mm",
+      "param_desc": "撞击点Y坐标",
+      "param_default_min": -100,
+      "param_default_max": 100,
+      "param_default_init": 0,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 11,
+      "param_name": "frequency",
+      "param_unit": "Hz",
+      "param_desc": "振动频率",
+      "param_default_min": 10,
+      "param_default_max": 2000,
+      "param_default_init": 100,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 12,
+      "param_name": "amplitude",
+      "param_unit": "mm",
+      "param_desc": "振幅",
+      "param_default_min": 0.1,
+      "param_default_max": 10,
+      "param_default_init": 1.0,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 13,
+      "param_name": "duration",
+      "param_unit": "s",
+      "param_desc": "持续时间",
+      "param_default_min": 1,
+      "param_default_max": 60,
+      "param_default_init": 10,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 14,
+      "param_name": "youngs_modulus",
+      "param_unit": "GPa",
+      "param_desc": "杨氏模量",
+      "param_default_min": 50,
+      "param_default_max": 300,
+      "param_default_init": 200,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 15,
+      "param_name": "poisson_ratio",
+      "param_unit": "",
+      "param_desc": "泊松比",
+      "param_default_min": 0.2,
+      "param_default_max": 0.4,
+      "param_default_init": 0.3,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 16,
+      "param_name": "density",
+      "param_unit": "kg/m³",
+      "param_desc": "密度",
+      "param_default_min": 1000,
+      "param_default_max": 8000,
+      "param_default_init": 7850,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 17,
+      "param_name": "ambient_temp",
+      "param_unit": "°C",
+      "param_desc": "环境温度",
+      "param_default_min": -40,
+      "param_default_max": 85,
+      "param_default_init": 25,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 18,
+      "param_name": "heat_flux",
+      "param_unit": "W/m²",
+      "param_desc": "热流密度",
+      "param_default_min": 0,
+      "param_default_max": 10000,
+      "param_default_init": 1000,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 19,
+      "param_name": "mesh_size",
+      "param_unit": "mm",
+      "param_desc": "网格尺寸",
+      "param_default_min": 0.5,
+      "param_default_max": 5.0,
+      "param_default_init": 2.0,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    },
+    {
+      "opt_param_id": 20,
+      "param_name": "time_step",
+      "param_unit": "ms",
+      "param_desc": "时间步长",
+      "param_default_min": 0.01,
+      "param_default_max": 1.0,
+      "param_default_init": 0.1,
+      "created_at": 1769231248411,
+      "updated_at": 1769231248411
+    }
+  ]
+}

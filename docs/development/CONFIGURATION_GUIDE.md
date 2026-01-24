@@ -60,17 +60,172 @@
 
 ## 🗄️ 数据库配置实现
 
-### 后端实现
+### 数据库设计
 
-**1. 创建配置表**
+**完整 Schema 位置：** `database/schema.sql`
+
+**核心配置表：**
+
+```sql
+-- 项目表
+CREATE TABLE projects (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  project_id VARCHAR(50) NOT NULL UNIQUE,
+  project_name VARCHAR(100) NOT NULL,
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL
+);
+
+-- 仿真类型表
+CREATE TABLE sim_types (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  sim_type_id INT NOT NULL UNIQUE,
+  sim_type_name VARCHAR(100) NOT NULL,
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL
+);
+
+-- 参数定义表
+CREATE TABLE param_defs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  opt_param_id INT NOT NULL UNIQUE,
+  param_name VARCHAR(100) NOT NULL,
+  param_unit VARCHAR(20),
+  param_desc TEXT,
+  param_default_min DOUBLE,
+  param_default_max DOUBLE,
+  param_default_init DOUBLE,
+  created_at BIGINT NOT NULL,
+  updated_at BIGINT NOT NULL
+);
+```
+
+**字段命名规范：**
+
+- 数据库：使用下划线命名（`project_id`, `created_at`）
+- 前端：使用驼峰命名（`projectId`, `createdAt`）
+- 自动转换：在 API 层透明处理（见 `src/lib/api-transform.ts`）
+
+### 后端实现（如有）
+
+**API 接口示例：**
 
 ```python
-# app/models/config.py
-class SystemConfig(db.Model):
-    """系统配置表"""
-    __tablename__ = 'system_configs'
+# app/routes/config.py
+@app.route('/api/config/projects', methods=['GET'])
+def get_projects():
+    """获取项目列表"""
+    projects = db.session.query(Project).filter_by(valid=1).all()
+    return jsonify([{
+        'project_id': p.project_id,
+        'project_name': p.project_name,
+        'created_at': p.created_at,
+        'updated_at': p.updated_at
+    } for p in projects])
+```
 
-    id = db.Column(db.Integer, primary_key=True)
+**注意：** 后端返回的字段使用下划线命名，前端 API Client 会自动转换为驼峰命名。
+
+### 前端实现
+
+**1. API 调用**
+
+```typescript
+// src/api/config/base.ts
+import { api } from '../client';
+
+export const baseConfigApi = {
+  // 获取项目列表
+  getProjects: () => api.get<Project[]>('/config/projects'),
+
+  // 获取仿真类型
+  getSimTypes: () => api.get<SimType[]>('/config/sim-types'),
+
+  // 获取参数定义
+  getParamDefs: () => api.get<ParamDef[]>('/config/param-defs'),
+};
+```
+
+**2. 类型定义**
+
+```typescript
+// src/types/config.ts
+export interface Project {
+  projectId: string; // 前端使用驼峰命名
+  projectName: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface SimType {
+  simTypeId: number;
+  simTypeName: string;
+  createdAt: number;
+  updatedAt: number;
+}
+```
+
+**3. React Query Hook**
+
+```typescript
+// src/features/config/queries/useProjects.ts
+import { useQuery } from '@tanstack/react-query';
+import { baseConfigApi } from '@/api/config/base';
+import { queryKeys } from '@/lib/queryClient';
+
+export const useProjects = () => {
+  return useQuery({
+    queryKey: queryKeys.projects.list(),
+    queryFn: baseConfigApi.getProjects,
+  });
+};
+```
+
+**4. 组件使用**
+
+```typescript
+// src/pages/config/ProjectList.tsx
+import { useProjects } from '@/features/config/queries/useProjects';
+
+export function ProjectList() {
+  const { data: projects, isLoading } = useProjects();
+
+  if (isLoading) return <Loading />;
+
+  return (
+    <ul>
+      {projects?.map(p => (
+        <li key={p.projectId}>
+          {p.projectName}
+        </li>
+      ))}
+    </ul>
+  );
+}
+```
+
+## 🔧 API 自动转换
+
+前端 API Client 自动处理字段命名转换：
+
+```typescript
+// src/api/client.ts
+import { toSnakeCase, toCamelCase } from '@/lib/api-transform';
+
+class ApiClient {
+  async request<T>(config: RequestConfig): Promise<T> {
+    // 请求前：驼峰 → 下划线
+    if (config.data) {
+      config.data = toSnakeCase(config.data);
+    }
+
+    const response = await fetch(/* ... */);
+    const data = await response.json();
+
+    // 响应后：下划线 → 驼峰
+    return toCamelCase(data) as T;
+  }
+}Integer, primary_key=True)
     key = db.Column(db.String(100), unique=True, nullable=False)
     value = db.Column(db.Text, nullable=False)
     type = db.Column(db.String(20))  # string, number, json, boolean

@@ -95,5 +95,8 @@ export const queryKeys = {
     all: ['orders'] as const,
     list: () => [...queryKeys.orders.all, 'list'] as const,
     detail: (id: number) => [...queryKeys.orders.all, 'detail', id] as const,
+    statistics: () => [...queryKeys.orders.all, 'statistics'] as const,
+    trends: (days: number) => [...queryKeys.orders.all, 'trends', days] as const,
+    statusDistribution: () => [...queryKeys.orders.all, 'statusDistribution'] as const,
   },
 } as const;
