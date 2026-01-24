@@ -44,7 +44,7 @@ export const ordersApi = {
   getOrders: async (params?: OrdersQueryParams) => {
     if (useMockData) {
       console.log('[Mock] 使用 mock 数据: orders list');
-      return Promise.resolve({ data: mockOrdersList });
+      return Promise.resolve(mockOrdersList);
     }
     return api.get<OrdersListResponse>('/orders', { params });
   },

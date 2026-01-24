@@ -3,6 +3,7 @@
  */
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router-dom';
+import { PageSuspense, RouteErrorBoundary } from '../components';
 
 // 懒加载页面
 const Configuration = lazy(() => import('@/pages/configuration/Configuration'));
@@ -13,7 +14,13 @@ const Configuration = lazy(() => import('@/pages/configuration/Configuration'));
 export const configRoutes: RouteObject[] = [
   {
     path: 'config',
-    element: <Configuration />,
+    element: (
+      <RouteErrorBoundary>
+        <PageSuspense>
+          <Configuration />
+        </PageSuspense>
+      </RouteErrorBoundary>
+    ),
     handle: {
       title: '配置中心',
       permission: 'MANAGE_CONFIG',

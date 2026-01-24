@@ -1,8 +1,9 @@
-/**
+﻿/**
  * 工作台路由模块
  */
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router-dom';
+import { PageSuspense, RouteErrorBoundary } from '../components';
 
 // 懒加载页面
 const Dashboard = lazy(() => import('@/pages/dashboard/Dashboard'));
@@ -14,7 +15,13 @@ const Results = lazy(() => import('@/pages/dashboard/Results'));
 export const dashboardRoutes: RouteObject[] = [
   {
     index: true,
-    element: <Dashboard />,
+    element: (
+      <RouteErrorBoundary>
+        <PageSuspense>
+          <Dashboard />
+        </PageSuspense>
+      </RouteErrorBoundary>
+    ),
     handle: {
       title: '工作台',
       permission: 'VIEW_DASHBOARD',
@@ -22,7 +29,13 @@ export const dashboardRoutes: RouteObject[] = [
   },
   {
     path: 'results/:id',
-    element: <Results />,
+    element: (
+      <RouteErrorBoundary>
+        <PageSuspense>
+          <Results />
+        </PageSuspense>
+      </RouteErrorBoundary>
+    ),
     handle: {
       title: '结果查看',
       permission: 'VIEW_RESULTS',

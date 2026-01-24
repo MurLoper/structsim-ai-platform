@@ -3,6 +3,7 @@
  */
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router-dom';
+import { PageSuspense, RouteErrorBoundary } from '../components';
 
 // 懒加载页面
 const Submission = lazy(() => import('@/pages/submission'));
@@ -13,7 +14,13 @@ const Submission = lazy(() => import('@/pages/submission'));
 export const submissionRoutes: RouteObject[] = [
   {
     path: 'create',
-    element: <Submission />,
+    element: (
+      <RouteErrorBoundary>
+        <PageSuspense>
+          <Submission />
+        </PageSuspense>
+      </RouteErrorBoundary>
+    ),
     handle: {
       title: '在线提单',
       permission: 'CREATE_ORDER',

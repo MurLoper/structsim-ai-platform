@@ -3,6 +3,7 @@
  */
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router-dom';
+import { PageSuspense, RouteErrorBoundary } from '../components';
 
 // 懒加载页面
 const AccessControl = lazy(() => import('@/pages/access/AccessControl'));
@@ -13,7 +14,13 @@ const AccessControl = lazy(() => import('@/pages/access/AccessControl'));
 export const accessRoutes: RouteObject[] = [
   {
     path: 'access',
-    element: <AccessControl />,
+    element: (
+      <RouteErrorBoundary>
+        <PageSuspense>
+          <AccessControl />
+        </PageSuspense>
+      </RouteErrorBoundary>
+    ),
     handle: {
       title: '访问权限',
       permission: 'MANAGE_USERS',
