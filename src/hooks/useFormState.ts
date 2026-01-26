@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
  * 通用表单状态管理 Hook
  * 解决表单数据更新不及时、闭包陷阱等问题
  */
-export function useFormState<T extends Record<string, any>>(
+export function useFormState<T extends Record<string, unknown>>(
   initialData?: Partial<T> | null,
   onSubmit?: (data: Partial<T>) => Promise<void>
 ) {
@@ -23,7 +23,7 @@ export function useFormState<T extends Record<string, any>>(
   }, [initialData]);
 
   // 更新单个字段
-  const updateField = useCallback((field: keyof T, value: any) => {
+  const updateField = useCallback(<K extends keyof T>(field: K, value: T[K]) => {
     setFormData(prev => {
       const newData = { ...prev, [field]: value };
       return newData;
@@ -70,16 +70,16 @@ export function useFormState<T extends Record<string, any>>(
 
       try {
         await onSubmit(formData);
-      } catch (error: any) {
-        if (error.errors) {
-          setErrors(error.errors);
+      } catch (error: unknown) {
+        if (error && typeof error === 'object' && 'errors' in error) {
+          setErrors((error as { errors: Record<string, string> }).errors);
         }
         throw error;
       } finally {
         setIsSubmitting(false);
       }
     },
-    [formData, initialData, onSubmit]
+    [formData, onSubmit]
   );
 
   return {
@@ -104,7 +104,7 @@ export interface FormFieldConfig {
   type: 'text' | 'number' | 'select' | 'textarea' | 'checkbox';
   required?: boolean;
   placeholder?: string;
-  options?: Array<{ value: any; label: string }>;
+  options?: Array<{ value: string | number; label: string }>;
   min?: number;
   max?: number;
   rows?: number;
@@ -118,7 +118,7 @@ export interface ValidationRule {
   min?: number;
   max?: number;
   pattern?: RegExp;
-  custom?: (value: any) => string | null;
+  custom?: (value: unknown) => string | null;
 }
 
 /**

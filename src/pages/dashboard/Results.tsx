@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
@@ -11,10 +11,10 @@ import { useResultsData, type ResultRecord } from './hooks/useResultsData';
 import type { ColumnDef } from '@tanstack/react-table';
 
 const Results: React.FC = () => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { language } = useUIStore();
-  const t = (key: string) => RESOURCES[language][key] || key;
+  const t = useCallback((key: string) => RESOURCES[language]?.[key] || key, [language]);
   const orderId = Number(id);
   const resolvedOrderId = Number.isFinite(orderId) ? orderId : null;
 
@@ -47,40 +47,19 @@ const Results: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState('overview');
   const invalidOrderId = resolvedOrderId === null;
-  const resultsErrorMessage = (resultsError as { message?: string })?.message;
+  const resultsErrorMessage = resultsError ? String(resultsError) : undefined;
 
-  if (invalidOrderId) {
-    return (
-      <div className="space-y-6 animate-fade-in">
-        <div className="flex items-center gap-4">
-          <Link
-            to="/"
-            className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-          >
-            <ArrowLeftIcon className="w-5 h-5" />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">订单不存在</h1>
-            <p className="text-slate-500 text-sm">无效的订单ID，请返回订单列表</p>
-          </div>
-        </div>
-        <Card>
-          <div className="flex items-center justify-between gap-4">
-            <div className="text-sm text-slate-600">无法加载结果数据。</div>
-            <Button variant="secondary" onClick={() => navigate('/')}>返回列表</Button>
-          </div>
-        </Card>
-      </div>
-    );
-  }
+  // 定义所有需要的函数和变量（在 early return 之前）
+  const tabs = useMemo(
+    () => [
+      { key: 'overview', label: t('res.tab.overview') },
+      { key: 'analysis', label: t('res.tab.analysis') },
+      { key: 'process', label: t('res.tab.process') },
+    ],
+    [t]
+  );
 
-  const tabs = [
-    { key: 'overview', label: t('res.tab.overview') },
-    { key: 'analysis', label: t('res.tab.analysis') },
-    { key: 'process', label: t('res.tab.process') },
-  ];
-
-  const downloadFile = (content: string, filename: string, type: string) => {
+  const downloadFile = useCallback((content: string, filename: string, type: string) => {
     const blob = new Blob([content], { type });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -88,50 +67,57 @@ const Results: React.FC = () => {
     link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
-  };
+  }, []);
 
-  const handleExport = (format: 'csv' | 'json') => {
-    if (format === 'json') {
-      const payload = filteredResults.map(record => ({
-        iteration: record.iteration,
-        simTypeId: record.simTypeId,
-        simType: simTypeLabelMap.get(record.simTypeId) || String(record.simTypeId),
-        metricId: record.metricId,
-        metric: metricLabelMap.get(record.metricId) || String(record.metricId),
-        value: record.value,
-        group: record.group,
-      }));
-      downloadFile(
-        JSON.stringify(payload, null, 2),
-        `results_${id || 'detail'}.json`,
-        'application/json'
-      );
-      return;
-    }
+  const handleExport = useCallback(
+    (format: 'csv' | 'json') => {
+      if (format === 'json') {
+        const payload = filteredResults.map(record => ({
+          iteration: record.iteration,
+          simTypeId: record.simTypeId,
+          simType: simTypeLabelMap.get(record.simTypeId) || String(record.simTypeId),
+          metricId: record.metricId,
+          metric: metricLabelMap.get(record.metricId) || String(record.metricId),
+          value: record.value,
+          group: record.group,
+        }));
+        downloadFile(
+          JSON.stringify(payload, null, 2),
+          `results_${id || 'detail'}.json`,
+          'application/json'
+        );
+        return;
+      }
 
-    const header = [
-      t('res.table.iteration'),
-      t('res.table.sim_type'),
-      t('res.table.metric'),
-      t('res.table.value'),
-      t('res.table.group'),
-    ];
-    const rows = filteredResults.map(record => [
-      record.iteration,
-      simTypeLabelMap.get(record.simTypeId) || record.simTypeId,
-      metricLabelMap.get(record.metricId) || record.metricId,
-      record.value,
-      record.group,
-    ]);
-    const csvContent = [header, ...rows].map(row => row.join(',')).join('\n');
-    downloadFile(csvContent, `results_${id || 'detail'}.csv`, 'text/csv');
-  };
-
-  const selectedLabel = t('res.filters.selected').replace(
-    '{count}',
-    String(selectedSimTypes.length)
+      const header = [
+        t('res.table.iteration'),
+        t('res.table.sim_type'),
+        t('res.table.metric'),
+        t('res.table.value'),
+        t('res.table.group'),
+      ];
+      const rows = filteredResults.map(record => [
+        record.iteration,
+        simTypeLabelMap.get(record.simTypeId) || record.simTypeId,
+        metricLabelMap.get(record.metricId) || record.metricId,
+        record.value,
+        record.group,
+      ]);
+      const csvContent = [header, ...rows].map(row => row.join(',')).join('\n');
+      downloadFile(csvContent, `results_${id || 'detail'}.csv`, 'text/csv');
+    },
+    [filteredResults, simTypeLabelMap, metricLabelMap, t, id, downloadFile]
   );
-  const tableCountLabel = t('res.table.count').replace('{count}', String(filteredResults.length));
+
+  const selectedLabel = useMemo(
+    () => t('res.filters.selected').replace('{count}', String(selectedSimTypes.length)),
+    [t, selectedSimTypes.length]
+  );
+
+  const tableCountLabel = useMemo(
+    () => t('res.table.count').replace('{count}', String(filteredResults.length)),
+    [t, filteredResults.length]
+  );
 
   const resultColumns = useMemo<ColumnDef<ResultRecord>[]>(
     () => [
@@ -164,6 +150,34 @@ const Results: React.FC = () => {
     [metricLabelMap, simTypeLabelMap, t]
   );
 
+  // Early return 必须在所有 hooks 之后
+  if (invalidOrderId) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex items-center gap-4">
+          <Link
+            to="/"
+            className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          >
+            <ArrowLeftIcon className="w-5 h-5" />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">订单不存在</h1>
+            <p className="text-slate-500 text-sm">无效的订单ID，请返回订单列表</p>
+          </div>
+        </div>
+        <Card>
+          <div className="flex items-center justify-between gap-4">
+            <div className="text-sm text-slate-600">无法加载结果数据。</div>
+            <Button variant="secondary" onClick={() => navigate('/')}>
+              返回列表
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center gap-4">
@@ -188,11 +202,11 @@ const Results: React.FC = () => {
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="font-medium">结果加载失败</div>
-              <div className="text-sm">
-                {resultsErrorMessage || '请检查网络或稍后重试'}
-              </div>
+              <div className="text-sm">{resultsErrorMessage || '请检查网络或稍后重试'}</div>
             </div>
-            <Button variant="outline" onClick={retryResults}>重试</Button>
+            <Button variant="outline" onClick={retryResults}>
+              重试
+            </Button>
           </div>
         </Card>
       )}

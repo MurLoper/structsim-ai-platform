@@ -8,16 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 import { rbacApi } from '@/api';
-import {
-  Badge,
-  Button,
-  Card,
-  CardHeader,
-  Input,
-  Modal,
-  Select,
-  Tabs,
-} from '@/components/ui';
+import { Badge, Button, Card, CardHeader, Input, Modal, Select, Tabs } from '@/components/ui';
 import { BulkAssignPanel, PermissionMatrix, PermissionTree } from '@/components/access';
 import { VirtualTable } from '@/components/tables/VirtualTable';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -99,12 +90,6 @@ const AccessControl: React.FC = () => {
   useEffect(() => {
     loadData();
   }, []);
-
-  const permissionNameById = useMemo(() => {
-    const map = new Map<number, string>();
-    permissions.forEach(item => map.set(item.id, item.name));
-    return map;
-  }, [permissions]);
 
   const permissionNameByCode = useMemo(() => {
     const map = new Map<string, string>();
@@ -407,7 +392,9 @@ const AccessControl: React.FC = () => {
         return (
           <div>
             <div className="font-medium text-slate-900 dark:text-white">{record.name}</div>
-            {record.description && <div className="text-xs text-slate-500">{record.description}</div>}
+            {record.description && (
+              <div className="text-xs text-slate-500">{record.description}</div>
+            )}
           </div>
         );
       },
@@ -478,7 +465,9 @@ const AccessControl: React.FC = () => {
         return (
           <div>
             <div className="font-medium text-slate-900 dark:text-white">{record.name}</div>
-            {record.description && <div className="text-xs text-slate-500">{record.description}</div>}
+            {record.description && (
+              <div className="text-xs text-slate-500">{record.description}</div>
+            )}
           </div>
         );
       },

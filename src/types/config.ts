@@ -43,7 +43,7 @@ export interface ParamDef {
   maxVal?: number;
   defaultVal?: string;
   precision: number;
-  enumOptions?: any[];
+  enumOptions?: Array<{ value: string | number; label: string }>;
   required: number;
   valid: number;
   sort: number;
@@ -76,7 +76,7 @@ export interface ConditionDef {
   code?: string;
   category?: string;
   unit?: string;
-  conditionSchema?: Record<string, any>;
+  conditionSchema?: Record<string, unknown>;
   valid: number;
   sort: number;
   remark?: string;
@@ -146,8 +146,11 @@ export interface StatusDef {
   code: string;
   statusType: string;
   colorTag?: string;
+  icon?: string;
   sort: number;
   remark?: string;
+  createdAt?: number;
+  updatedAt?: number;
 }
 
 export interface AutomationModule {
@@ -164,7 +167,7 @@ export interface Workflow {
   id: number;
   name: string;
   type: string;
-  nodes?: any[];
+  nodes?: Array<{ id: string; type: string; data: Record<string, unknown> }>;
   valid: number;
   sort: number;
   remark?: string;

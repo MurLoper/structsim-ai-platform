@@ -116,7 +116,10 @@ export const CondOutGroupsManagement: React.FC = () => {
   };
 
   // 添加工况到组合
-  const handleAddCondition = async (conditionDefId: number, configData?: Record<string, any>) => {
+  const handleAddCondition = async (
+    conditionDefId: number,
+    configData?: Record<string, unknown>
+  ) => {
     if (!selectedGroup) return;
     try {
       await configApi.addConditionToGroup(selectedGroup.id, { conditionDefId, configData });
@@ -454,7 +457,7 @@ const GroupModal: React.FC<{
 const AddConditionModal: React.FC<{
   conditionDefs: ConditionDef[];
   existingConditions: ConditionInGroup[];
-  onAdd: (conditionDefId: number, configData?: Record<string, any>) => void;
+  onAdd: (conditionDefId: number, configData?: Record<string, unknown>) => void;
   onClose: () => void;
 }> = ({ conditionDefs, existingConditions, onAdd, onClose }) => {
   const initialData = useMemo(
@@ -476,7 +479,7 @@ const AddConditionModal: React.FC<{
     try {
       const parsed = JSON.parse(formData.configData || '{}');
       onAdd(selectedCondId, parsed);
-    } catch (error) {
+    } catch {
       alert('配置数据格式错误，请输入有效的JSON');
     }
   };

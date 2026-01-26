@@ -15,13 +15,7 @@
  * />
  * ```
  */
-import {
-  useFieldArray,
-  type Control,
-  type FieldValues,
-  type FieldPath,
-  type ArrayPath,
-} from 'react-hook-form';
+import { useFieldArray, type Control, type FieldValues, type ArrayPath } from 'react-hook-form';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, GripVertical } from 'lucide-react';
 import { cn } from '@/lib/utils';

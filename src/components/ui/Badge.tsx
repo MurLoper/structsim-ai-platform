@@ -6,6 +6,7 @@ interface BadgeProps {
   variant?: 'default' | 'success' | 'warning' | 'error' | 'info';
   size?: 'sm' | 'md';
   className?: string;
+  style?: React.CSSProperties;
 }
 
 export const Badge: React.FC<BadgeProps> = ({
@@ -13,6 +14,7 @@ export const Badge: React.FC<BadgeProps> = ({
   variant = 'default',
   size = 'md',
   className,
+  style,
 }) => {
   const variants = {
     default:
@@ -39,6 +41,7 @@ export const Badge: React.FC<BadgeProps> = ({
         sizes[size],
         className
       )}
+      style={style}
     >
       {children}
     </span>

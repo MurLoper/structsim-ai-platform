@@ -14,7 +14,7 @@ interface ExampleFormProps<T> {
   title?: string;
 }
 
-export function ConfigFormExample<T extends Record<string, any>>({
+export function ConfigFormExample<T extends Record<string, unknown>>({
   initialData,
   fields,
   onSubmit,
@@ -28,7 +28,6 @@ export function ConfigFormExample<T extends Record<string, any>>({
 
   const renderField = (field: FormFieldConfig) => {
     const value = formData[field.name as keyof T];
-    const error = errors[field.name];
 
     switch (field.type) {
       case 'text':

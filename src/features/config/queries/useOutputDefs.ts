@@ -19,10 +19,13 @@ const mapValTypeToDataType = (valType?: number) => {
   return 'float';
 };
 
-const normalizeOutputDef = (item: any): OutputDef => ({
-  ...item,
-  dataType: item.dataType ?? mapValTypeToDataType(item.valType ?? item.val_type),
-});
+const normalizeOutputDef = (
+  item: Partial<OutputDef> & { valType?: number; val_type?: number }
+): OutputDef =>
+  ({
+    ...item,
+    dataType: item.dataType ?? mapValTypeToDataType(item.valType ?? item.val_type),
+  }) as OutputDef;
 
 const toOutputDefPayload = (data: Partial<OutputDef>) => {
   const payload: Record<string, unknown> = { ...data };

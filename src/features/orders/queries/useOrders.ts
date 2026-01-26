@@ -11,9 +11,13 @@ export function useOrders(params: OrdersQueryParams = {}) {
     queryKey: [...queryKeys.orders.list(), params] as const,
     queryFn: async () => {
       const response = await ordersApi.getOrders(params);
-      return response.data as OrdersListResponse;
+      // Mock 数据直接返回对象，API 响应需要取 data
+      if (response && 'items' in response) {
+        return response as OrdersListResponse;
+      }
+      return (response as { data: OrdersListResponse }).data;
     },
     staleTime: 30 * 1000,
-    enabled: isAuthenticated, // 只有认证后才发起请求
+    enabled: isAuthenticated,
   });
 }

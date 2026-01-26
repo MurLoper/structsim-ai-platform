@@ -114,7 +114,6 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     try {
       // 先获取基础数据
       const baseDataResponse = await configApi.getBaseData();
-      console.log('基础数据响应:', baseDataResponse);
       const baseData = baseDataResponse?.data || baseDataResponse;
 
       // 并行获取其他数据

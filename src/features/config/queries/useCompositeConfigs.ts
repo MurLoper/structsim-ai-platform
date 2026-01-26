@@ -2,7 +2,7 @@
  * 组合配置 Query Hooks
  * 参数模板集 (ParamTplSet) 和 工况输出组合 (CondOutSet)
  */
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { baseConfigApi } from '@/api/config/base';
 import { queryKeys } from '@/lib/queryClient';
 

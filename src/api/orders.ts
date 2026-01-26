@@ -43,7 +43,6 @@ const useMockData = isDev && import.meta.env.VITE_USE_MOCK !== 'false';
 export const ordersApi = {
   getOrders: async (params?: OrdersQueryParams) => {
     if (useMockData) {
-      console.log('[Mock] 使用 mock 数据: orders list');
       return Promise.resolve(mockOrdersList);
     }
     return api.get<OrdersListResponse>('/orders', { params });
@@ -54,7 +53,6 @@ export const ordersApi = {
   // 统计相关接口（开发环境使用 mock 数据）
   getStatistics: async () => {
     if (useMockData) {
-      console.log('[Mock] 使用 mock 数据: orders/statistics');
       return Promise.resolve(mockOrderStatistics);
     }
     return api.get<OrderStatistics>('/orders/statistics');
@@ -62,7 +60,6 @@ export const ordersApi = {
 
   getTrends: async (days: number) => {
     if (useMockData) {
-      console.log('[Mock] 使用 mock 数据: orders/trends');
       return Promise.resolve(mockOrderTrends);
     }
     return api.get<OrderTrend[]>(`/orders/trends?days=${days}`);
@@ -70,7 +67,6 @@ export const ordersApi = {
 
   getStatusDistribution: async () => {
     if (useMockData) {
-      console.log('[Mock] 使用 mock 数据: orders/status-distribution');
       return Promise.resolve(mockStatusDistribution);
     }
     return api.get<StatusDistribution[]>('/orders/status-distribution');

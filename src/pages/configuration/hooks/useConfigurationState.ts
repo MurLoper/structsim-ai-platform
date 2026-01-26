@@ -129,78 +129,77 @@ export const useConfigurationState = () => {
   const [activeTab, setActiveTab] = useState('simTypes');
   const [modalOpen, setModalOpen] = useState(false);
   const [modalType, setModalType] = useState<ModalType>('simType');
-  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editingItem, setEditingItem] = useState<Record<string, unknown> | null>(null);
 
   const initialData = useMemo(
     () => (editingItem ? { ...editingItem } : getDefaultFormData(modalType)),
     [editingItem, modalType]
   );
 
-  const { formData, updateField, resetForm, handleSubmit, isSubmitting } = useFormState<any>(
-    initialData,
-    async data => {
-      if (modalType === 'project') {
-        if (editingItem) {
-          await updateProject.mutateAsync({ id: editingItem.id as number, data });
-          showToast('success', '项目更新成功');
-        } else {
-          await createProject.mutateAsync(data);
-          showToast('success', '项目创建成功');
-        }
-      } else if (modalType === 'simType') {
-        if (editingItem) {
-          await updateSimType.mutateAsync({ id: editingItem.id as number, data });
-          showToast('success', '仿真类型更新成功');
-        } else {
-          await createSimType.mutateAsync(data);
-          showToast('success', '仿真类型创建成功');
-        }
-      } else if (modalType === 'paramDef') {
-        if (editingItem) {
-          await updateParamDef.mutateAsync({ id: editingItem.id as number, data });
-          showToast('success', '参数定义更新成功');
-        } else {
-          await createParamDef.mutateAsync(data);
-          showToast('success', '参数定义创建成功');
-        }
-      } else if (modalType === 'solver') {
-        if (editingItem) {
-          await updateSolver.mutateAsync({ id: editingItem.id as number, data });
-          showToast('success', '求解器更新成功');
-        } else {
-          await createSolver.mutateAsync(data);
-          showToast('success', '求解器创建成功');
-        }
-      } else if (modalType === 'conditionDef') {
-        if (editingItem) {
-          await updateConditionDef.mutateAsync({ id: editingItem.id as number, data });
-          showToast('success', '工况定义更新成功');
-        } else {
-          await createConditionDef.mutateAsync(data);
-          showToast('success', '工况定义创建成功');
-        }
-      } else if (modalType === 'outputDef') {
-        if (editingItem) {
-          await updateOutputDef.mutateAsync({ id: editingItem.id as number, data });
-          showToast('success', '输出定义更新成功');
-        } else {
-          await createOutputDef.mutateAsync(data);
-          showToast('success', '输出定义创建成功');
-        }
-      } else if (modalType === 'foldType') {
-        if (editingItem) {
-          await updateFoldType.mutateAsync({ id: editingItem.id as number, data });
-          showToast('success', '姿态类型更新成功');
-        } else {
-          await createFoldType.mutateAsync(data);
-          showToast('success', '姿态类型创建成功');
-        }
+  const { formData, updateField, resetForm, handleSubmit, isSubmitting } = useFormState<
+    Record<string, unknown>
+  >(initialData, async data => {
+    if (modalType === 'project') {
+      if (editingItem) {
+        await updateProject.mutateAsync({ id: editingItem.id as number, data });
+        showToast('success', '项目更新成功');
+      } else {
+        await createProject.mutateAsync(data);
+        showToast('success', '项目创建成功');
+      }
+    } else if (modalType === 'simType') {
+      if (editingItem) {
+        await updateSimType.mutateAsync({ id: editingItem.id as number, data });
+        showToast('success', '仿真类型更新成功');
+      } else {
+        await createSimType.mutateAsync(data);
+        showToast('success', '仿真类型创建成功');
+      }
+    } else if (modalType === 'paramDef') {
+      if (editingItem) {
+        await updateParamDef.mutateAsync({ id: editingItem.id as number, data });
+        showToast('success', '参数定义更新成功');
+      } else {
+        await createParamDef.mutateAsync(data);
+        showToast('success', '参数定义创建成功');
+      }
+    } else if (modalType === 'solver') {
+      if (editingItem) {
+        await updateSolver.mutateAsync({ id: editingItem.id as number, data });
+        showToast('success', '求解器更新成功');
+      } else {
+        await createSolver.mutateAsync(data);
+        showToast('success', '求解器创建成功');
+      }
+    } else if (modalType === 'conditionDef') {
+      if (editingItem) {
+        await updateConditionDef.mutateAsync({ id: editingItem.id as number, data });
+        showToast('success', '工况定义更新成功');
+      } else {
+        await createConditionDef.mutateAsync(data);
+        showToast('success', '工况定义创建成功');
+      }
+    } else if (modalType === 'outputDef') {
+      if (editingItem) {
+        await updateOutputDef.mutateAsync({ id: editingItem.id as number, data });
+        showToast('success', '输出定义更新成功');
+      } else {
+        await createOutputDef.mutateAsync(data);
+        showToast('success', '输出定义创建成功');
+      }
+    } else if (modalType === 'foldType') {
+      if (editingItem) {
+        await updateFoldType.mutateAsync({ id: editingItem.id as number, data });
+        showToast('success', '姿态类型更新成功');
+      } else {
+        await createFoldType.mutateAsync(data);
+        showToast('success', '姿态类型创建成功');
       }
     }
-  );
+  });
 
   // 打开新建/编辑弹窗
-  const openModal = useCallback((type: ModalType, item?: any) => {
+  const openModal = useCallback((type: ModalType, item?: Record<string, unknown>) => {
     setModalType(type);
     setEditingItem(item || null);
     setModalOpen(true);
@@ -217,9 +216,10 @@ export const useConfigurationState = () => {
     try {
       await handleSubmit();
       closeModal();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Save failed:', error);
-      showToast('error', error?.message || '保存失败，请重试');
+      const message = error instanceof Error ? error.message : '保存失败，请重试';
+      showToast('error', message);
     }
   });
 
@@ -248,9 +248,10 @@ export const useConfigurationState = () => {
             }
 
             showToast('success', '删除成功');
-          } catch (error: any) {
+          } catch (error: unknown) {
             console.error('Delete failed:', error);
-            showToast('error', error?.message || '删除失败，请重试');
+            const message = error instanceof Error ? error.message : '删除失败，请重试';
+            showToast('error', message);
           }
         },
         'danger'

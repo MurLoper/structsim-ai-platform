@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
@@ -30,10 +30,30 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { language } = useUIStore();
 
-  const { data: stats, isLoading: statsLoading } = useOrderStatistics();
-  const { data: trends, isLoading: trendsLoading } = useOrderTrends(7);
-  const { data: distribution, isLoading: distributionLoading } = useStatusDistribution();
+  // 统计数据
+  const { data: statsResponse, isLoading: statsLoading } = useOrderStatistics();
+  const { data: trendsResponse, isLoading: trendsLoading } = useOrderTrends(7);
+  const { data: distributionResponse, isLoading: distributionLoading } = useStatusDistribution();
 
+  // 解包统计数据 - 处理mock和API两种返回格式
+  const stats = useMemo(() => {
+    if (!statsResponse) return undefined;
+    return 'data' in statsResponse ? statsResponse.data : statsResponse;
+  }, [statsResponse]);
+
+  const trends = useMemo(() => {
+    if (!trendsResponse) return [];
+    const data = 'data' in trendsResponse ? trendsResponse.data : trendsResponse;
+    return Array.isArray(data) ? data : [];
+  }, [trendsResponse]);
+
+  const distribution = useMemo(() => {
+    if (!distributionResponse) return [];
+    const data = 'data' in distributionResponse ? distributionResponse.data : distributionResponse;
+    return Array.isArray(data) ? data : [];
+  }, [distributionResponse]);
+
+  // 配置数据
   const {
     data: statusDefs,
     error: statusDefsError,
@@ -52,17 +72,21 @@ const Dashboard: React.FC = () => {
     isLoading: simTypesLoading,
     refetch: refetchSimTypes,
   } = useSimTypes();
+
+  // 订单数据
   const {
     data: ordersPage,
     isLoading: ordersLoading,
     error: ordersError,
     refetch: refetchOrders,
   } = useOrders({ page: 1, pageSize: 10 });
-  const orders = ordersPage?.items || [];
-  const t = (key: string) => RESOURCES[language][key] || key;
-  const emptyText = RESOURCES[language]['dash.empty'] || '暂无订单';
+
+  const orders = ordersPage?.items ?? [];
+  const t = useCallback((key: string) => RESOURCES[language]?.[key] ?? key, [language]);
+  const emptyText = RESOURCES[language]?.['dash.empty'] ?? '暂无订单';
   const hasLoadError = Boolean(ordersError || projectsError || simTypesError || statusDefsError);
   const tableLoading = ordersLoading || projectsLoading || simTypesLoading || statusDefsLoading;
+
   const handleRetry = () => {
     void refetchOrders();
     void refetchProjects();
@@ -70,6 +94,7 @@ const Dashboard: React.FC = () => {
     void refetchStatusDefs();
   };
 
+  // 数据映射
   const projectMap = useMemo(
     () => new Map(projects.map(project => [project.id, project])),
     [projects]
@@ -79,21 +104,58 @@ const Dashboard: React.FC = () => {
     [simTypes]
   );
 
-  const getStatusBadge = (statusId: number) => {
-    const config = statusDefs?.find(
-      status => String(status.id) === String(statusId) || status.code === String(statusId)
-    );
-    const statusCode = config?.code || String(statusId);
-    const variant = statusCode.includes('success')
-      ? 'success'
-      : statusCode.includes('failed')
-        ? 'error'
-        : statusCode.includes('running')
-          ? 'info'
-          : 'default';
+  // 图表数据转换
+  const trendChartData = useMemo(() => {
+    return trends.map(item => ({
+      name: item.date,
+      value: item.count,
+    }));
+  }, [trends]);
 
-    return <Badge variant={variant}>{config?.name || statusCode}</Badge>;
-  };
+  const distributionChartData = useMemo(() => {
+    return distribution.map(item => ({
+      name: item.statusName,
+      value: item.count,
+    }));
+  }, [distribution]);
+
+  const getStatusBadge = React.useCallback(
+    (statusId: number) => {
+      const config = statusDefs?.find(
+        status => status.id === statusId || Number(status.code) === statusId
+      );
+
+      if (!config) {
+        return <Badge variant="default">未知状态</Badge>;
+      }
+
+      // 根据状态类型和代码确定徽章样式
+      const variant =
+        config.code === 'COMPLETED' || config.code === 'PARTIAL_COMPLETED'
+          ? 'success'
+          : config.code === 'FAILED'
+            ? 'error'
+            : config.code === 'RUNNING' || config.code === 'STARTING'
+              ? 'info'
+              : config.code === 'CANCELLED'
+                ? 'warning'
+                : 'default';
+
+      return (
+        <Badge
+          variant={variant}
+          style={{
+            backgroundColor: config.colorTag,
+            borderColor: config.colorTag,
+          }}
+        >
+          {config.icon && <span className="mr-1">{config.icon}</span>}
+          {config.name}
+        </Badge>
+      );
+    },
+    [statusDefs]
+  );
 
   const calculateProgress = (order: OrderListItem) => {
     const progress = order.progress ?? 0;
@@ -190,11 +252,12 @@ const Dashboard: React.FC = () => {
         ),
       },
     ],
-    [navigate, t, projectMap, simTypeMap, statusDefs]
+    [navigate, t, projectMap, simTypeMap, getStatusBadge]
   );
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {/* Header */}
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
@@ -207,7 +270,69 @@ const Dashboard: React.FC = () => {
         </Button>
       </div>
 
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard
+          title={t('dash.stats.total')}
+          value={statsLoading ? '-' : String(stats?.total ?? 0)}
+          icon={ClipboardList}
+          color="blue"
+        />
+        <StatCard
+          title={t('dash.stats.running')}
+          value={statsLoading ? '-' : String(stats?.running ?? 0)}
+          icon={PlayCircle}
+          color="yellow"
+        />
+        <StatCard
+          title={t('dash.stats.completed')}
+          value={statsLoading ? '-' : String(stats?.completed ?? 0)}
+          icon={CheckCircle}
+          color="green"
+        />
+        <StatCard
+          title={t('dash.stats.failed')}
+          value={statsLoading ? '-' : String(stats?.failed ?? 0)}
+          icon={AlertTriangle}
+          color="red"
+        />
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+            {t('dash.chart.trend') ?? '订单趋势（近7天）'}
+          </h3>
+          {trendsLoading ? (
+            <div className="h-64 flex items-center justify-center text-slate-400">加载中...</div>
+          ) : trendChartData.length > 0 ? (
+            <LineChart data={trendChartData} xField="name" yField="value" height={250} />
+          ) : (
+            <div className="h-64 flex items-center justify-center text-slate-400">暂无数据</div>
+          )}
+        </Card>
+        <Card>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+            {t('dash.chart.distribution') ?? '状态分布'}
+          </h3>
+          {distributionLoading ? (
+            <div className="h-64 flex items-center justify-center text-slate-400">加载中...</div>
+          ) : distributionChartData.length > 0 ? (
+            <BarChart data={distributionChartData} xField="name" yField="value" height={250} />
+          ) : (
+            <div className="h-64 flex items-center justify-center text-slate-400">暂无数据</div>
+          )}
+        </Card>
+      </div>
+
+      {/* Orders Table */}
       <Card padding="none">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+            {t('dash.recent_orders') ?? '最近订单'}
+          </h3>
+        </div>
         {hasLoadError && (
           <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-slate-200 bg-red-50 text-red-700">
             <span className="text-sm">订单或配置数据加载失败，请重试。</span>
@@ -219,7 +344,7 @@ const Dashboard: React.FC = () => {
         <DataTable
           data={orders}
           columns={columns}
-          containerHeight={480}
+          containerHeight={400}
           enableSorting={false}
           showCount={false}
           loading={tableLoading}

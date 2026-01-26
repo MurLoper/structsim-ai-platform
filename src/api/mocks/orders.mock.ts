@@ -6,6 +6,9 @@
 import type { OrderStatistics, OrderTrend, StatusDistribution } from '../orders';
 import type { OrdersListResponse } from '@/types/order';
 
+// 当前时间戳（秒级，与后端保持一致）
+const now = Math.floor(Date.now() / 1000);
+
 /**
  * 订单列表 Mock 数据
  */
@@ -19,8 +22,8 @@ export const mockOrdersList: OrdersListResponse = {
       status: 1,
       progress: 45,
       createdBy: 10002,
-      createdAt: Date.now() - 3600000,
-      updatedAt: Date.now(),
+      createdAt: now - 3600,
+      updatedAt: now,
     },
     {
       id: 1002,
@@ -30,8 +33,8 @@ export const mockOrdersList: OrdersListResponse = {
       status: 2,
       progress: 100,
       createdBy: 10003,
-      createdAt: Date.now() - 7200000,
-      updatedAt: Date.now(),
+      createdAt: now - 7200,
+      updatedAt: now,
     },
     {
       id: 1003,
@@ -41,8 +44,8 @@ export const mockOrdersList: OrdersListResponse = {
       status: 0,
       progress: 0,
       createdBy: 10004,
-      createdAt: Date.now() - 10800000,
-      updatedAt: Date.now(),
+      createdAt: now - 10800,
+      updatedAt: now,
     },
     {
       id: 1004,
@@ -52,8 +55,8 @@ export const mockOrdersList: OrdersListResponse = {
       status: 3,
       progress: 80,
       createdBy: 10005,
-      createdAt: Date.now() - 14400000,
-      updatedAt: Date.now(),
+      createdAt: now - 14400,
+      updatedAt: now,
     },
     {
       id: 1005,
@@ -63,8 +66,8 @@ export const mockOrdersList: OrdersListResponse = {
       status: 2,
       progress: 100,
       createdBy: 10006,
-      createdAt: Date.now() - 18000000,
-      updatedAt: Date.now(),
+      createdAt: now - 18000,
+      updatedAt: now,
     },
     {
       id: 1006,
@@ -74,8 +77,8 @@ export const mockOrdersList: OrdersListResponse = {
       status: 1,
       progress: 60,
       createdBy: 10006,
-      createdAt: Date.now() - 21600000,
-      updatedAt: Date.now(),
+      createdAt: now - 21600,
+      updatedAt: now,
     },
     {
       id: 1007,
@@ -85,8 +88,8 @@ export const mockOrdersList: OrdersListResponse = {
       status: 2,
       progress: 100,
       createdBy: 10007,
-      createdAt: Date.now() - 25200000,
-      updatedAt: Date.now(),
+      createdAt: now - 25200,
+      updatedAt: now,
     },
     {
       id: 1008,
@@ -96,8 +99,8 @@ export const mockOrdersList: OrdersListResponse = {
       status: 0,
       progress: 0,
       createdBy: 10008,
-      createdAt: Date.now() - 28800000,
-      updatedAt: Date.now(),
+      createdAt: now - 28800,
+      updatedAt: now,
     },
     {
       id: 1009,
@@ -107,8 +110,8 @@ export const mockOrdersList: OrdersListResponse = {
       status: 1,
       progress: 25,
       createdBy: 10009,
-      createdAt: Date.now() - 32400000,
-      updatedAt: Date.now(),
+      createdAt: now - 32400,
+      updatedAt: now,
     },
     {
       id: 1010,
@@ -118,8 +121,8 @@ export const mockOrdersList: OrdersListResponse = {
       status: 2,
       progress: 100,
       createdBy: 10010,
-      createdAt: Date.now() - 36000000,
-      updatedAt: Date.now(),
+      createdAt: now - 36000,
+      updatedAt: now,
     },
   ],
   total: 156,

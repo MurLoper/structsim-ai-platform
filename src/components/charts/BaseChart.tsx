@@ -89,7 +89,7 @@ export function BaseChart({
   onEvents,
   onChartReady,
   className,
-  autoResize = true,
+  autoResize: _autoResize = true,
   renderer = 'canvas',
   largeData = false,
 }: BaseChartProps) {

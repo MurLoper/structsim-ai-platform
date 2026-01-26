@@ -5,7 +5,7 @@
  */
 import { type ColumnDef, type CellContext } from '@tanstack/react-table';
 import { cn } from '@/lib/utils';
-import { Check, X, MoreHorizontal } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 
 /**
  * 创建文本列

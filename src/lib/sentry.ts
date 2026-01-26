@@ -36,7 +36,7 @@ export function initSentry() {
   }
 
   if (!isProd && !enabledByEnv) {
-    console.log('[Sentry] Skipped in non-prod mode');
+    // Skip initialization in non-prod mode
     return;
   }
 
@@ -95,7 +95,6 @@ export function initSentry() {
   });
 
   isInitialized = true;
-  console.log('[Sentry] Initialized successfully');
 }
 
 /**

@@ -5,13 +5,14 @@ import clsx from 'clsx';
 
 interface StatCardProps {
   title: string;
-  value: number;
+  value: number | string;
   icon: LucideIcon;
   trend?: {
     value: number;
     direction: 'up' | 'down';
   };
   color?: 'blue' | 'green' | 'red' | 'yellow' | 'purple';
+  loading?: boolean;
 }
 
 const colorClasses = {

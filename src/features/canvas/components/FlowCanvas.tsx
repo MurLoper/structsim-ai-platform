@@ -95,7 +95,7 @@ export function FlowCanvas({
   customEdgeTypes,
 }: FlowCanvasProps) {
   const { theme } = useTheme();
-  const [nodes, setNodes, handleNodesChange] = useNodesState(initialNodes);
+  const [nodes, , handleNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, handleEdgesChange] = useEdgesState(initialEdges);
 
   // 合并节点类型

@@ -154,7 +154,7 @@ function VirtualTableTest() {
         loading={loading}
         striped
         enableSorting
-        onRowClick={row => console.log('点击行:', row)}
+        onRowClick={_row => {}}
       />
     </div>
   );

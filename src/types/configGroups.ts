@@ -39,13 +39,13 @@ export interface ConditionInGroup {
   id: number;
   condOutGroupId: number;
   conditionDefId: number;
-  configData?: Record<string, any>;
+  configData?: Record<string, unknown>;
   sort: number;
   createdAt: number;
   // 工况定义信息
   conditionName?: string;
   conditionCode?: string;
-  conditionSchema?: Record<string, any>;
+  conditionSchema?: Record<string, unknown>;
 }
 
 export interface OutputInGroup {
@@ -122,8 +122,8 @@ export interface ConditionConfig {
   conditionDefId: number;
   conditionName: string;
   conditionCode: string;
-  configData?: Record<string, any>;
-  conditionSchema?: Record<string, any>;
+  configData?: Record<string, unknown>;
+  conditionSchema?: Record<string, unknown>;
 }
 
 export interface OutputConfig {

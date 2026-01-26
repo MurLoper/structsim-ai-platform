@@ -149,45 +149,53 @@
       "target_type": "max" // 目标类型：min, max, target, userdefined
     }
   ],
-  "running_status": [
+  "status_config": [
     {
-      "status_id": 0, // 状态ID
+      "running_status": 0, // 状态ID
       "status_name": "未开始", // 状态名称
+      "status_icon": "icon-weikaishi", // 状态图标
       "status_color": "#808080" // 状态颜色
     },
     {
-      "status_id": 1, // 状态ID
+      "running_status": 1, // 状态ID
       "status_name": "运行中", // 状态名称
+      "status_icon": "icon-yunxingzhong",
       "status_color": "#0000FF" // 状态颜色
     },
     {
-      "status_id": 2, // 状态ID
+      "running_status": 2, // 状态ID
       "status_name": "已完成", // 状态名称
+      "status_icon": "icon-yiwancheng",
       "status_color": "#008000" // 状态颜色
     },
     {
-      "status_id": 3, // 状态ID
+      "running_status": 3, // 状态ID
       "status_name": "运行失败", // 状态名称
+      "status_icon": "icon-yunxingshibai",
       "status_color": "#FF0000" // 状态颜色
     },
     {
-      "status_id": 4, // 状态ID
+      "running_status": 4, // 状态ID
       "status_name": "草稿箱", // 状态名称
+      "status_icon": "icon-caogaoxiang",
       "status_color": "#0000FF" // 状态颜色
     },
     {
-      "status_id": 5, // 状态ID
+      "running_status": 5, // 状态ID
       "status_name": "手动终止", // 状态名称
+      "status_icon": "icon-shoudongzhongzhi",
       "status_color": "#FFA500" // 状态颜色
     },
     {
-      "status_id": 6, // 状态ID
+      "running_status": 6, // 状态ID
       "status_name": "启动中", // 状态名称
+      "status_icon": "icon-qidongzhong",
       "status_color": "#800080" // 状态颜色
     },
     {
-      "status_id": 7, // 状态ID
+      "running_status": 7, // 状态ID
       "status_name": "小模块完成", // 状态名称
+      "status_icon": "icon-xiaomokuaiwancheng",
       "status_color": "#0000FF" // 状态颜色
     }
   ],

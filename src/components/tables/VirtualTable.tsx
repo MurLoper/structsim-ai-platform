@@ -13,7 +13,7 @@
  * />
  * ```
  */
-import { useRef, useState, useMemo, useCallback } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import {
   useReactTable,
   getCoreRowModel,

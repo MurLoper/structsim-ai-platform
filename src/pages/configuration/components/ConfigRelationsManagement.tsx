@@ -90,6 +90,7 @@ export const ConfigRelationsManagement: React.FC = () => {
     if (selectedSimType) {
       loadSimTypeRelations(selectedSimType.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSimType, activeTab]);
 
   // 添加参数组合关联
@@ -530,14 +531,21 @@ export const ConfigRelationsManagement: React.FC = () => {
 };
 
 // 通用添加关联模态框
+interface RelationItem {
+  id: number;
+  name?: string;
+  code?: string;
+  description?: string;
+}
+
 const AddRelationModal: React.FC<{
   title: string;
-  items: any[];
+  items: RelationItem[];
   existingIds: Set<number>;
   onAdd: (itemId: number, isDefault: number) => void;
   onClose: () => void;
-  getItemLabel: (item: any) => string;
-  getItemSubLabel?: (item: any) => string | undefined;
+  getItemLabel: (item: RelationItem) => string;
+  getItemSubLabel?: (item: RelationItem) => string | undefined;
 }> = ({ title, items, existingIds, onAdd, onClose, getItemLabel, getItemSubLabel }) => {
   const initialData = useMemo(
     () => ({

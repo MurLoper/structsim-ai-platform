@@ -4,7 +4,7 @@
  * 统一管理所有路由，支持懒加载和权限控制
  */
 import type { RouteObject } from 'react-router-dom';
-import { ProtectedLayout, PublicLayout } from './layouts';
+import { ProtectedLayout } from './layouts';
 import { PageSuspense, RouteErrorBoundary } from './components';
 
 // 导入路由模块

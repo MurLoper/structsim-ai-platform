@@ -6,7 +6,7 @@
 import { memo } from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { cn } from '@/lib/utils';
-import { Play, Settings } from 'lucide-react';
+import { Play } from 'lucide-react';
 
 export interface SimulationNodeData {
   label: string;

@@ -43,7 +43,7 @@ export const condOutGroupsApi = {
 
   addConditionToGroup: (
     id: number,
-    data: { conditionDefId: number; configData?: Record<string, any>; sort?: number }
+    data: { conditionDefId: number; configData?: Record<string, unknown>; sort?: number }
   ) => api.post(`/cond-out-groups/${id}/conditions`, data),
 
   removeConditionFromGroup: (groupId: number, condId: number) =>

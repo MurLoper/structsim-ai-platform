@@ -25,5 +25,33 @@ export default tseslint.config(
       'no-console': ['warn', { allow: ['warn', 'error'] }],
       'prefer-const': 'warn',
     },
+  },
+  // 对特定文件禁用 react-refresh 规则
+  {
+    files: [
+      '**/routes/**/*.{ts,tsx}',
+      '**/test/**/*.{ts,tsx}',
+      '**/__tests__/**/*.{ts,tsx}',
+      '**/*.test.{ts,tsx}',
+      '**/submission/components/CanvasElements.tsx',
+      '**/components/charts/BaseChart.tsx',
+      '**/components/ui/ConfirmDialog.tsx',
+      '**/components/ui/Toast.tsx',
+      '**/canvas/components/FlowCanvas.tsx',
+    ],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  // 对测试文件放宽 any 类型限制
+  {
+    files: [
+      '**/__tests__/**/*.{ts,tsx}',
+      '**/*.test.{ts,tsx}',
+      '**/test/**/*.{ts,tsx}',
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
   }
 );
