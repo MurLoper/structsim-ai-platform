@@ -10,6 +10,7 @@ import {
   ChartBarIcon,
   CubeIcon,
   LinkIcon,
+  TagIcon,
 } from '@heroicons/react/24/outline';
 
 import { useConfigurationState } from './hooks';
@@ -26,6 +27,7 @@ import { CondOutGroupsManagement } from './components/CondOutGroupsManagement';
 import { ConfigRelationsManagement } from './components/ConfigRelationsManagement';
 import { ProjectSimTypeManagement } from './components/ProjectSimTypeManagement';
 import { SystemConfigManagement } from './components/SystemConfigManagement';
+import { StatusConfigManagement } from './components/StatusConfigManagement';
 
 const CATEGORY_OPTIONS = [
   { value: 'STRUCTURE', label: '结构' },
@@ -110,6 +112,7 @@ const Configuration: React.FC = () => {
           label: '项目仿真类型',
           icon: <LinkIcon className="w-5 h-5" />,
         },
+        { key: 'statusConfig', label: '状态配置', icon: <TagIcon className="w-5 h-5" /> },
         { key: 'systemConfig', label: '系统配置', icon: <CubeIcon className="w-5 h-5" /> },
         { key: 'workflow', label: '工作流', icon: <ArrowPathIcon className="w-5 h-5" /> },
       ],
@@ -394,6 +397,9 @@ const Configuration: React.FC = () => {
 
           {/* 系统配置 */}
           {state.activeTab === 'systemConfig' && <SystemConfigManagement />}
+
+          {/* 状态配置 */}
+          {state.activeTab === 'statusConfig' && <StatusConfigManagement />}
 
           {/* 工作流（只读） */}
           {state.activeTab === 'workflow' && (

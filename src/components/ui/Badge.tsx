@@ -10,6 +10,21 @@ import {
   PlayCircle,
   Ban,
   HelpCircle,
+  CircleDot,
+  CircleCheck,
+  CircleX,
+  CircleAlert,
+  CirclePause,
+  CirclePlay,
+  Timer,
+  Hourglass,
+  RefreshCw,
+  RotateCcw,
+  Send,
+  FileCheck,
+  FileX,
+  Zap,
+  Activity,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -60,7 +75,7 @@ export const Badge: React.FC<BadgeProps> = ({
   );
 };
 
-// 状态图标映射表
+// 状态图标映射表（根据状态代码自动匹配）
 const STATUS_ICON_MAP: Record<string, LucideIcon> = {
   // 成功类
   COMPLETED: CheckCircle,
@@ -88,12 +103,77 @@ const STATUS_ICON_MAP: Record<string, LucideIcon> = {
   TIMEOUT: AlertCircle,
 };
 
+// Lucide 图标名称到组件的映射（用于自定义图标）
+export const LUCIDE_ICON_MAP: Record<string, LucideIcon> = {
+  CheckCircle,
+  XCircle,
+  Clock,
+  Loader2,
+  AlertCircle,
+  PauseCircle,
+  PlayCircle,
+  Ban,
+  HelpCircle,
+  CircleDot,
+  CircleCheck,
+  CircleX,
+  CircleAlert,
+  CirclePause,
+  CirclePlay,
+  Timer,
+  Hourglass,
+  RefreshCw,
+  RotateCcw,
+  Send,
+  FileCheck,
+  FileX,
+  Zap,
+  Activity,
+};
+
+// 预设图标选项（供状态配置使用）
+export const PRESET_LUCIDE_ICONS = [
+  { name: 'CheckCircle', label: '成功', icon: CheckCircle },
+  { name: 'CircleCheck', label: '完成', icon: CircleCheck },
+  { name: 'XCircle', label: '失败', icon: XCircle },
+  { name: 'CircleX', label: '错误', icon: CircleX },
+  { name: 'Clock', label: '等待', icon: Clock },
+  { name: 'Timer', label: '计时', icon: Timer },
+  { name: 'Hourglass', label: '进行中', icon: Hourglass },
+  { name: 'Loader2', label: '加载', icon: Loader2 },
+  { name: 'RefreshCw', label: '刷新', icon: RefreshCw },
+  { name: 'RotateCcw', label: '重试', icon: RotateCcw },
+  { name: 'PlayCircle', label: '开始', icon: PlayCircle },
+  { name: 'CirclePlay', label: '运行', icon: CirclePlay },
+  { name: 'PauseCircle', label: '暂停', icon: PauseCircle },
+  { name: 'CirclePause', label: '挂起', icon: CirclePause },
+  { name: 'AlertCircle', label: '警告', icon: AlertCircle },
+  { name: 'CircleAlert', label: '注意', icon: CircleAlert },
+  { name: 'Ban', label: '取消', icon: Ban },
+  { name: 'Send', label: '提交', icon: Send },
+  { name: 'FileCheck', label: '文件通过', icon: FileCheck },
+  { name: 'FileX', label: '文件失败', icon: FileX },
+  { name: 'Zap', label: '快速', icon: Zap },
+  { name: 'Activity', label: '活动', icon: Activity },
+  { name: 'CircleDot', label: '默认', icon: CircleDot },
+  { name: 'HelpCircle', label: '未知', icon: HelpCircle },
+];
+
 /**
  * 根据状态代码获取对应的图标组件
  */
 export const getStatusIcon = (code: string): LucideIcon => {
   const upperCode = code?.toUpperCase() || '';
   return STATUS_ICON_MAP[upperCode] || HelpCircle;
+};
+
+/**
+ * 根据图标名称获取 Lucide 图标组件
+ * @param iconName 图标名称（如 "CheckCircle"）
+ * @returns 图标组件，未找到返回 null
+ */
+export const getLucideIconByName = (iconName: string): LucideIcon | null => {
+  return LUCIDE_ICON_MAP[iconName] || null;
 };
 
 /**
@@ -105,6 +185,34 @@ const getLightBackground = (color: string): string => {
     return `${color}15`; // 15 是十六进制的透明度约 8%
   }
   return 'transparent';
+};
+
+/**
+ * 渲染图标（支持 Lucide 图标名称和 emoji）
+ */
+const renderIcon = (
+  statusIcon: string | undefined,
+  DefaultIcon: LucideIcon,
+  isSpinning: boolean,
+  className?: string
+) => {
+  if (!statusIcon) {
+    return (
+      <DefaultIcon className={clsx(className || 'w-3.5 h-3.5', isSpinning && 'animate-spin')} />
+    );
+  }
+
+  // 检查是否是 Lucide 图标名称
+  const LucideIcon = getLucideIconByName(statusIcon);
+  if (LucideIcon) {
+    const shouldSpin = isSpinning || statusIcon === 'Loader2' || statusIcon === 'RefreshCw';
+    return (
+      <LucideIcon className={clsx(className || 'w-3.5 h-3.5', shouldSpin && 'animate-spin')} />
+    );
+  }
+
+  // 否则当作 emoji 或文字渲染
+  return <span className="text-sm">{statusIcon}</span>;
 };
 
 interface StatusBadgeProps {
@@ -119,6 +227,7 @@ interface StatusBadgeProps {
 /**
  * 状态徽章组件
  * 颜色应用于文字和图标，背景使用浅色
+ * 支持 Lucide 图标名称（如 "CheckCircle"）或 emoji 字符
  */
 export const StatusBadge: React.FC<StatusBadgeProps> = ({
   statusId,
@@ -130,7 +239,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 }) => {
   // 获取图标组件
   const code = statusCode || statusId || '';
-  const IconComponent = getStatusIcon(code);
+  const DefaultIconComponent = getStatusIcon(code);
   const isSpinning = code.toUpperCase() === 'RUNNING' || code.toUpperCase() === 'PROCESSING';
 
   // 如果有自定义颜色，使用自定义样式
@@ -144,12 +253,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
           backgroundColor: getLightBackground(statusColor),
         }}
       >
-        {showIcon &&
-          (statusIcon ? (
-            <span className="text-sm">{statusIcon}</span>
-          ) : (
-            <IconComponent className={clsx('w-3.5 h-3.5', isSpinning && 'animate-spin')} />
-          ))}
+        {showIcon && renderIcon(statusIcon, DefaultIconComponent, isSpinning)}
         {statusName}
       </span>
     );
@@ -167,12 +271,7 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({
 
   return (
     <Badge variant={getVariant()}>
-      {showIcon &&
-        (statusIcon ? (
-          <span className="text-sm mr-1">{statusIcon}</span>
-        ) : (
-          <IconComponent className={clsx('w-3.5 h-3.5 mr-1', isSpinning && 'animate-spin')} />
-        ))}
+      {showIcon && renderIcon(statusIcon, DefaultIconComponent, isSpinning, 'w-3.5 h-3.5 mr-1')}
       {statusName}
     </Badge>
   );
