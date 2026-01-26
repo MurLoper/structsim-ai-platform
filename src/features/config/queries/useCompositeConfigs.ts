@@ -2,9 +2,10 @@
  * 组合配置 Query Hooks
  * 参数模板集 (ParamTplSet) 和 工况输出组合 (CondOutSet)
  */
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { baseConfigApi } from '@/api/config/base';
 import { queryKeys } from '@/lib/queryClient';
+import type { StatusDef } from '@/types/config';
 
 /**
  * 获取参数模板集列表
@@ -60,6 +61,22 @@ export function useStatusDefs() {
       return response.data || [];
     },
     staleTime: 10 * 60 * 1000,
+  });
+}
+
+/**
+ * 更新状态定义
+ */
+export function useUpdateStatusDef() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Partial<StatusDef> }) =>
+      baseConfigApi.updateStatusDef(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['statusDefs'] });
+      queryClient.invalidateQueries({ queryKey: ['baseData'] });
+    },
   });
 }
 

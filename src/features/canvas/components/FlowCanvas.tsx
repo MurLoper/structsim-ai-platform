@@ -72,11 +72,12 @@ export interface FlowCanvasProps {
 }
 
 // 默认节点类型
+
 const defaultNodeTypes: NodeTypes = {
-  simulation: SimulationNode,
-  parameter: ParameterNode,
-  result: ResultNode,
-  condition: ConditionNode,
+  simulation: SimulationNode as any,
+  parameter: ParameterNode as any,
+  result: ResultNode as any,
+  condition: ConditionNode as any,
 };
 
 export function FlowCanvas({

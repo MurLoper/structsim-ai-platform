@@ -3,7 +3,7 @@
  * 用于开发环境，提供完整的统计数据和订单列表
  */
 
-import type { OrderStatistics, OrderTrend, StatusDistribution } from '../orders';
+import type { OrderStatistics, OrderTrend, StatusDistribution } from '@/types/statistics';
 import type { OrdersListResponse } from '@/types/order';
 
 // 当前时间戳（秒级，与后端保持一致）

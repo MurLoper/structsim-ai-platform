@@ -83,8 +83,8 @@ Object.defineProperty(window, 'sessionStorage', {
 // Mock import.meta.env
 beforeAll(() => {
   vi.stubEnv('MODE', 'test');
-  vi.stubEnv('DEV', 'true');
-  vi.stubEnv('PROD', 'false');
+  vi.stubEnv('DEV', true);
+  vi.stubEnv('PROD', false);
   vi.stubEnv('VITE_API_BASE_URL', 'http://localhost:5000');
 });
 

@@ -4,7 +4,7 @@
  * 代表工况/条件配置
  */
 import { memo } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position } from '@xyflow/react';
 import { cn } from '@/lib/utils';
 import { GitBranch } from 'lucide-react';
 
@@ -14,10 +14,12 @@ export interface ConditionNodeData {
   description?: string;
 }
 
-export const ConditionNode = memo(function ConditionNode({
-  data,
-  selected,
-}: NodeProps<ConditionNodeData>) {
+interface ConditionNodeProps {
+  data: ConditionNodeData;
+  selected?: boolean;
+}
+
+export const ConditionNode = memo(function ConditionNode({ data, selected }: ConditionNodeProps) {
   const { label, conditionCount, description } = data;
 
   return (

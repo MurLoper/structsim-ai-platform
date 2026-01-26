@@ -77,6 +77,8 @@ export const baseConfigApi = {
   getCondOutSets: (simTypeId?: number) =>
     api.get<CondOutSet[]>('/config/cond-out-sets', { params: { simTypeId } }),
   getStatusDefs: () => api.get<StatusDef[]>('/config/status-defs'),
+  updateStatusDef: (id: number, data: Partial<StatusDef>) =>
+    api.put<StatusDef>(`/config/status-defs/${id}`, data),
   getAutomationModules: () => api.get<AutomationModule[]>('/config/automation-modules'),
   getWorkflows: () => api.get<Workflow[]>('/config/workflows'),
   getBaseData: () => api.get<BaseDataResponse>('/config/base-data'),

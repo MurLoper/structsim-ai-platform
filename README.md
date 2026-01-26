@@ -66,26 +66,26 @@ src/
 
 ## 🛠️ 技术栈
 
-| 类别 | 技术 | 版本 | 说明 |
-|------|------|------|------|
-| **核心框架** | React | 19.2 | UI 框架 |
-| **类型系统** | TypeScript | 5.8 | 类型安全 |
-| **构建工具** | Vite | 6.2 | 快速构建 |
-| **路由** | React Router | 7.12 | 客户端路由 |
-| **服务端状态** | TanStack Query | 5.60 | 数据获取/缓存 |
-| **客户端状态** | Zustand | 5.0 | 轻量状态管理 |
-| **表单** | React Hook Form + Zod | 7.53 / 3.23 | 表单管理/验证 |
-| **样式** | Tailwind CSS | 3.4 | 原子化 CSS |
-| **UI 组件** | Shadcn/ui (Radix UI) | - | 无头组件库 |
-| **图标** | Lucide React | 0.460 | 图标库 |
-| **图表** | ECharts | 5.5 | 2D 数据可视化 |
-| **表格** | TanStack Table | 8.20 | 高性能表格 |
-| **虚拟滚动** | TanStack Virtual | 3.10 | 大数据列表 |
-| **流程图** | React Flow | 12.3 | 画布/流程图 |
-| **动画** | Framer Motion | 11.12 | 动画库 |
-| **HTTP** | Axios | 1.7 | HTTP 客户端 |
-| **测试** | Vitest + RTL | 2.1 / 16.0 | 单元/组件测试 |
-| **监控** | Sentry | 8.0 | 错误监控 |
+| 类别           | 技术                  | 版本        | 说明          |
+| -------------- | --------------------- | ----------- | ------------- |
+| **核心框架**   | React                 | 19.2        | UI 框架       |
+| **类型系统**   | TypeScript            | 5.8         | 类型安全      |
+| **构建工具**   | Vite                  | 6.2         | 快速构建      |
+| **路由**       | React Router          | 7.12        | 客户端路由    |
+| **服务端状态** | TanStack Query        | 5.60        | 数据获取/缓存 |
+| **客户端状态** | Zustand               | 5.0         | 轻量状态管理  |
+| **表单**       | React Hook Form + Zod | 7.53 / 3.23 | 表单管理/验证 |
+| **样式**       | Tailwind CSS          | 3.4         | 原子化 CSS    |
+| **UI 组件**    | Shadcn/ui (Radix UI)  | -           | 无头组件库    |
+| **图标**       | Lucide React          | 0.460       | 图标库        |
+| **图表**       | ECharts               | 5.5         | 2D 数据可视化 |
+| **表格**       | TanStack Table        | 8.20        | 高性能表格    |
+| **虚拟滚动**   | TanStack Virtual      | 3.10        | 大数据列表    |
+| **流程图**     | React Flow            | 12.3        | 画布/流程图   |
+| **动画**       | Framer Motion         | 11.12       | 动画库        |
+| **HTTP**       | Axios                 | 1.7         | HTTP 客户端   |
+| **测试**       | Vitest + RTL          | 2.1 / 16.0  | 单元/组件测试 |
+| **监控**       | Sentry                | 8.0         | 错误监控      |
 
 ## 📝 开发规范
 
@@ -114,10 +114,27 @@ src/
 npm run dev          # 启动开发服务器
 npm run build        # 构建生产版本
 npm run preview      # 预览生产构建
+npm run typecheck    # TypeScript 类型检查（调试 TS 错误）
 npm run lint         # 运行 ESLint 检查
 npm run lint:fix     # 自动修复 ESLint 问题
 npm run format       # 格式化代码
 npm run format:check # 检查代码格式
+npm run fix:all      # 同时运行 lint:fix 和 format
+npm run check:all    # 完整检查（lint + format + build）
+```
+
+### TypeScript 调试
+
+当遇到 TypeScript 类型错误时，可以运行：
+
+```bash
+npm run typecheck
+```
+
+这会执行 `tsc --noEmit` 进行类型检查而不生成输出文件。如果需要将错误输出到文件进行分析：
+
+```bash
+npx tsc > tsc-errors.log 2>&1
 ```
 
 ## 🌐 环境配置

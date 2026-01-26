@@ -199,9 +199,9 @@ export const useConfigurationState = () => {
   });
 
   // 打开新建/编辑弹窗
-  const openModal = useCallback((type: ModalType, item?: Record<string, unknown>) => {
+  const openModal = useCallback((type: ModalType, item?: object) => {
     setModalType(type);
-    setEditingItem(item || null);
+    setEditingItem(item ? (item as Record<string, unknown>) : null);
     setModalOpen(true);
   }, []);
 

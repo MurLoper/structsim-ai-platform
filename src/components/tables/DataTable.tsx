@@ -36,7 +36,7 @@ export interface DataTableProps<TData> extends VirtualTableProps<TData> {
   wrapperClassName?: string;
 }
 
-export function DataTable<TData extends Record<string, unknown>>({
+export function DataTable<TData extends object>({
   data,
   columns,
   searchable = false,

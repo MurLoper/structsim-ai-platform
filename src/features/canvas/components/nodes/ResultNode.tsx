@@ -4,7 +4,7 @@
  * 代表输出结果
  */
 import { memo } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position } from '@xyflow/react';
 import { cn } from '@/lib/utils';
 import { BarChart3 } from 'lucide-react';
 
@@ -14,7 +14,12 @@ export interface ResultNodeData {
   description?: string;
 }
 
-export const ResultNode = memo(function ResultNode({ data, selected }: NodeProps<ResultNodeData>) {
+interface ResultNodeProps {
+  data: ResultNodeData;
+  selected?: boolean;
+}
+
+export const ResultNode = memo(function ResultNode({ data, selected }: ResultNodeProps) {
   const { label, outputCount, description } = data;
 
   return (

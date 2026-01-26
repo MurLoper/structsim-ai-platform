@@ -536,6 +536,7 @@ interface RelationItem {
   name?: string;
   code?: string;
   description?: string;
+  version?: string;
 }
 
 const AddRelationModal: React.FC<{
@@ -544,7 +545,7 @@ const AddRelationModal: React.FC<{
   existingIds: Set<number>;
   onAdd: (itemId: number, isDefault: number) => void;
   onClose: () => void;
-  getItemLabel: (item: RelationItem) => string;
+  getItemLabel: (item: RelationItem) => string | undefined;
   getItemSubLabel?: (item: RelationItem) => string | undefined;
 }> = ({ title, items, existingIds, onAdd, onClose, getItemLabel, getItemSubLabel }) => {
   const initialData = useMemo(

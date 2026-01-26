@@ -50,7 +50,7 @@ export const EditModal: React.FC<EditModalProps> = ({
 // 表单输入组件
 interface FormInputProps {
   label: string;
-  value: string | number | undefined;
+  value: unknown;
   onChange: (v: string) => void;
   type?: string;
   placeholder?: string;
@@ -62,44 +62,54 @@ export const FormInput: React.FC<FormInputProps> = ({
   onChange,
   type = 'text',
   placeholder,
-}) => (
-  <div>
-    <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
-      {label}
-    </label>
-    <input
-      type={type}
-      value={value ?? ''}
-      onChange={e => onChange(e.target.value)}
-      placeholder={placeholder}
-      className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-    />
-  </div>
-);
+}) => {
+  // 将 unknown 类型安全地转换为可显示的值
+  const displayValue = value === null || value === undefined ? '' : String(value);
+
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
+        {label}
+      </label>
+      <input
+        type={type}
+        value={displayValue}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+      />
+    </div>
+  );
+};
 
 // 表单选择组件
 interface FormSelectProps {
   label: string;
-  value: string;
+  value: unknown;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
 }
 
-export const FormSelect: React.FC<FormSelectProps> = ({ label, value, onChange, options }) => (
-  <div>
-    <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
-      {label}
-    </label>
-    <select
-      value={value}
-      onChange={e => onChange(e.target.value)}
-      className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-    >
-      {options.map(opt => (
-        <option key={opt.value} value={opt.value}>
-          {opt.label}
-        </option>
-      ))}
-    </select>
-  </div>
-);
+export const FormSelect: React.FC<FormSelectProps> = ({ label, value, onChange, options }) => {
+  // 将 unknown 类型安全地转换为可显示的值
+  const displayValue = value === null || value === undefined ? '' : String(value);
+
+  return (
+    <div>
+      <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
+        {label}
+      </label>
+      <select
+        value={displayValue}
+        onChange={e => onChange(e.target.value)}
+        className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+      >
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+};

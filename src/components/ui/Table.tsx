@@ -19,7 +19,7 @@ interface TableProps<T> {
   className?: string;
 }
 
-export function Table<T extends Record<string, unknown>>({
+export function Table<T extends object>({
   columns,
   data,
   rowKey,
@@ -88,8 +88,8 @@ export function Table<T extends Record<string, unknown>>({
                 {columns.map(col => (
                   <td key={col.key} className={clsx('px-6 py-4', alignStyles[col.align || 'left'])}>
                     {col.render
-                      ? col.render(record[col.key], record, index)
-                      : String(record[col.key] ?? '')}
+                      ? col.render((record as Record<string, unknown>)[col.key], record, index)
+                      : String((record as Record<string, unknown>)[col.key] ?? '')}
                   </td>
                 ))}
               </tr>

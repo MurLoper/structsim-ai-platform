@@ -147,7 +147,7 @@ function EChartsPerformanceTest() {
           <>
             {chartType === 'line' && (
               <LineChart
-                data={data}
+                data={data as unknown as Record<string, unknown>[]}
                 xField="index"
                 yField="value"
                 seriesField="category"
@@ -157,7 +157,9 @@ function EChartsPerformanceTest() {
             )}
             {chartType === 'bar' && (
               <BarChart
-                data={data.slice(0, Math.min(dataSize, 100))} // 柱状图限制数据量
+                data={
+                  data.slice(0, Math.min(dataSize, 100)) as unknown as Record<string, unknown>[]
+                } // 柱状图限制数据量
                 xField="index"
                 yField="value"
                 seriesField="category"
@@ -166,7 +168,7 @@ function EChartsPerformanceTest() {
             )}
             {chartType === 'scatter' && (
               <ScatterChart
-                data={data}
+                data={data as unknown as Record<string, unknown>[]}
                 xField="index"
                 yField="value"
                 seriesField="category"

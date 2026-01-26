@@ -36,6 +36,7 @@ export interface User {
   avatar?: string;
   permissions?: Permission[];
   username?: string;
+  password?: string;
   role?: string;
   status?: string;
   roleIds?: number[];

@@ -4,7 +4,7 @@
  * 代表输入参数配置
  */
 import { memo } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position } from '@xyflow/react';
 import { cn } from '@/lib/utils';
 import { SlidersHorizontal } from 'lucide-react';
 
@@ -14,10 +14,12 @@ export interface ParameterNodeData {
   description?: string;
 }
 
-export const ParameterNode = memo(function ParameterNode({
-  data,
-  selected,
-}: NodeProps<ParameterNodeData>) {
+interface ParameterNodeProps {
+  data: ParameterNodeData;
+  selected?: boolean;
+}
+
+export const ParameterNode = memo(function ParameterNode({ data, selected }: ParameterNodeProps) {
   const { label, paramCount, description } = data;
 
   return (

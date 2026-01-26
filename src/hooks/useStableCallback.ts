@@ -35,7 +35,7 @@ import { useRef, useLayoutEffect, useCallback } from 'react';
  * @param callback - 要稳定化的回调函数
  * @returns 引用稳定的回调函数
  */
-export function useStableCallback<T extends (...args: unknown[]) => unknown>(callback: T): T {
+export function useStableCallback<T extends (...args: never[]) => unknown>(callback: T): T {
   // 使用 ref 保存最新的回调函数
   const callbackRef = useRef(callback);
 

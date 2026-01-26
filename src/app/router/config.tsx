@@ -67,15 +67,3 @@ export interface RouteHandle {
     path?: string;
   };
 }
-
-/**
- * 声明路由 handle 类型
- */
-declare module 'react-router-dom' {
-  interface IndexRouteObject {
-    handle?: RouteHandle;
-  }
-  interface NonIndexRouteObject {
-    handle?: RouteHandle;
-  }
-}

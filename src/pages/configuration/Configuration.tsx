@@ -631,7 +631,7 @@ const Configuration: React.FC = () => {
                     备注
                   </label>
                   <textarea
-                    value={state.formData.remark || ''}
+                    value={String(state.formData.remark ?? '')}
                     onChange={e => state.updateFormData('remark', e.target.value)}
                     placeholder="请输入备注信息（可选）"
                     rows={2}
@@ -681,7 +681,7 @@ const Configuration: React.FC = () => {
                     备注
                   </label>
                   <textarea
-                    value={state.formData.remark || ''}
+                    value={String(state.formData.remark ?? '')}
                     onChange={e => state.updateFormData('remark', e.target.value)}
                     placeholder="请输入备注信息（可选）"
                     rows={2}
@@ -722,7 +722,7 @@ const Configuration: React.FC = () => {
                     备注
                   </label>
                   <textarea
-                    value={state.formData.remark || ''}
+                    value={String(state.formData.remark ?? '')}
                     onChange={e => state.updateFormData('remark', e.target.value)}
                     placeholder="请输入备注信息（可选）"
                     rows={2}
@@ -756,7 +756,7 @@ const Configuration: React.FC = () => {
                     备注
                   </label>
                   <textarea
-                    value={state.formData.remark || ''}
+                    value={String(state.formData.remark ?? '')}
                     onChange={e => state.updateFormData('remark', e.target.value)}
                     placeholder="请输入备注信息（可选）"
                     rows={3}

@@ -2,7 +2,7 @@ import React, { useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
-import { Button, Card, Badge } from '@/components/ui';
+import { Button, Card, Badge, StatusBadge } from '@/components/ui';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { LineChart } from '@/components/charts/LineChart';
 import { BarChart } from '@/components/charts/BarChart';
@@ -129,29 +129,13 @@ const Dashboard: React.FC = () => {
         return <Badge variant="default">未知状态</Badge>;
       }
 
-      // 根据状态类型和代码确定徽章样式
-      const variant =
-        config.code === 'COMPLETED' || config.code === 'PARTIAL_COMPLETED'
-          ? 'success'
-          : config.code === 'FAILED'
-            ? 'error'
-            : config.code === 'RUNNING' || config.code === 'STARTING'
-              ? 'info'
-              : config.code === 'CANCELLED'
-                ? 'warning'
-                : 'default';
-
       return (
-        <Badge
-          variant={variant}
-          style={{
-            backgroundColor: config.colorTag,
-            borderColor: config.colorTag,
-          }}
-        >
-          {config.icon && <span className="mr-1">{config.icon}</span>}
-          {config.name}
-        </Badge>
+        <StatusBadge
+          statusCode={config.code}
+          statusName={config.name}
+          statusColor={config.colorTag}
+          statusIcon={config.icon}
+        />
       );
     },
     [statusDefs]

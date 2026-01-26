@@ -1,5 +1,5 @@
 import React from 'react';
-import { useWatch, type Control, type UseFormSetValue } from 'react-hook-form';
+import { useWatch, type Control, type UseFormSetValue, type FieldValues } from 'react-hook-form';
 import { ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import { FormField } from '@/components/forms/FormField';
 import type { Project } from '@/types';
@@ -9,7 +9,8 @@ import type { SubmissionFormValues } from '../types';
 interface ProjectDrawerContentProps {
   projects: Project[];
   foldTypes: FoldType[];
-  control: Control<SubmissionFormValues>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  control: Control<SubmissionFormValues, any>;
   setValue: UseFormSetValue<SubmissionFormValues>;
   t: (key: string) => string;
 }
@@ -25,6 +26,9 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
   const originPath = useWatch({ control, name: 'originFile.path' }) ?? '';
   const originName = useWatch({ control, name: 'originFile.name' }) ?? '';
 
+  // 类型转换以兼容 FormField
+  const formControl = control as unknown as Control<FieldValues>;
+
   const handleOriginTypeChange = (type: number) => {
     setValue('originFile.type', type, { shouldValidate: true, shouldDirty: true });
     if (type !== 3 && originName) {
@@ -38,7 +42,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
   return (
     <div className="space-y-6">
       <FormField
-        control={control}
+        control={formControl}
         name="projectId"
         label={t('sub.sel_project')}
         required
@@ -90,7 +94,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
               <p className="text-slate-500 text-sm">拖拽文件到此处或点击上传</p>
             </div>
             <FormField
-              control={control}
+              control={formControl}
               name="originFile.name"
               label="上传文件名"
               required
@@ -107,7 +111,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
           </div>
         ) : (
           <FormField
-            control={control}
+            control={formControl}
             name="originFile.path"
             label={originType === 1 ? '源文件路径' : '源文件ID'}
             required
@@ -125,7 +129,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
       </div>
 
       <FormField
-        control={control}
+        control={formControl}
         name="foldTypeId"
         label="折叠类型 (姿态)"
         required
@@ -145,7 +149,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
       />
 
       <FormField
-        control={control}
+        control={formControl}
         name="remark"
         label={t('sub.remarks')}
         render={({ field }) => (

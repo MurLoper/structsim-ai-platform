@@ -26,7 +26,7 @@ const mockUsers: User[] = [
     name: '管理员',
     email: 'admin@example.com',
     role: 'admin',
-    permissions: ['view_dashboard', 'manage_config', 'manage_users'] as Permission[],
+    permissions: ['VIEW_DASHBOARD', 'MANAGE_CONFIG', 'MANAGE_USERS'] as Permission[],
     status: 'active',
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-01T00:00:00Z',
@@ -37,7 +37,7 @@ const mockUsers: User[] = [
     name: '工程师',
     email: 'engineer@example.com',
     role: 'engineer',
-    permissions: ['view_dashboard', 'submit_order'] as Permission[],
+    permissions: ['VIEW_DASHBOARD', 'CREATE_ORDER'] as Permission[],
     status: 'active',
     created_at: '2024-01-02T00:00:00Z',
     updated_at: '2024-01-02T00:00:00Z',
@@ -135,6 +135,8 @@ describe('useAuthStore', () => {
   describe('login', () => {
     it('应该能登录用户', async () => {
       vi.mocked(authApi.login).mockResolvedValue({
+        code: 0,
+        msg: 'success',
         data: {
           token: 'test-token-123',
           user: mockUsers[0],
@@ -155,7 +157,11 @@ describe('useAuthStore', () => {
     });
 
     it('用户不存在时不应该设置用户', async () => {
-      vi.mocked(authApi.login).mockResolvedValue({ data: {} });
+      vi.mocked(authApi.login).mockResolvedValue({
+        code: 0,
+        msg: 'success',
+        data: { token: '', user: null as unknown as User },
+      });
 
       const { login } = useAuthStore.getState();
 
@@ -193,6 +199,8 @@ describe('useAuthStore', () => {
   describe('fetchUsers', () => {
     it('应该能获取用户列表', async () => {
       vi.mocked(authApi.getAllUsers).mockResolvedValue({
+        code: 0,
+        msg: 'success',
         data: mockUsers,
       });
 
@@ -208,7 +216,9 @@ describe('useAuthStore', () => {
 
     it('API 返回空数据时应该设置空数组', async () => {
       vi.mocked(authApi.getAllUsers).mockResolvedValue({
-        data: null,
+        code: 0,
+        msg: 'success',
+        data: [] as User[],
       });
 
       const { fetchUsers } = useAuthStore.getState();
@@ -243,8 +253,8 @@ describe('useAuthStore', () => {
 
       const { hasPermission } = useAuthStore.getState();
 
-      expect(hasPermission('view_dashboard' as Permission)).toBe(true);
-      expect(hasPermission('manage_config' as Permission)).toBe(true);
+      expect(hasPermission('VIEW_DASHBOARD' as Permission)).toBe(true);
+      expect(hasPermission('MANAGE_CONFIG' as Permission)).toBe(true);
     });
 
     it('用户没有权限时应该返回 false', () => {
@@ -252,13 +262,13 @@ describe('useAuthStore', () => {
 
       const { hasPermission } = useAuthStore.getState();
 
-      expect(hasPermission('manage_users' as Permission)).toBe(false);
+      expect(hasPermission('MANAGE_USERS' as Permission)).toBe(false);
     });
 
     it('用户未登录时应该返回 false', () => {
       const { hasPermission } = useAuthStore.getState();
 
-      expect(hasPermission('view_dashboard' as Permission)).toBe(false);
+      expect(hasPermission('VIEW_DASHBOARD' as Permission)).toBe(false);
     });
   });
 });

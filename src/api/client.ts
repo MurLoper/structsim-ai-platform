@@ -1,17 +1,10 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import type { ApiResponse } from '@/types/api';
 
 // API Configuration
 // 开发环境使用相对路径，通过 Vite 代理转发到后端
 // 生产环境可通过环境变量配置完整 URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api/v1';
-
-// 统一响应结构
-interface ApiResponse<T = unknown> {
-  code: number;
-  msg: string;
-  data: T;
-  trace_id?: string;
-}
 
 // Create axios instance
 const apiClient: AxiosInstance = axios.create({

@@ -4,7 +4,7 @@
  * 代表一个仿真任务节点
  */
 import { memo } from 'react';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Handle, Position } from '@xyflow/react';
 import { cn } from '@/lib/utils';
 import { Play } from 'lucide-react';
 
@@ -15,10 +15,15 @@ export interface SimulationNodeData {
   progress?: number;
 }
 
+interface SimulationNodeProps {
+  data: SimulationNodeData;
+  selected?: boolean;
+}
+
 export const SimulationNode = memo(function SimulationNode({
   data,
   selected,
-}: NodeProps<SimulationNodeData>) {
+}: SimulationNodeProps) {
   const { label, simType, status = 'idle', progress } = data;
 
   const statusColors = {

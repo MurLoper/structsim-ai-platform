@@ -35,7 +35,7 @@ export function ConfigFormExample<T extends Record<string, unknown>>({
           <input
             type="text"
             value={(value as string) || ''}
-            onChange={e => updateField(field.name as keyof T, e.target.value)}
+            onChange={e => updateField(field.name as keyof T, e.target.value as T[keyof T])}
             placeholder={field.placeholder}
             className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
           />
@@ -46,7 +46,7 @@ export function ConfigFormExample<T extends Record<string, unknown>>({
           <input
             type="number"
             value={(value as number) || ''}
-            onChange={e => updateField(field.name as keyof T, Number(e.target.value))}
+            onChange={e => updateField(field.name as keyof T, Number(e.target.value) as T[keyof T])}
             placeholder={field.placeholder}
             min={field.min}
             max={field.max}
@@ -58,7 +58,7 @@ export function ConfigFormExample<T extends Record<string, unknown>>({
         return (
           <textarea
             value={(value as string) || ''}
-            onChange={e => updateField(field.name as keyof T, e.target.value)}
+            onChange={e => updateField(field.name as keyof T, e.target.value as T[keyof T])}
             placeholder={field.placeholder}
             rows={field.rows || 3}
             className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
@@ -69,7 +69,7 @@ export function ConfigFormExample<T extends Record<string, unknown>>({
         return (
           <select
             value={(value as string) || ''}
-            onChange={e => updateField(field.name as keyof T, e.target.value)}
+            onChange={e => updateField(field.name as keyof T, e.target.value as T[keyof T])}
             className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
           >
             <option value="">请选择</option>
@@ -86,7 +86,7 @@ export function ConfigFormExample<T extends Record<string, unknown>>({
           <input
             type="checkbox"
             checked={(value as boolean) || false}
-            onChange={e => updateField(field.name as keyof T, e.target.checked)}
+            onChange={e => updateField(field.name as keyof T, e.target.checked as T[keyof T])}
             className="w-4 h-4 text-blue-600 rounded"
           />
         );

@@ -39,7 +39,7 @@ const Submission: React.FC = () => {
   const form = useForm<SubmissionFormValues>({
     resolver: zodResolver(submissionFormSchema),
     defaultValues: {
-      projectId: null,
+      projectId: null as unknown as number,
       originFile: { type: 1, path: '', name: '' },
       foldTypeId: 1,
       remark: '',
@@ -128,9 +128,7 @@ const Submission: React.FC = () => {
           path: values.originFile.path,
           name: values.originFile.name,
           fileId:
-            values.originFile.type === 2
-              ? Number(values.originFile.path || '') || null
-              : null,
+            values.originFile.type === 2 ? Number(values.originFile.path || '') || null : null,
         };
 
         const response = await ordersApi.createOrder({

@@ -133,7 +133,7 @@ export function RoleGuard({
 }: RoleGuardProps) {
   const { user } = useAuthStore();
 
-  if (!user || !roles.includes(user.role)) {
+  if (!user || !user.role || !roles.includes(user.role)) {
     if (fallback) {
       return <>{fallback}</>;
     }

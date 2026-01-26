@@ -1,5 +1,6 @@
 import { api } from './client';
 import type { OrdersListResponse, OrderDetail, OrderCreatePayload } from '@/types/order';
+import type { OrderStatistics, OrderTrend, StatusDistribution } from '@/types/statistics';
 import {
   mockOrdersList,
   mockOrderStatistics,
@@ -7,31 +8,12 @@ import {
   mockStatusDistribution,
 } from './mocks/orders.mock';
 
+/** 订单查询参数 */
 export interface OrdersQueryParams {
   page?: number;
   pageSize?: number;
   status?: number;
   projectId?: number;
-}
-
-export interface OrderStatistics {
-  total: number;
-  pending: number;
-  running: number;
-  completed: number;
-  failed: number;
-}
-
-export interface OrderTrend {
-  date: string;
-  count: number;
-}
-
-export interface StatusDistribution {
-  status: number;
-  statusName: string;
-  count: number;
-  percentage: number;
 }
 
 // 开发环境标识

@@ -1,5 +1,17 @@
 import React from 'react';
 import clsx from 'clsx';
+import {
+  CheckCircle,
+  XCircle,
+  Clock,
+  Loader2,
+  AlertCircle,
+  PauseCircle,
+  PlayCircle,
+  Ban,
+  HelpCircle,
+  type LucideIcon,
+} from 'lucide-react';
 
 interface BadgeProps {
   children: React.ReactNode;
@@ -48,24 +60,119 @@ export const Badge: React.FC<BadgeProps> = ({
   );
 };
 
+// 状态图标映射表
+const STATUS_ICON_MAP: Record<string, LucideIcon> = {
+  // 成功类
+  COMPLETED: CheckCircle,
+  PARTIAL_COMPLETED: CheckCircle,
+  SUCCESS: CheckCircle,
+  DONE: CheckCircle,
+  // 失败类
+  FAILED: XCircle,
+  ERROR: XCircle,
+  // 运行类
+  RUNNING: Loader2,
+  STARTING: PlayCircle,
+  PROCESSING: Loader2,
+  // 等待类
+  PENDING: Clock,
+  QUEUED: Clock,
+  WAITING: Clock,
+  DRAFT: Clock,
+  // 暂停/取消类
+  PAUSED: PauseCircle,
+  CANCELLED: Ban,
+  STOPPED: Ban,
+  // 警告类
+  WARNING: AlertCircle,
+  TIMEOUT: AlertCircle,
+};
+
+/**
+ * 根据状态代码获取对应的图标组件
+ */
+export const getStatusIcon = (code: string): LucideIcon => {
+  const upperCode = code?.toUpperCase() || '';
+  return STATUS_ICON_MAP[upperCode] || HelpCircle;
+};
+
+/**
+ * 根据颜色值生成浅色背景
+ */
+const getLightBackground = (color: string): string => {
+  // 如果是十六进制颜色，转换为带透明度的背景
+  if (color.startsWith('#')) {
+    return `${color}15`; // 15 是十六进制的透明度约 8%
+  }
+  return 'transparent';
+};
+
 interface StatusBadgeProps {
-  statusId: string;
+  statusId?: string;
+  statusCode?: string;
   statusName: string;
   statusColor?: string;
+  statusIcon?: string;
+  showIcon?: boolean;
 }
 
-export const StatusBadge: React.FC<StatusBadgeProps> = ({ statusId, statusName, statusColor }) => {
-  // Map status IDs to variants
+/**
+ * 状态徽章组件
+ * 颜色应用于文字和图标，背景使用浅色
+ */
+export const StatusBadge: React.FC<StatusBadgeProps> = ({
+  statusId,
+  statusCode,
+  statusName,
+  statusColor,
+  statusIcon,
+  showIcon = true,
+}) => {
+  // 获取图标组件
+  const code = statusCode || statusId || '';
+  const IconComponent = getStatusIcon(code);
+  const isSpinning = code.toUpperCase() === 'RUNNING' || code.toUpperCase() === 'PROCESSING';
+
+  // 如果有自定义颜色，使用自定义样式
+  if (statusColor) {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full border"
+        style={{
+          color: statusColor,
+          borderColor: statusColor,
+          backgroundColor: getLightBackground(statusColor),
+        }}
+      >
+        {showIcon &&
+          (statusIcon ? (
+            <span className="text-sm">{statusIcon}</span>
+          ) : (
+            <IconComponent className={clsx('w-3.5 h-3.5', isSpinning && 'animate-spin')} />
+          ))}
+        {statusName}
+      </span>
+    );
+  }
+
+  // 没有自定义颜色时，根据状态代码确定样式
   const getVariant = (): BadgeProps['variant'] => {
-    if (statusId.includes('success')) return 'success';
-    if (statusId.includes('failed') || statusId.includes('error')) return 'error';
-    if (statusId.includes('warning')) return 'warning';
-    if (statusId.includes('running') || statusId.includes('queued')) return 'info';
+    const upperCode = code.toUpperCase();
+    if (['COMPLETED', 'PARTIAL_COMPLETED', 'SUCCESS', 'DONE'].includes(upperCode)) return 'success';
+    if (['FAILED', 'ERROR'].includes(upperCode)) return 'error';
+    if (['WARNING', 'TIMEOUT'].includes(upperCode)) return 'warning';
+    if (['RUNNING', 'STARTING', 'PROCESSING', 'QUEUED'].includes(upperCode)) return 'info';
     return 'default';
   };
 
   return (
-    <Badge variant={getVariant()} className={statusColor}>
+    <Badge variant={getVariant()}>
+      {showIcon &&
+        (statusIcon ? (
+          <span className="text-sm mr-1">{statusIcon}</span>
+        ) : (
+          <IconComponent className={clsx('w-3.5 h-3.5 mr-1', isSpinning && 'animate-spin')} />
+        ))}
       {statusName}
     </Badge>
   );

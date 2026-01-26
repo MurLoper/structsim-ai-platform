@@ -21,6 +21,9 @@ describe('ThemeSwitcher', () => {
       toggleTheme,
       getThemeName: () => '亮色模式',
       setTheme,
+      isLight: true,
+      isDark: false,
+      isEyecare: false,
     });
   });
 
@@ -48,6 +51,9 @@ describe('ThemeSelector', () => {
       toggleTheme,
       getThemeName: () => '暗色模式',
       setTheme,
+      isLight: false,
+      isDark: true,
+      isEyecare: false,
     });
   });
 
