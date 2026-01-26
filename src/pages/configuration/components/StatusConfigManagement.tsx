@@ -4,6 +4,8 @@
  */
 import React, { useState, useEffect } from 'react';
 import { useStatusDefs, useUpdateStatusDef } from '@/features/config/queries/useCompositeConfigs';
+import { useUIStore } from '@/stores';
+import { RESOURCES } from '@/locales';
 import {
   Card,
   Button,
@@ -37,6 +39,8 @@ export const StatusConfigManagement: React.FC = () => {
   const updateStatusDef = useUpdateStatusDef();
   const [selectedStatus, setSelectedStatus] = useState<StatusDef | null>(null);
   const [editForm, setEditForm] = useState({ name: '', colorTag: '', icon: '' });
+  const { language } = useUIStore();
+  const t = (key: string) => RESOURCES[language][key] || key;
 
   // 当选中状态变化时，更新表单
   useEffect(() => {
@@ -75,14 +79,14 @@ export const StatusConfigManagement: React.FC = () => {
 
   const columns: ColumnDef<StatusDef>[] = [
     {
-      header: 'ID',
+      header: t('cfg.status.col.id'),
       accessorKey: 'id',
       cell: ({ row }) => (
         <span className="font-mono text-sm text-slate-600">{row.original.id}</span>
       ),
     },
     {
-      header: '状态名称',
+      header: t('cfg.status.col.name'),
       accessorKey: 'name',
       cell: ({ row }) => {
         const IconComponent = row.original.icon ? getLucideIconByName(row.original.icon) : null;
@@ -99,7 +103,7 @@ export const StatusConfigManagement: React.FC = () => {
       },
     },
     {
-      header: '状态代码',
+      header: t('cfg.status.col.code'),
       accessorKey: 'code',
       cell: ({ row }) => (
         <code className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded text-sm">
@@ -108,7 +112,7 @@ export const StatusConfigManagement: React.FC = () => {
       ),
     },
     {
-      header: '类型',
+      header: t('cfg.status.col.type'),
       accessorKey: 'statusType',
       cell: ({ row }) => (
         <Badge variant={row.original.statusType === 'FINAL' ? 'success' : 'info'}>
@@ -117,7 +121,7 @@ export const StatusConfigManagement: React.FC = () => {
       ),
     },
     {
-      header: '预览',
+      header: t('cfg.status.col.preview'),
       accessorKey: 'colorTag',
       cell: ({ row }) => (
         <StatusBadge
@@ -129,7 +133,7 @@ export const StatusConfigManagement: React.FC = () => {
       ),
     },
     {
-      header: '图标',
+      header: t('cfg.status.col.icon'),
       accessorKey: 'icon',
       cell: ({ row }) => {
         const iconName = row.original.icon;
@@ -149,13 +153,13 @@ export const StatusConfigManagement: React.FC = () => {
       },
     },
     {
-      header: '排序',
+      header: t('cfg.status.col.sort'),
       accessorKey: 'sort',
       cell: ({ row }) => <span className="text-sm text-slate-600">{row.original.sort}</span>,
     },
     {
-      header: '操作',
-      accessorKey: 'id',
+      header: t('cfg.status.col.action'),
+      id: 'actions',
       cell: ({ row }) => (
         <div className="flex gap-2">
           <Button size="sm" variant="ghost" onClick={() => setSelectedStatus(row.original)}>
@@ -170,7 +174,7 @@ export const StatusConfigManagement: React.FC = () => {
   ];
 
   const handleDelete = (_id: number) => {
-    if (confirm('确定要删除此状态配置吗？')) {
+    if (confirm(t('cfg.status.delete_confirm'))) {
       // TODO: 实现删除逻辑
     }
   };
@@ -179,8 +183,8 @@ export const StatusConfigManagement: React.FC = () => {
     return (
       <Card>
         <div className="text-center py-8">
-          <p className="text-red-500 mb-4">加载状态配置失败</p>
-          <Button onClick={() => refetch()}>重试</Button>
+          <p className="text-red-500 mb-4">{t('cfg.status.load_error')}</p>
+          <Button onClick={() => refetch()}>{t('common.retry')}</Button>
         </div>
       </Card>
     );
@@ -190,12 +194,12 @@ export const StatusConfigManagement: React.FC = () => {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">状态配置管理</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
-            管理系统中的状态定义，包括申请单和轮次运行状态
-          </p>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+            {t('cfg.status.title')}
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-1">{t('cfg.status.desc')}</p>
         </div>
-        <Button icon={<PlusIcon className="w-5 h-5" />}>新增状态</Button>
+        <Button icon={<PlusIcon className="w-5 h-5" />}>{t('cfg.status.add')}</Button>
       </div>
 
       <Card padding="none">
@@ -204,7 +208,7 @@ export const StatusConfigManagement: React.FC = () => {
           columns={columns}
           loading={isLoading}
           searchable
-          searchPlaceholder="搜索状态..."
+          searchPlaceholder={t('cfg.status.search')}
           showCount
           containerHeight={600}
         />
@@ -215,7 +219,9 @@ export const StatusConfigManagement: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">编辑状态配置</h3>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                {t('cfg.status.edit')}
+              </h3>
               <button
                 onClick={handleCloseModal}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
@@ -228,7 +234,7 @@ export const StatusConfigManagement: React.FC = () => {
               {/* ID（只读） */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  ID（不可修改）
+                  {t('cfg.status.form.id_readonly')}
                 </label>
                 <input
                   type="text"
@@ -241,7 +247,7 @@ export const StatusConfigManagement: React.FC = () => {
               {/* 状态代码（只读） */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  状态代码（不可修改）
+                  {t('cfg.status.form.code_readonly')}
                 </label>
                 <input
                   type="text"
@@ -254,21 +260,21 @@ export const StatusConfigManagement: React.FC = () => {
               {/* 状态名称 */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  状态名称
+                  {t('cfg.status.form.name')}
                 </label>
                 <input
                   type="text"
                   value={editForm.name}
                   onChange={e => setEditForm(prev => ({ ...prev, name: e.target.value }))}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-brand-500 focus:border-brand-500 dark:bg-slate-700 dark:text-white"
-                  placeholder="输入状态名称"
+                  placeholder={t('cfg.status.form.name')}
                 />
               </div>
 
               {/* 颜色选择 */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  颜色
+                  {t('cfg.status.form.color')}
                 </label>
                 <div className="flex items-center gap-2 mb-2">
                   <input
@@ -306,7 +312,7 @@ export const StatusConfigManagement: React.FC = () => {
               {/* 图标选择 */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  图标（选择 Lucide 图标）
+                  {t('cfg.status.form.icon')}
                 </label>
                 <div className="flex items-center gap-2 mb-2">
                   <div
@@ -329,7 +335,7 @@ export const StatusConfigManagement: React.FC = () => {
                     value={editForm.icon}
                     onChange={e => setEditForm(prev => ({ ...prev, icon: e.target.value }))}
                     className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-brand-500 focus:border-brand-500 dark:bg-slate-700 dark:text-white font-mono text-sm"
-                    placeholder="图标名称（如 CheckCircle）"
+                    placeholder={t('cfg.status.form.icon_placeholder')}
                   />
                 </div>
                 <div className="grid grid-cols-6 gap-2 max-h-48 overflow-y-auto p-1">
@@ -364,14 +370,14 @@ export const StatusConfigManagement: React.FC = () => {
                       : 'border-slate-300 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700'
                   )}
                 >
-                  使用默认图标（根据状态代码自动匹配）
+                  {t('cfg.status.form.default_icon')}
                 </button>
               </div>
 
               {/* 预览 */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  预览
+                  {t('cfg.status.form.preview')}
                 </label>
                 <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-md">
                   <StatusBadge
@@ -386,10 +392,10 @@ export const StatusConfigManagement: React.FC = () => {
 
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200 dark:border-slate-700">
               <Button variant="outline" onClick={handleCloseModal}>
-                取消
+                {t('common.cancel')}
               </Button>
               <Button onClick={handleSave} disabled={updateStatusDef.isPending}>
-                {updateStatusDef.isPending ? '保存中...' : '保存'}
+                {updateStatusDef.isPending ? t('common.saving') : t('common.save')}
               </Button>
             </div>
           </div>
@@ -398,28 +404,27 @@ export const StatusConfigManagement: React.FC = () => {
 
       {/* 状态说明 */}
       <Card>
-        <h3 className="text-lg font-semibold mb-4">状态配置说明</h3>
+        <h3 className="text-lg font-semibold mb-4">{t('cfg.status.title')}</h3>
         <div className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
           <p>
-            • <strong>状态ID</strong>: 唯一标识符，用于数据库存储和API传输
+            • <strong>{t('cfg.status.col.id')}</strong>: {t('cfg.status.help.id')}
           </p>
           <p>
-            • <strong>状态代码</strong>: 英文代码，用于程序逻辑判断
+            • <strong>{t('cfg.status.col.code')}</strong>: {t('cfg.status.help.code')}
           </p>
           <p>
-            • <strong>状态类型</strong>: PROCESS（过程状态）或 FINAL（最终状态）
+            • <strong>{t('cfg.status.col.type')}</strong>: {t('cfg.status.help.type')}
           </p>
           <p>
-            • <strong>颜色</strong>: 十六进制颜色值（如 #22c55e），用于前端显示
+            • <strong>{t('cfg.status.form.color')}</strong>: {t('cfg.status.help.color')}
           </p>
           <p>
-            • <strong>图标</strong>: Lucide 图标名称（如
-            CheckCircle、XCircle），留空则根据状态代码自动匹配
+            • <strong>{t('cfg.status.col.icon')}</strong>: {t('cfg.status.help.icon')}
           </p>
         </div>
         <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
           <p className="text-sm text-blue-700 dark:text-blue-300">
-            <strong>提示：</strong>修改状态配置后，仪表盘和列表中的状态显示会自动更新。
+            <strong>{t('common.tip')}:</strong> {t('cfg.status.help.tip')}
           </p>
         </div>
       </Card>

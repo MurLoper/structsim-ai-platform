@@ -8,6 +8,7 @@ export const commonEn = {
   'common.submit': 'Submit',
   'common.cancel': 'Cancel',
   'common.save': 'Save',
+  'common.saving': 'Saving...',
   'common.delete': 'Delete',
   'common.edit': 'Edit',
   'common.add': 'Add',
@@ -30,6 +31,8 @@ export const commonEn = {
   'common.type': 'Type',
   'common.date': 'Date',
   'common.noData': 'No data available',
+  'common.retry': 'Retry',
+  'common.tip': 'Tip',
 };
 
 export const commonZh = {
@@ -41,6 +44,7 @@ export const commonZh = {
   'common.submit': '提交',
   'common.cancel': '取消',
   'common.save': '保存',
+  'common.saving': '保存中...',
   'common.delete': '删除',
   'common.edit': '编辑',
   'common.add': '添加',
@@ -63,4 +67,6 @@ export const commonZh = {
   'common.type': '类型',
   'common.date': '日期',
   'common.noData': '暂无数据',
+  'common.retry': '重试',
+  'common.tip': '提示',
 };
