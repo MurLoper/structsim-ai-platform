@@ -24,25 +24,24 @@ export const Input: React.FC<InputProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label
-          htmlFor={inputId}
-          className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-        >
+        <label htmlFor={inputId} className="block text-sm font-medium text-foreground mb-1">
           {label}
         </label>
       )}
       <div className="relative">
         {leftIcon && (
-          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">{leftIcon}</div>
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+            {leftIcon}
+          </div>
         )}
         <input
           id={inputId}
           className={clsx(
-            'w-full rounded-lg border bg-white dark:bg-slate-800 text-slate-900 dark:text-white',
-            'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent',
-            'placeholder:text-slate-400 dark:placeholder:text-slate-500',
+            'w-full rounded-lg border bg-background text-foreground',
+            'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
+            'placeholder:text-muted-foreground',
             'transition-colors',
-            error ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-600',
+            error ? 'border-destructive focus:ring-destructive' : 'border-input',
             leftIcon ? 'pl-10' : 'pl-3',
             rightIcon ? 'pr-10' : 'pr-3',
             'py-2',
@@ -51,13 +50,13 @@ export const Input: React.FC<InputProps> = ({
           {...props}
         />
         {rightIcon && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
             {rightIcon}
           </div>
         )}
       </div>
-      {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
-      {hint && !error && <p className="mt-1 text-sm text-slate-500">{hint}</p>}
+      {error && <p className="mt-1 text-sm text-destructive">{error}</p>}
+      {hint && !error && <p className="mt-1 text-sm text-muted-foreground">{hint}</p>}
     </div>
   );
 };
@@ -81,20 +80,17 @@ export const Select: React.FC<SelectProps> = ({
   return (
     <div className="w-full">
       {label && (
-        <label
-          htmlFor={selectId}
-          className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1"
-        >
+        <label htmlFor={selectId} className="block text-sm font-medium text-foreground mb-1">
           {label}
         </label>
       )}
       <select
         id={selectId}
         className={clsx(
-          'w-full rounded-lg border bg-white dark:bg-slate-800 text-slate-900 dark:text-white',
-          'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent',
+          'w-full rounded-lg border bg-background text-foreground',
+          'focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent',
           'px-3 py-2 transition-colors',
-          error ? 'border-red-500 focus:ring-red-500' : 'border-slate-200 dark:border-slate-600',
+          error ? 'border-destructive focus:ring-destructive' : 'border-input',
           className
         )}
         {...props}
@@ -105,7 +101,7 @@ export const Select: React.FC<SelectProps> = ({
           </option>
         ))}
       </select>
-      {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+      {error && <p className="mt-1 text-sm text-destructive">{error}</p>}
     </div>
   );
 };

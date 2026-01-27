@@ -24,7 +24,7 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div
       className={clsx(
-        'bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700',
+        'bg-card text-card-foreground rounded-xl shadow-sm border border-border',
         paddingStyles[padding],
         hover && 'hover:shadow-md transition-shadow cursor-pointer',
         className
@@ -43,16 +43,16 @@ interface CardHeaderProps {
 }
 
 export const CardHeader: React.FC<CardHeaderProps> = ({ title, subtitle, icon, action }) => (
-  <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-200 dark:border-slate-700">
+  <div className="flex items-center justify-between mb-4 pb-4 border-b border-border">
     <div className="flex items-center gap-3">
       {icon && (
-        <div className="w-10 h-10 rounded-lg bg-brand-50 dark:bg-brand-900/20 flex items-center justify-center text-brand-600">
+        <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
           {icon}
         </div>
       )}
       <div>
-        <h3 className="font-semibold text-slate-900 dark:text-white">{title}</h3>
-        {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+        <h3 className="font-semibold text-foreground">{title}</h3>
+        {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
       </div>
     </div>
     {action}

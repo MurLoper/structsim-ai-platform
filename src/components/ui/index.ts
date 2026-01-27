@@ -6,6 +6,7 @@ export {
   Badge,
   StatusBadge,
   PRESET_LUCIDE_ICONS,
+  EXTENDED_LUCIDE_ICONS,
   LUCIDE_ICON_MAP,
   getLucideIconByName,
 } from './Badge';

@@ -48,28 +48,28 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md animate-scale-in">
+      <div className="bg-card text-card-foreground rounded-xl shadow-2xl w-full max-w-md animate-scale-in">
         <div className="p-6">
           <div className="flex items-start gap-4">
             <div className={`flex-shrink-0 ${styles.icon}`}>
               <ExclamationTriangleIcon className="w-6 h-6" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">{title}</h3>
-              <p className="text-sm text-slate-600 dark:text-slate-400">{message}</p>
+              <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
+              <p className="text-sm text-muted-foreground">{message}</p>
             </div>
             <button
               onClick={onCancel}
-              className="flex-shrink-0 p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded transition-colors"
+              className="flex-shrink-0 p-1 hover:bg-secondary rounded transition-colors"
             >
-              <XMarkIcon className="w-5 h-5 text-slate-500" />
+              <XMarkIcon className="w-5 h-5 text-muted-foreground" />
             </button>
           </div>
         </div>
         <div className="flex justify-end gap-3 px-6 pb-6">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            className="px-4 py-2 text-foreground hover:bg-secondary rounded-lg transition-colors"
           >
             {cancelText}
           </button>

@@ -26,20 +26,20 @@ export const Tabs: React.FC<TabsProps> = ({
   const baseStyles = 'flex';
 
   const containerStyles = {
-    default: 'border-b border-slate-200 dark:border-slate-700',
-    pills: 'bg-slate-100 dark:bg-slate-800 p-1 rounded-lg',
+    default: 'border-b border-border',
+    pills: 'bg-secondary p-1 rounded-lg',
   };
 
   const itemStyles = {
     default: {
       base: 'px-4 py-2 text-sm font-medium border-b-2 -mb-px transition-colors',
-      active: 'border-brand-500 text-brand-600 dark:text-brand-400',
-      inactive: 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300',
+      active: 'border-primary text-primary',
+      inactive: 'border-transparent text-muted-foreground hover:text-foreground',
     },
     pills: {
       base: 'px-4 py-2 text-sm font-medium rounded-md transition-all',
-      active: 'bg-white dark:bg-slate-700 shadow text-brand-600 dark:text-brand-400',
-      inactive: 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300',
+      active: 'bg-card shadow text-primary',
+      inactive: 'text-muted-foreground hover:text-foreground',
     },
   };
 

@@ -9,6 +9,8 @@ export const navEn = {
   'nav.settings': 'Settings',
   'nav.help': 'Help',
   'nav.logout': 'Logout',
+  'sidebar.collapse': 'Collapse sidebar',
+  'sidebar.expand': 'Expand sidebar',
 };
 
 export const navZh = {
@@ -21,4 +23,6 @@ export const navZh = {
   'nav.settings': '系统设置',
   'nav.help': '帮助',
   'nav.logout': '退出登录',
+  'sidebar.collapse': '收起侧边栏',
+  'sidebar.expand': '展开侧边栏',
 };

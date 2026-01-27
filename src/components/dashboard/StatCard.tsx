@@ -34,8 +34,8 @@ export const StatCard: React.FC<StatCardProps> = ({
     <Card className="p-6 hover:shadow-lg transition-shadow">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">{title}</p>
-          <p className="mt-2 text-3xl font-bold text-slate-900 dark:text-white">{value}</p>
+          <p className="text-sm font-medium text-muted-foreground">{title}</p>
+          <p className="mt-2 text-3xl font-bold text-foreground">{value}</p>
           {trend && (
             <p
               className={clsx(

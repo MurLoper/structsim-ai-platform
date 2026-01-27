@@ -45,12 +45,12 @@ export function Table<T extends object>({
     <div className={clsx('overflow-x-auto', className)}>
       <table className="w-full text-left border-collapse">
         <thead>
-          <tr className="bg-slate-50 dark:bg-slate-700/50 border-b border-slate-200 dark:border-slate-700">
+          <tr className="bg-secondary border-b border-border">
             {columns.map(col => (
               <th
                 key={col.key}
                 className={clsx(
-                  'px-6 py-4 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider',
+                  'px-6 py-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider',
                   alignStyles[col.align || 'left']
                 )}
                 style={{ width: col.width }}
@@ -60,7 +60,7 @@ export function Table<T extends object>({
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+        <tbody className="divide-y divide-border">
           {loading ? (
             <tr>
               <td colSpan={columns.length} className="px-6 py-12 text-center">
@@ -71,7 +71,7 @@ export function Table<T extends object>({
             </tr>
           ) : data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-6 py-12 text-center text-slate-500">
+              <td colSpan={columns.length} className="px-6 py-12 text-center text-muted-foreground">
                 {emptyText}
               </td>
             </tr>
@@ -81,7 +81,7 @@ export function Table<T extends object>({
                 key={getRowKey(record, index)}
                 onClick={() => onRowClick?.(record)}
                 className={clsx(
-                  'hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors',
+                  'hover:bg-secondary/50 transition-colors',
                   onRowClick && 'cursor-pointer'
                 )}
               >
