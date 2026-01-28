@@ -1,10 +1,10 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useSimTypes, useOutputDefs } from '@/features/config/queries';
-import { ordersApi, apiClient } from '@/api';
+import { ordersApi, resultsApi } from '@/api';
 import { queryKeys } from '@/lib/queryClient';
-import { LEGACY_API_BASE_URL, RESULTS_PAGE_SIZE, RESULTS_CHART_MAX_POINTS, PAGINATION } from '@/constants';
-
+import { RESULTS_PAGE_SIZE, RESULTS_CHART_MAX_POINTS, PAGINATION } from '@/constants';
+import type { SimTypeResult, RoundItem } from '@/api/results';
 
 export interface ResultRecord {
   iteration: number;
@@ -12,33 +12,6 @@ export interface ResultRecord {
   metricId: number;
   value: number;
   group: string;
-}
-
-interface SimTypeResult {
-  id: number;
-  orderId: number;
-  simTypeId: number;
-  status: number;
-  progress: number;
-  totalRounds: number;
-  completedRounds: number;
-  failedRounds: number;
-}
-
-interface RoundItem {
-  id: number;
-  roundIndex: number;
-  params?: Record<string, number | string> | null;
-  outputs?: Record<string, number | string> | null;
-  status?: number;
-}
-
-interface RoundListResponse {
-  items: RoundItem[];
-  total: number;
-  page: number;
-  pageSize: number;
-  totalPages: number;
 }
 
 interface RoundsGroup {
@@ -67,7 +40,9 @@ export const useResultsData = (orderId: number | null) => {
     isLoading: orderLoading,
     refetch: refetchOrder,
   } = useQuery({
-    queryKey: resolvedOrderId ? queryKeys.orders.detail(resolvedOrderId) : ['orders', 'detail', 'none'],
+    queryKey: resolvedOrderId
+      ? queryKeys.orders.detail(resolvedOrderId)
+      : ['orders', 'detail', 'none'],
     queryFn: async () => {
       if (!resolvedOrderId) return null;
       const response = await ordersApi.getOrder(resolvedOrderId);
@@ -85,15 +60,12 @@ export const useResultsData = (orderId: number | null) => {
     queryKey: ['results', 'simTypes', resolvedOrderId],
     queryFn: async () => {
       if (!resolvedOrderId) return [];
-      const response = await apiClient.get<SimTypeResult[]>(
-        `${LEGACY_API_BASE_URL}/results/order/${resolvedOrderId}/sim-types`
-      );
+      const response = await resultsApi.getOrderSimTypeResults(resolvedOrderId);
       return response.data || [];
     },
     enabled: !!resolvedOrderId,
     staleTime: 30 * 1000,
   });
-
 
   const displayOrderId = orderDetail?.orderNo || (resolvedOrderId ? `#${resolvedOrderId}` : '-');
 
@@ -147,10 +119,10 @@ export const useResultsData = (orderId: number | null) => {
       if (!resolvedOrderId || selectedSimTypeResults.length === 0) return [] as RoundsGroup[];
       const responses = await Promise.all(
         selectedSimTypeResults.map(async result => {
-          const response = await apiClient.get<RoundListResponse>(
-            `${LEGACY_API_BASE_URL}/results/sim-type/${result.id}/rounds`,
-            { params: { page: PAGINATION.DEFAULT_PAGE, pageSize: RESULTS_PAGE_SIZE } }
-          );
+          const response = await resultsApi.getRounds(result.id, {
+            page: PAGINATION.DEFAULT_PAGE,
+            pageSize: RESULTS_PAGE_SIZE,
+          });
           return {
             simTypeId: result.simTypeId,
             rounds: response.data?.items || [],
@@ -162,7 +134,6 @@ export const useResultsData = (orderId: number | null) => {
     enabled: !!resolvedOrderId && selectedSimTypeResults.length > 0,
     staleTime: 30 * 1000,
   });
-
 
   const simTypeLabelMap = useMemo(
     () => new Map(availableSimTypes.map(simType => [simType.id, simType.name])),
@@ -186,7 +157,8 @@ export const useResultsData = (orderId: number | null) => {
     return roundsBySimType.flatMap(({ simTypeId, rounds }) =>
       rounds
         .map(round => {
-          const outputs = round.outputs || {};
+          // 后端返回 outputResults，兼容旧字段名 outputs
+          const outputs = round.outputResults || {};
           const rawValue =
             outputs[String(metricId)] ??
             (outputs as Record<string, number | string>)[metricId as unknown as string];
@@ -239,7 +211,6 @@ export const useResultsData = (orderId: number | null) => {
       })),
     [chartResults, simTypeLabelMap]
   );
-
 
   const avgBySimType = useMemo(() => {
     const map = new Map<number, { total: number; count: number }>();
@@ -303,10 +274,13 @@ export const useResultsData = (orderId: number | null) => {
     trendData,
     avgBySimType,
     isResultsLoading:
-      simTypesLoading || outputDefsLoading || orderLoading || simTypeResultsLoading || roundsLoading,
+      simTypesLoading ||
+      outputDefsLoading ||
+      orderLoading ||
+      simTypeResultsLoading ||
+      roundsLoading,
     resultsError,
     retryResults,
     handleReset,
   };
 };
-

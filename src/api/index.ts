@@ -6,3 +6,4 @@ export * from './config';
 export { projectApi } from './projects';
 export { simulationApi } from './simulations';
 export { ordersApi } from './orders';
+export { resultsApi } from './results';
