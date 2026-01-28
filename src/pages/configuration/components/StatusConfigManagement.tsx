@@ -248,8 +248,8 @@ export const StatusConfigManagement: React.FC = () => {
 
       {/* 编辑模态框 */}
       {selectedStatus && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md flex flex-col max-h-[90vh]">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
                 {t('cfg.status.edit')}
@@ -262,7 +262,7 @@ export const StatusConfigManagement: React.FC = () => {
               </button>
             </div>
 
-            <div className="px-6 py-4 space-y-4">
+            <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1 min-h-0">
               {/* ID（只读） */}
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">

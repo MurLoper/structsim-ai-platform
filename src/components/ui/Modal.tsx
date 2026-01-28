@@ -29,20 +29,20 @@ export const Modal: React.FC<ModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal Content */}
       <div
         className={clsx(
-          'relative w-full mx-4 bg-card text-card-foreground rounded-xl shadow-2xl animate-fade-in',
+          'relative w-full bg-card text-card-foreground rounded-xl shadow-2xl animate-fade-in flex flex-col max-h-[90vh]',
           sizes[size]
         )}
       >
         {/* Header */}
         {(title || showCloseButton) && (
-          <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="flex items-center justify-between p-4 border-b border-border flex-shrink-0">
             {title && <h3 className="text-lg font-semibold text-foreground">{title}</h3>}
             {showCloseButton && (
               <button
@@ -56,7 +56,7 @@ export const Modal: React.FC<ModalProps> = ({
         )}
 
         {/* Body */}
-        <div className="p-4">{children}</div>
+        <div className="p-4 overflow-y-auto flex-1 min-h-0">{children}</div>
       </div>
     </div>
   );
