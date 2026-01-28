@@ -3,9 +3,7 @@
  *
  * 展示单个轮次的工作流执行进度
  */
-import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui';
 import { CheckCircle, XCircle, Clock, Loader2, ChevronRight } from 'lucide-react';
 
 /** 工作流节点 */

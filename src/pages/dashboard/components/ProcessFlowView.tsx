@@ -5,7 +5,7 @@
  */
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
-import { Card, Badge, Button } from '@/components/ui';
+import { Card, Badge } from '@/components/ui';
 import {
   CheckCircle,
   XCircle,
@@ -164,8 +164,6 @@ const RoundFlowRow: React.FC<{
   round: RoundItem;
   nodes: WorkflowNode[];
 }> = ({ round, nodes }) => {
-  const statusConfig = STATUS_CONFIG[round.status] || STATUS_CONFIG[0];
-
   return (
     <div className="flex items-center gap-4 py-2 px-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
       <div className="flex items-center gap-2 min-w-[100px]">

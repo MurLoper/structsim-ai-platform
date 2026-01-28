@@ -7,7 +7,6 @@
 import { useMemo } from 'react';
 import { VirtualTable } from '@/components/tables/VirtualTable';
 import { Badge } from '@/components/ui';
-import { cn } from '@/lib/utils';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { RoundItem } from '@/api/results';
 import type { ParamDef, OutputDef } from '@/types/config';

@@ -4,7 +4,7 @@ import { useSimTypes, useOutputDefs, useParamDefs } from '@/features/config/quer
 import { ordersApi, resultsApi } from '@/api';
 import { queryKeys } from '@/lib/queryClient';
 import { RESULTS_PAGE_SIZE, RESULTS_CHART_MAX_POINTS, PAGINATION } from '@/constants';
-import type { SimTypeResult, RoundItem } from '@/api/results';
+import type { RoundItem } from '@/api/results';
 
 export interface ResultRecord {
   iteration: number;

@@ -4,7 +4,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { baseConfigApi } from '@/api/config/base';
 import { queryKeys } from '@/lib/queryClient';
-import type { Workflow, AutomationModule } from '@/types/config';
 
 /**
  * 获取工作流列表

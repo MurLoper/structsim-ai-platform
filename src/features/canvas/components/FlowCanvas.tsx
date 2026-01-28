@@ -71,14 +71,15 @@ export interface FlowCanvasProps {
   customEdgeTypes?: EdgeTypes;
 }
 
-// 默认节点类型
-
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// 默认节点类型 - React Flow 的 NodeTypes 需要类型断言
 const defaultNodeTypes: NodeTypes = {
   simulation: SimulationNode as any,
   parameter: ParameterNode as any,
   result: ResultNode as any,
   condition: ConditionNode as any,
 };
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 export function FlowCanvas({
   initialNodes = [],

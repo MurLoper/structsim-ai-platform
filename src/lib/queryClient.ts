@@ -99,4 +99,16 @@ export const queryKeys = {
     trends: (days: number) => [...queryKeys.orders.all, 'trends', days] as const,
     statusDistribution: () => [...queryKeys.orders.all, 'statusDistribution'] as const,
   },
+  // 工作流
+  workflows: {
+    all: ['workflows'] as const,
+    list: () => [...queryKeys.workflows.all, 'list'] as const,
+    detail: (id: number) => [...queryKeys.workflows.all, 'detail', id] as const,
+  },
+  // 自动化模块
+  automationModules: {
+    all: ['automationModules'] as const,
+    list: () => [...queryKeys.automationModules.all, 'list'] as const,
+    detail: (id: number) => [...queryKeys.automationModules.all, 'detail', id] as const,
+  },
 } as const;
