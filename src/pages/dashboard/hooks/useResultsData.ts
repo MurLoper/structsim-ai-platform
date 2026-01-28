@@ -297,7 +297,8 @@ export const useResultsData = (orderId: number | null) => {
       orderLoading ||
       simTypeResultsLoading ||
       roundsLoading,
-    resultsError: retryResults,
+    resultsError,
+    retryResults,
     handleReset,
   };
 };
