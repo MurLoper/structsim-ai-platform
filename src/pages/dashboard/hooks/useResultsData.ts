@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSimTypes, useOutputDefs } from '@/features/config/queries';
+import { useSimTypes, useOutputDefs, useParamDefs } from '@/features/config/queries';
 import { ordersApi, resultsApi } from '@/api';
 import { queryKeys } from '@/lib/queryClient';
 import { RESULTS_PAGE_SIZE, RESULTS_CHART_MAX_POINTS, PAGINATION } from '@/constants';
@@ -33,6 +33,12 @@ export const useResultsData = (orderId: number | null) => {
     isLoading: outputDefsLoading,
     refetch: refetchOutputDefs,
   } = useOutputDefs();
+  const {
+    data: paramDefs = [],
+    error: paramDefsError,
+    isLoading: paramDefsLoading,
+    refetch: refetchParamDefs,
+  } = useParamDefs();
 
   const {
     data: orderDetail,
@@ -240,10 +246,16 @@ export const useResultsData = (orderId: number | null) => {
   };
 
   const resultsError =
-    simTypesError || outputDefsError || orderError || simTypeResultsError || roundsError;
+    simTypesError ||
+    outputDefsError ||
+    paramDefsError ||
+    orderError ||
+    simTypeResultsError ||
+    roundsError;
   const retryResults = () => {
     void refetchSimTypes();
     void refetchOutputDefs();
+    void refetchParamDefs();
     if (resolvedOrderId) {
       void refetchOrder();
       void refetchSimTypeResults();
@@ -273,14 +285,19 @@ export const useResultsData = (orderId: number | null) => {
     filteredResults,
     trendData,
     avgBySimType,
+    // 新增：概览 Tab 需要的数据
+    simTypeResults,
+    roundsBySimType,
+    paramDefs,
+    outputDefs,
     isResultsLoading:
       simTypesLoading ||
       outputDefsLoading ||
+      paramDefsLoading ||
       orderLoading ||
       simTypeResultsLoading ||
       roundsLoading,
-    resultsError,
-    retryResults,
+    resultsError: retryResults,
     handleReset,
   };
 };

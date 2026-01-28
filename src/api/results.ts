@@ -15,6 +15,8 @@ export interface SimTypeResult {
   totalRounds: number;
   completedRounds: number;
   failedRounds: number;
+  bestExists?: number;
+  bestRoundIndex?: number | null;
   createdAt?: number;
   updatedAt?: number;
 }

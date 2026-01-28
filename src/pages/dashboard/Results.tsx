@@ -8,6 +8,7 @@ import { BarChart } from '@/components/charts/BarChart';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { VirtualTable } from '@/components/tables/VirtualTable';
 import { useResultsData, type ResultRecord } from './hooks/useResultsData';
+import { SimTypeResultTable } from './components/SimTypeResultTable';
 import type { ColumnDef } from '@tanstack/react-table';
 
 const Results: React.FC = () => {
@@ -39,6 +40,11 @@ const Results: React.FC = () => {
     filteredResults,
     trendData,
     avgBySimType,
+    // 概览 Tab 数据
+    simTypeResults,
+    roundsBySimType,
+    paramDefs,
+    outputDefs,
     isResultsLoading,
     resultsError,
     retryResults,
@@ -212,27 +218,61 @@ const Results: React.FC = () => {
       )}
 
       {activeTab === 'overview' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-brand-600">30</div>
-              <div className="text-sm text-slate-500">{t('res.iterations')}</div>
-            </div>
-          </Card>
-          <Card>
-            <div className="text-center">
-              <div className="text-3xl font-bold text-green-600">#12</div>
-              <div className="text-sm text-slate-500">{t('res.best')}</div>
-            </div>
-          </Card>
-          <Card>
-            <div className="text-center">
-              <Badge variant="success" size="md">
-                {t('res.status.success')}
-              </Badge>
-              <div className="text-sm text-slate-500 mt-2">{t('res.status')}</div>
-            </div>
-          </Card>
+        <div className="space-y-6">
+          {/* 概览统计卡片 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-brand-600">{simTypeResults.length}</div>
+                <div className="text-sm text-slate-500">{t('res.sim_types_count')}</div>
+              </div>
+            </Card>
+            <Card>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-600">
+                  {roundsBySimType.reduce((sum, g) => sum + g.rounds.length, 0)}
+                </div>
+                <div className="text-sm text-slate-500">{t('res.iterations')}</div>
+              </div>
+            </Card>
+            <Card>
+              <div className="text-center">
+                <Badge variant="success" size="md">
+                  {t('res.status.success')}
+                </Badge>
+                <div className="text-sm text-slate-500 mt-2">{t('res.status')}</div>
+              </div>
+            </Card>
+          </div>
+
+          {/* 各仿真类型结果表格 */}
+          {roundsBySimType.map(group => {
+            const simTypeResult = simTypeResults.find(r => r.simTypeId === group.simTypeId);
+            const simTypeName =
+              simTypeLabelMap.get(group.simTypeId) || `SimType-${group.simTypeId}`;
+            return (
+              <Card key={group.simTypeId}>
+                <SimTypeResultTable
+                  simTypeId={group.simTypeId}
+                  simTypeName={simTypeName}
+                  rounds={group.rounds}
+                  paramDefs={paramDefs}
+                  outputDefs={outputDefs}
+                  bestRoundIndex={simTypeResult?.bestRoundIndex}
+                  loading={isResultsLoading}
+                  height={Math.min(400, 60 + group.rounds.length * 40)}
+                />
+              </Card>
+            );
+          })}
+
+          {roundsBySimType.length === 0 && !isResultsLoading && (
+            <Card>
+              <div className="h-32 flex items-center justify-center text-slate-500">
+                暂无仿真结果数据
+              </div>
+            </Card>
+          )}
         </div>
       )}
 
