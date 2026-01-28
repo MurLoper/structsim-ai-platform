@@ -9,6 +9,8 @@ import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { VirtualTable } from '@/components/tables/VirtualTable';
 import { useResultsData, type ResultRecord } from './hooks/useResultsData';
 import { SimTypeResultTable } from './components/SimTypeResultTable';
+import { ProcessView } from './components/ProcessView';
+import { useWorkflows } from '@/features/config/queries';
 import type { ColumnDef } from '@tanstack/react-table';
 
 const Results: React.FC = () => {
@@ -50,6 +52,9 @@ const Results: React.FC = () => {
     retryResults,
     handleReset,
   } = useResultsData(resolvedOrderId);
+
+  // 获取工作流配置
+  const { data: workflows = [] } = useWorkflows();
 
   const [activeTab, setActiveTab] = useState('overview');
   const invalidOrderId = resolvedOrderId === null;
@@ -422,11 +427,13 @@ const Results: React.FC = () => {
       )}
 
       {activeTab === 'process' && (
-        <Card>
-          <div className="h-64 flex items-center justify-center text-slate-500">
-            Process workflow visualization will be displayed here
-          </div>
-        </Card>
+        <ProcessView
+          simTypeResults={simTypeResults}
+          roundsBySimType={roundsBySimType}
+          simTypeLabelMap={simTypeLabelMap}
+          workflowNodes={workflows[0]?.nodes || []}
+          loading={isResultsLoading}
+        />
       )}
     </div>
   );

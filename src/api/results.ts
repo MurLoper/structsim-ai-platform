@@ -31,6 +31,10 @@ export interface RoundItem {
   paramValues?: Record<string, number | string> | null;
   outputResults?: Record<string, number | string> | null;
   metrics?: Record<string, number> | null;
+  // 流程相关字段
+  flowCurNodeId?: number | null;
+  flowNodeProgress?: Record<string, number> | null;
+  stuckModuleId?: number | null;
   errorMsg?: string;
   startedAt?: number;
   finishedAt?: number;

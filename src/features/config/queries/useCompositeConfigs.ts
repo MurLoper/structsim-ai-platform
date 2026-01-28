@@ -81,34 +81,6 @@ export function useUpdateStatusDef() {
 }
 
 /**
- * 获取自动化模块列表
- */
-export function useAutomationModules() {
-  return useQuery({
-    queryKey: ['automationModules', 'list'] as const,
-    queryFn: async () => {
-      const response = await baseConfigApi.getAutomationModules();
-      return response.data || [];
-    },
-    staleTime: 10 * 60 * 1000,
-  });
-}
-
-/**
- * 获取工作流列表
- */
-export function useWorkflows() {
-  return useQuery({
-    queryKey: ['workflows', 'list'] as const,
-    queryFn: async () => {
-      const response = await baseConfigApi.getWorkflows();
-      return response.data || [];
-    },
-    staleTime: 10 * 60 * 1000,
-  });
-}
-
-/**
  * 获取所有基础数据（一次性加载）
  */
 export function useBaseData() {

@@ -10,6 +10,7 @@ export * from './useSolvers';
 export * from './useConditionDefs';
 export * from './useOutputDefs';
 export * from './useFoldTypes';
+export * from './useWorkflows';
 
 // 组合配置和其他
 export * from './useCompositeConfigs';

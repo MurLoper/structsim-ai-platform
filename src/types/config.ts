@@ -166,8 +166,19 @@ export interface AutomationModule {
 export interface Workflow {
   id: number;
   name: string;
+  code?: string;
   type: string;
-  nodes?: Array<{ id: string; type: string; data: Record<string, unknown> }>;
+  nodes?: Array<{
+    id: string;
+    moduleId: number;
+    name: string;
+    position?: { x: number; y: number };
+  }>;
+  edges?: Array<{
+    id: string;
+    source: string;
+    target: string;
+  }>;
   valid: number;
   sort: number;
   remark?: string;
