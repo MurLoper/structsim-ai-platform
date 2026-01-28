@@ -9,7 +9,7 @@ import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import { VirtualTable } from '@/components/tables/VirtualTable';
 import { useResultsData, type ResultRecord } from './hooks/useResultsData';
 import { SimTypeResultTable } from './components/SimTypeResultTable';
-import { ProcessView } from './components/ProcessView';
+import { ProcessFlowView } from './components/ProcessFlowView';
 import { useWorkflows } from '@/features/config/queries';
 import type { ColumnDef } from '@tanstack/react-table';
 
@@ -427,7 +427,20 @@ const Results: React.FC = () => {
       )}
 
       {activeTab === 'process' && (
-        <ProcessView
+        <ProcessFlowView
+          orderId={orderId}
+          orderStatus={
+            simTypeResults.length > 0
+              ? Math.max(...simTypeResults.map(r => (r.status === 1 ? 1 : r.status)))
+              : 0
+          }
+          orderProgress={
+            simTypeResults.length > 0
+              ? Math.round(
+                  simTypeResults.reduce((sum, r) => sum + r.progress, 0) / simTypeResults.length
+                )
+              : 0
+          }
           simTypeResults={simTypeResults}
           roundsBySimType={roundsBySimType}
           simTypeLabelMap={simTypeLabelMap}
