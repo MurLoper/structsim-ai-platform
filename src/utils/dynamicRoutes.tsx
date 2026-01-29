@@ -7,14 +7,14 @@ import type { MenuItem } from '@/types';
 const pageComponents: Record<string, () => Promise<{ default: ComponentType }>> = {
   'pages/dashboard/Dashboard': () => import('@/pages/dashboard/Dashboard'),
   'pages/orders/OrderList': () => import('@/pages/orders/OrderList'),
-  'pages/orders/OrderDetail': () => import('@/pages/orders/OrderDetail'),
-  'pages/submission/SubmissionPage': () => import('@/pages/submission/SubmissionPage'),
-  'pages/results/ResultsPage': () => import('@/pages/results/ResultsPage'),
-  'pages/configuration/ProjectsPage': () => import('@/pages/configuration/ProjectsPage'),
-  'pages/configuration/SimTypesPage': () => import('@/pages/configuration/SimTypesPage'),
-  'pages/configuration/ParametersPage': () => import('@/pages/configuration/ParametersPage'),
-  'pages/configuration/OutputsPage': () => import('@/pages/configuration/OutputsPage'),
-  'pages/configuration/SolversPage': () => import('@/pages/configuration/SolversPage'),
+  'pages/orders/OrderDetail': () => import('@/pages/orders/OrderList'),
+  'pages/submission/SubmissionPage': () => import('@/pages/submission'),
+  'pages/results/ResultsPage': () => import('@/pages/dashboard/Results'),
+  'pages/configuration/ProjectsPage': () => import('@/pages/configuration/Configuration'),
+  'pages/configuration/SimTypesPage': () => import('@/pages/configuration/Configuration'),
+  'pages/configuration/ParametersPage': () => import('@/pages/configuration/Configuration'),
+  'pages/configuration/OutputsPage': () => import('@/pages/configuration/Configuration'),
+  'pages/configuration/SolversPage': () => import('@/pages/configuration/Configuration'),
 };
 
 /**

@@ -25,7 +25,7 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
   const { theme, setTheme, language, setLanguage } = useUIStore();
   const { user, logout } = useAuthStore();
-  const { menus, fetchMenus, clearMenus } = useMenuStore();
+  const { menus, fetchMenus } = useMenuStore();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<number[]>([]);

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
 import { Button, Card, Badge, StatusBadge } from '@/components/ui';
-import { ArrowRight, Beaker, Search, Filter } from 'lucide-react';
+import { ArrowRight, Beaker } from 'lucide-react';
 import { useStatusDefs } from '@/features/config/queries/useCompositeConfigs';
 import { useProjects, useSimTypes } from '@/features/config/queries';
 import { useOrders } from '@/features/orders/queries';
