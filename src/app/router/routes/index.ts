@@ -3,6 +3,7 @@
  */
 
 export { dashboardRoutes } from './dashboard.routes';
+export { ordersRoutes } from './orders.routes';
 export { configRoutes } from './config.routes';
 export { submissionRoutes } from './submission.routes';
 export { accessRoutes } from './access.routes';

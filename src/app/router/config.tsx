@@ -11,6 +11,7 @@ import { PageSuspense, RouteErrorBoundary } from './components';
 import {
   authRoutes,
   dashboardRoutes,
+  ordersRoutes,
   configRoutes,
   submissionRoutes,
   accessRoutes,
@@ -37,6 +38,11 @@ export const appRoutes: RouteObject[] = [
     children: [
       // 工作台
       ...dashboardRoutes,
+      // 申请单列表
+      {
+        path: 'orders',
+        children: ordersRoutes,
+      },
       // 配置中心
       ...configRoutes,
       // 提单

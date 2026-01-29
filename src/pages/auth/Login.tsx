@@ -1,35 +1,44 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/stores';
+import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 
 const Login: React.FC = () => {
-  const { users, login, fetchUsers } = useAuthStore();
+  const { login } = useAuthStore();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    // 加载用户列表
-    fetchUsers();
-  }, [fetchUsers]);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (email: string) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+
+    if (!email.trim()) {
+      setError('请输入邮箱');
+      return;
+    }
+    // 模拟模式：密码可选
+
+    setLoading(true);
     try {
-      await login(email);
+      await login(email, password || undefined);
       navigate('/');
-    } catch (error) {
-      console.error('Login failed:', error);
-      // 临时方案：直接设置用户信息
-      const user = users.find(u => u.email === email);
-      if (user) {
-        useAuthStore.getState().setUser(user);
-        useAuthStore.getState().setToken('demo-token');
-        navigate('/');
-      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '登录失败，请重试';
+      setError(message);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-100 dark:bg-slate-900">
       <div className="bg-white dark:bg-slate-800 p-8 rounded-xl shadow-lg w-full max-w-md">
+        {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 rounded-xl bg-gradient-to-tr from-brand-500 to-indigo-600 flex items-center justify-center text-white font-bold text-3xl mx-auto mb-4">
             S
@@ -37,30 +46,76 @@ const Login: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-800 dark:text-white">
             StructSim AI Platform
           </h1>
-          <p className="text-slate-500 mt-2">Select a user to login</p>
+          <p className="text-slate-500 mt-2">登录您的账号</p>
         </div>
 
-        <div className="space-y-3">
-          {users.map(u => (
-            <button
-              key={u.id}
-              onClick={() => handleLogin(u.email)}
-              className="w-full p-4 text-left border rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700 dark:border-slate-600 flex items-center gap-4 transition-all group"
-            >
-              <div className="w-12 h-12 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-600 flex items-center justify-center font-bold text-lg">
-                {u.name.charAt(0)}
-              </div>
-              <div className="flex-1">
-                <div className="font-semibold text-slate-800 dark:text-white group-hover:text-brand-600">
-                  {u.name}
-                </div>
-                <div className="text-xs text-slate-500">{u.email}</div>
-                <div className="text-xs text-slate-400 mt-1">
-                  {u.permissions?.length ?? 0} permissions
-                </div>
-              </div>
-            </button>
-          ))}
+        {/* Login Form */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+              邮箱
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="请输入邮箱"
+              className="w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+            />
+          </div>
+
+          {/* Password */}
+          <div>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+              密码
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="请输入密码"
+                className="w-full px-4 py-2.5 pr-10 border rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 dark:bg-slate-700 dark:border-slate-600 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                {showPassword ? (
+                  <EyeSlashIcon className="w-5 h-5" />
+                ) : (
+                  <EyeIcon className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="text-red-500 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? '登录中...' : '登录'}
+          </button>
+        </form>
+
+        {/* Demo Hint */}
+        <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+          <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
+            测试账号: admin@example.com / zhangsan@example.com
+            <br />
+            模拟模式：无需密码，输入邮箱即可登录
+          </p>
         </div>
       </div>
     </div>

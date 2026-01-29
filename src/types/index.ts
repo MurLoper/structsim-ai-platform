@@ -8,3 +8,4 @@ export * from './simulation';
 export * from './process';
 export * from './order';
 export * from './statistics';
+export * from './menu';

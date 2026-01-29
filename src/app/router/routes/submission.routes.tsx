@@ -27,4 +27,19 @@ export const submissionRoutes: RouteObject[] = [
       noContainer: true,
     },
   },
+  {
+    path: 'submission',
+    element: (
+      <RouteErrorBoundary>
+        <PageSuspense>
+          <Submission />
+        </PageSuspense>
+      </RouteErrorBoundary>
+    ),
+    handle: {
+      title: '新建仿真',
+      permission: 'ORDER_CREATE',
+      noContainer: true,
+    },
+  },
 ];

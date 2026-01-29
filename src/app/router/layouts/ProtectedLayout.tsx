@@ -3,10 +3,11 @@
  *
  * 包装需要认证和权限检查的路由
  */
-import { lazy, useMemo, useEffect } from 'react';
-import { Outlet, useMatches, useLocation } from 'react-router-dom';
+import { lazy, useMemo, useEffect, useCallback } from 'react';
+import { Outlet, useMatches, useLocation, useNavigate } from 'react-router-dom';
 import { AuthGuard, PermissionGuard } from '../guards';
 import { PageSuspense, RouteErrorBoundary } from '../components';
+import { useAuthHeartbeat } from '@/hooks';
 import type { Permission } from '@/types';
 
 // 懒加载布局
@@ -27,6 +28,20 @@ interface RouteHandle {
 export function ProtectedLayout() {
   const matches = useMatches();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
+
+  // 登录过期回调
+  const handleSessionExpired = useCallback(() => {
+    navigate('/login', { state: { message: '登录已过期，请重新登录' } });
+  }, [navigate]);
+
+  // 启用心跳检查
+  useAuthHeartbeat({
+    interval: 5 * 60 * 1000, // 5分钟
+    checkOnRouteChange: true,
+    checkOnVisibilityChange: true,
+    onSessionExpired: handleSessionExpired,
+  });
 
   // 路由切换时滚动到顶部
   useEffect(() => {

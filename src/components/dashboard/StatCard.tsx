@@ -13,6 +13,7 @@ interface StatCardProps {
   };
   color?: 'blue' | 'green' | 'red' | 'yellow' | 'purple';
   loading?: boolean;
+  onClick?: () => void;
 }
 
 const colorClasses = {
@@ -29,9 +30,13 @@ export const StatCard: React.FC<StatCardProps> = ({
   icon: Icon,
   trend,
   color = 'blue',
+  onClick,
 }) => {
   return (
-    <Card className="p-6 hover:shadow-lg transition-shadow">
+    <Card
+      className={clsx('p-6 transition-shadow', onClick && 'cursor-pointer hover:shadow-lg')}
+      onClick={onClick}
+    >
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className="text-sm font-medium text-muted-foreground">{title}</p>

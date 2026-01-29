@@ -3,8 +3,8 @@
  *
  * 控制路由访问权限，未授权时重定向
  */
-import { type ReactNode } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { type ReactNode, useEffect, useState } from 'react';
+import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores';
 import { type Permission } from '@/types';
 
@@ -28,11 +28,47 @@ export interface PermissionGuardProps {
 
 /**
  * 认证守卫
- * 检查用户是否已登录，未登录则重定向到登录页
+ * 检查用户是否已登录，支持SSO回调token验证
  */
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, isLoading, setToken, verifyToken } = useAuthStore();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [isVerifying, setIsVerifying] = useState(false);
+
+  useEffect(() => {
+    // 检查URL参数中是否有SSO回调的token
+    const ssoToken = searchParams.get('token');
+    if (ssoToken) {
+      // 保存token并清除URL参数
+      setToken(ssoToken);
+      searchParams.delete('token');
+      setSearchParams(searchParams, { replace: true });
+      // 验证token
+      setIsVerifying(true);
+      verifyToken().finally(() => setIsVerifying(false));
+      return;
+    }
+
+    // 如果有token但没有用户信息，尝试验证
+    const storedToken = localStorage.getItem('auth_token');
+    if (storedToken && !user && !isLoading && !isVerifying) {
+      setIsVerifying(true);
+      verifyToken().finally(() => setIsVerifying(false));
+    }
+  }, [searchParams, setSearchParams, setToken, verifyToken, user, isLoading, isVerifying]);
+
+  // 正在验证中，显示加载状态
+  if (isLoading || isVerifying) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-slate-500">验证登录状态...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated || !user) {
     // 保存当前路径，登录后可返回

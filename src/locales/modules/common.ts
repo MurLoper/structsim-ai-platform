@@ -33,6 +33,7 @@ export const commonEn = {
   'common.noData': 'No data available',
   'common.retry': 'Retry',
   'common.tip': 'Tip',
+  'common.prev': 'Previous',
 };
 
 export const commonZh = {
@@ -69,4 +70,5 @@ export const commonZh = {
   'common.noData': '暂无数据',
   'common.retry': '重试',
   'common.tip': '提示',
+  'common.prev': '上一页',
 };

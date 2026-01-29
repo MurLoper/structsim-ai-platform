@@ -1,20 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useUIStore, useAuthStore } from '@/stores';
+import { useUIStore, useAuthStore, useMenuStore } from '@/stores';
 import { RESOURCES } from '@/locales';
+import { getIconComponent, DefaultIcon } from '@/utils/iconMap';
+import type { MenuItem } from '@/types';
 import {
   SunIcon,
   MoonIcon,
   EyeIcon,
-  HomeIcon,
-  PlusCircleIcon,
   LanguageIcon,
-  Cog6ToothIcon,
-  ShieldCheckIcon,
   ArrowRightOnRectangleIcon,
   UserCircleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 import clsx from 'clsx';
 
@@ -25,11 +24,35 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
   const { theme, setTheme, language, setLanguage } = useUIStore();
-  const { user, logout, hasPermission } = useAuthStore();
+  const { user, logout } = useAuthStore();
+  const { menus, fetchMenus, clearMenus } = useMenuStore();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState<number[]>([]);
 
   const t = (key: string) => RESOURCES[language][key] || key;
+
+  // Fetch menus on mount
+  useEffect(() => {
+    fetchMenus();
+  }, [fetchMenus]);
+
+  // Filter visible menus (not hidden)
+  const visibleMenus = menus.filter(menu => !menu.hidden);
+
+  const toggleSubmenu = (menuId: number) => {
+    setExpandedMenus(prev =>
+      prev.includes(menuId) ? prev.filter(id => id !== menuId) : [...prev, menuId]
+    );
+  };
+
+  const isMenuActive = (menu: MenuItem): boolean => {
+    if (location.pathname === menu.path) return true;
+    if (menu.children?.length) {
+      return menu.children.some(child => location.pathname === child.path);
+    }
+    return false;
+  };
 
   const getThemeClasses = () => {
     if (theme === 'eyecare') return 'bg-background text-foreground';
@@ -51,25 +74,6 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
       ? 'bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400'
       : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 dark:text-slate-400';
   };
-
-  const allNavItems = [
-    { name: t('nav.dashboard'), path: '/', icon: HomeIcon, perm: 'VIEW_DASHBOARD' as const },
-    {
-      name: t('nav.new_request'),
-      path: '/create',
-      icon: PlusCircleIcon,
-      perm: 'CREATE_ORDER' as const,
-    },
-    { name: t('nav.config'), path: '/config', icon: Cog6ToothIcon, perm: 'MANAGE_CONFIG' as const },
-    {
-      name: t('nav.access'),
-      path: '/access',
-      icon: ShieldCheckIcon,
-      perm: 'MANAGE_USERS' as const,
-    },
-  ];
-
-  const navItems = allNavItems.filter(item => hasPermission(item.perm));
 
   const toggleLanguage = () => {
     setLanguage(language === 'en' ? 'zh' : 'en');
@@ -108,21 +112,83 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
 
         {/* Navigation */}
         <nav className="flex-1 px-2 py-6 space-y-1 overflow-y-auto">
-          {navItems.map(item => (
-            <Link
-              key={item.path}
-              to={item.path}
-              title={sidebarCollapsed ? item.name : undefined}
-              className={clsx(
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-                sidebarCollapsed && 'justify-center',
-                getNavItemClasses(location.pathname === item.path)
-              )}
-            >
-              <item.icon className="w-5 h-5 flex-shrink-0" />
-              {!sidebarCollapsed && item.name}
-            </Link>
-          ))}
+          {visibleMenus.map(menu => {
+            const Icon = getIconComponent(menu.icon) || DefaultIcon;
+            const hasChildren = menu.children?.filter(c => !c.hidden).length > 0;
+            const isExpanded = expandedMenus.includes(menu.id);
+            const isActive = isMenuActive(menu);
+            const menuLabel = menu.titleI18nKey ? t(menu.titleI18nKey) : menu.name;
+
+            if (hasChildren) {
+              return (
+                <div key={menu.id}>
+                  <button
+                    onClick={() => toggleSubmenu(menu.id)}
+                    title={sidebarCollapsed ? menuLabel : undefined}
+                    className={clsx(
+                      'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+                      sidebarCollapsed && 'justify-center',
+                      getNavItemClasses(isActive)
+                    )}
+                  >
+                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    {!sidebarCollapsed && (
+                      <>
+                        <span className="flex-1 text-left">{menuLabel}</span>
+                        <ChevronDownIcon
+                          className={clsx(
+                            'w-4 h-4 transition-transform',
+                            isExpanded && 'rotate-180'
+                          )}
+                        />
+                      </>
+                    )}
+                  </button>
+                  {!sidebarCollapsed && isExpanded && (
+                    <div className="ml-4 mt-1 space-y-1">
+                      {menu.children
+                        .filter(c => !c.hidden)
+                        .map(child => {
+                          const ChildIcon = getIconComponent(child.icon) || DefaultIcon;
+                          const childLabel = child.titleI18nKey
+                            ? t(child.titleI18nKey)
+                            : child.name;
+                          return (
+                            <Link
+                              key={child.id}
+                              to={child.path}
+                              className={clsx(
+                                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all',
+                                getNavItemClasses(location.pathname === child.path)
+                              )}
+                            >
+                              <ChildIcon className="w-4 h-4 flex-shrink-0" />
+                              {childLabel}
+                            </Link>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
+            return (
+              <Link
+                key={menu.id}
+                to={menu.path}
+                title={sidebarCollapsed ? menuLabel : undefined}
+                className={clsx(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+                  sidebarCollapsed && 'justify-center',
+                  getNavItemClasses(location.pathname === menu.path)
+                )}
+              >
+                <Icon className="w-5 h-5 flex-shrink-0" />
+                {!sidebarCollapsed && menuLabel}
+              </Link>
+            );
+          })}
         </nav>
 
         {/* User & Settings Footer */}

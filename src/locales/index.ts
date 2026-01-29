@@ -2,6 +2,7 @@
 import { commonEn, commonZh } from './modules/common';
 import { navEn, navZh } from './modules/navigation';
 import { dashboardEn, dashboardZh } from './modules/dashboard';
+import { ordersEn, ordersZh } from './modules/orders';
 import { submissionEn, submissionZh } from './modules/submission';
 import { configEn, configZh } from './modules/configuration';
 import { resultsEn, resultsZh } from './modules/results';
@@ -13,6 +14,7 @@ const en: Record<string, string> = {
   ...commonEn,
   ...navEn,
   ...dashboardEn,
+  ...ordersEn,
   ...submissionEn,
   ...configEn,
   ...resultsEn,
@@ -23,6 +25,7 @@ const zh: Record<string, string> = {
   ...commonZh,
   ...navZh,
   ...dashboardZh,
+  ...ordersZh,
   ...submissionZh,
   ...configZh,
   ...resultsZh,
