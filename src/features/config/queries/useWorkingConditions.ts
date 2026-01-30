@@ -6,6 +6,56 @@ import { useQuery } from '@tanstack/react-query';
 import { baseConfigApi } from '@/api/config/base';
 import { queryKeys } from '@/lib/queryClient';
 
+// ============ 新版工况配置 Hooks ============
+
+/**
+ * 获取所有工况配置（新版）
+ */
+export function useConditionConfigs() {
+  return useQuery({
+    queryKey: ['conditionConfigs', 'list'],
+    queryFn: async () => {
+      const response = await baseConfigApi.getConditionConfigs();
+      return response.data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * 根据姿态+仿真类型获取工况配置
+ */
+export function useConditionByFoldSim(foldTypeId: number | null, simTypeId: number | null) {
+  return useQuery({
+    queryKey: ['conditionConfigs', 'byFoldSim', foldTypeId, simTypeId],
+    queryFn: async () => {
+      if (!foldTypeId || !simTypeId) return null;
+      const response = await baseConfigApi.getConditionByFoldSim(foldTypeId, simTypeId);
+      return response.data || null;
+    },
+    enabled: !!foldTypeId && !!simTypeId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+/**
+ * 根据姿态ID获取工况配置列表
+ */
+export function useConditionsByFoldType(foldTypeId: number | null) {
+  return useQuery({
+    queryKey: ['conditionConfigs', 'byFoldType', foldTypeId],
+    queryFn: async () => {
+      if (!foldTypeId) return [];
+      const response = await baseConfigApi.getConditionsByFoldType(foldTypeId);
+      return response.data || [];
+    },
+    enabled: !!foldTypeId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// ============ 旧版工况配置 Hooks（兼容） ============
+
 /**
  * 获取所有工况配置
  */

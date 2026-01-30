@@ -10,6 +10,7 @@ import {
   useParamTplSets,
   useCondOutSets,
   useFoldTypeSimTypeRels,
+  useConditionConfigs,
 } from '@/features/config/queries';
 import type {
   SimTypeConfig,
@@ -18,7 +19,7 @@ import type {
   CanvasTransform,
   SolverConfig,
 } from '../types';
-import type { SimType } from '@/types/config';
+import type { SimType, ConditionConfig } from '@/types/config';
 
 // 姿态及其关联的仿真类型
 export interface FoldTypeWithSimTypes {
@@ -95,6 +96,14 @@ export const useSubmissionState = (
     isLoading: condOutSetsLoading,
     refetch: refetchCondOutSets,
   } = useCondOutSets();
+
+  // 获取所有工况配置
+  const {
+    data: conditionConfigs = [],
+    error: conditionConfigsError,
+    isLoading: conditionConfigsLoading,
+    refetch: refetchConditionConfigs,
+  } = useConditionConfigs();
 
   // 画布状态
   const [transform, setTransform] = useState<CanvasTransform>({ x: 60, y: 60, scale: 0.85 });
@@ -190,16 +199,39 @@ export const useSubmissionState = (
   const safeConditionDefs = useMemo(() => conditionDefs || [], [conditionDefs]);
   const safeParamTplSets = useMemo(() => paramTplSets || [], [paramTplSets]);
   const safeCondOutSets = useMemo(() => condOutSets || [], [condOutSets]);
+  const safeConditionConfigs = useMemo(() => conditionConfigs || [], [conditionConfigs]);
   const selectedProject = (projects || []).find(p => p.id === selectedProjectId);
 
-  // 初始化仿真类型配置
+  // 根据姿态+仿真类型查找工况配置
+  const getConditionConfig = useCallback(
+    (foldTypeId: number, simTypeId: number): ConditionConfig | undefined => {
+      return safeConditionConfigs.find(
+        c => c.foldTypeId === foldTypeId && c.simTypeId === simTypeId
+      );
+    },
+    [safeConditionConfigs]
+  );
+
+  // 初始化仿真类型配置（支持工况配置）
   const initSimTypeConfig = useCallback(
-    (simTypeId: number) => {
+    (simTypeId: number, foldTypeId?: number) => {
       const simType = safeSimTypes.find(st => st.id === simTypeId);
       if (!simType) return;
 
-      const defaultSolver =
-        safeSolvers.find(s => s.id === simType.defaultSolverId) || safeSolvers[0];
+      // 尝试获取工况配置
+      let conditionConfig: ConditionConfig | undefined;
+      if (foldTypeId) {
+        conditionConfig = getConditionConfig(foldTypeId, simTypeId);
+      }
+
+      // 优先使用工况配置的默认值，否则使用仿真类型的默认值
+      const defaultParamGroupId =
+        conditionConfig?.defaultParamGroupId || simType.defaultParamTplSetId;
+      const defaultOutputGroupId =
+        conditionConfig?.defaultOutputGroupId || simType.defaultCondOutSetId;
+      const defaultSolverId = conditionConfig?.defaultSolverId || simType.defaultSolverId;
+
+      const defaultSolver = safeSolvers.find(s => s.id === defaultSolverId) || safeSolvers[0];
 
       setSimTypeConfigs(prev => ({
         ...prev,
@@ -207,14 +239,14 @@ export const useSubmissionState = (
           simTypeId,
           params: {
             mode: 'template',
-            templateSetId: simType.defaultParamTplSetId || null,
+            templateSetId: defaultParamGroupId || null,
             templateItemId: null,
             algorithm: 'doe',
             customValues: {},
           },
           condOut: {
             mode: 'template',
-            condOutSetId: simType.defaultCondOutSetId || null,
+            condOutSetId: defaultOutputGroupId || null,
             selectedConditionIds: [],
             conditionValues: {},
             selectedOutputIds: [],
@@ -228,7 +260,7 @@ export const useSubmissionState = (
         },
       }));
     },
-    [safeSimTypes, safeSolvers]
+    [safeSimTypes, safeSolvers, getConditionConfig]
   );
 
   // 初始化默认选中的仿真类型
@@ -379,6 +411,7 @@ export const useSubmissionState = (
     safeConditionDefs,
     safeParamTplSets,
     safeCondOutSets,
+    safeConditionConfigs,
     foldTypesWithSimTypes,
     selectedProject,
     isConfigLoading,
@@ -410,5 +443,6 @@ export const useSubmissionState = (
     applySolverToAll,
     getSimTypeNodeY,
     getProjectNodeY,
+    getConditionConfig,
   };
 };

@@ -211,7 +211,29 @@ export interface Parameter {
 
 // ============ 工况配置类型 ============
 
-/** 工况配置 */
+/** 工况配置（合并方案） */
+export interface ConditionConfig {
+  id: number;
+  name: string;
+  code?: string;
+  foldTypeId: number;
+  simTypeId: number;
+  // 关联数组
+  paramGroupIds: number[];
+  outputGroupIds: number[];
+  // 默认配置
+  defaultParamGroupId?: number;
+  defaultOutputGroupId?: number;
+  defaultSolverId?: number;
+  // 通用字段
+  valid: number;
+  sort: number;
+  remark?: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+/** 工况配置（旧版兼容） */
 export interface WorkingCondition {
   id: number;
   name: string;

@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { SimTypeConfig } from '../types';
-import type { ParamDef, ParamTplSet } from '@/api/config';
+import type { ParamDef, ParamTplSet, ConditionConfig } from '@/types/config';
 
 interface ParamsDrawerContentProps {
   config: SimTypeConfig;
   simTypeId: number;
   paramDefs: ParamDef[];
   paramTplSets: ParamTplSet[];
+  conditionConfig?: ConditionConfig;
   onUpdate: (updates: Partial<SimTypeConfig>) => void;
 }
 
@@ -15,9 +16,16 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
   simTypeId,
   paramDefs,
   paramTplSets,
+  conditionConfig,
   onUpdate,
 }) => {
-  const filteredTplSets = paramTplSets.filter(s => s.simTypeId === simTypeId);
+  // 根据工况配置筛选参数组，如果没有工况配置则按 simTypeId 筛选
+  const filteredTplSets = useMemo(() => {
+    if (conditionConfig?.paramGroupIds?.length) {
+      return paramTplSets.filter(s => conditionConfig.paramGroupIds.includes(s.id));
+    }
+    return paramTplSets.filter(s => s.simTypeId === simTypeId);
+  }, [paramTplSets, conditionConfig, simTypeId]);
 
   return (
     <div className="space-y-5">

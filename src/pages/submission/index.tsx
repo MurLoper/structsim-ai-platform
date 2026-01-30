@@ -552,6 +552,11 @@ const Submission: React.FC = () => {
             simTypeId={state.activeSimTypeId}
             paramDefs={state.safeParamDefs}
             paramTplSets={state.safeParamTplSets}
+            conditionConfig={
+              foldTypeIds.length > 0
+                ? state.getConditionConfig(foldTypeIds[0], state.activeSimTypeId)
+                : undefined
+            }
             onUpdate={updates => state.updateSimTypeConfig(state.activeSimTypeId!, updates)}
           />
         ) : state.drawerMode === 'condOut' &&
@@ -563,6 +568,11 @@ const Submission: React.FC = () => {
             conditionDefs={state.safeConditionDefs}
             outputDefs={state.safeOutputDefs}
             condOutSets={state.safeCondOutSets}
+            conditionConfig={
+              foldTypeIds.length > 0
+                ? state.getConditionConfig(foldTypeIds[0], state.activeSimTypeId)
+                : undefined
+            }
             onUpdate={updates => state.updateSimTypeConfig(state.activeSimTypeId!, updates)}
           />
         ) : state.drawerMode === 'solver' &&

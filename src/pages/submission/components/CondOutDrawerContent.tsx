@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { SimTypeConfig } from '../types';
-import type { ConditionDef, OutputDef, CondOutSet } from '@/api/config';
+import type { ConditionDef, OutputDef, CondOutSet, ConditionConfig } from '@/types/config';
 
 interface CondOutDrawerContentProps {
   config: SimTypeConfig;
@@ -8,6 +8,7 @@ interface CondOutDrawerContentProps {
   conditionDefs: ConditionDef[];
   outputDefs: OutputDef[];
   condOutSets: CondOutSet[];
+  conditionConfig?: ConditionConfig;
   onUpdate: (updates: Partial<SimTypeConfig>) => void;
 }
 
@@ -17,9 +18,16 @@ export const CondOutDrawerContent: React.FC<CondOutDrawerContentProps> = ({
   conditionDefs,
   outputDefs,
   condOutSets,
+  conditionConfig,
   onUpdate,
 }) => {
-  const filteredCondOutSets = condOutSets.filter(s => s.simTypeId === simTypeId);
+  // 根据工况配置筛选输出组，如果没有工况配置则按 simTypeId 筛选
+  const filteredCondOutSets = useMemo(() => {
+    if (conditionConfig?.outputGroupIds?.length) {
+      return condOutSets.filter(s => conditionConfig.outputGroupIds.includes(s.id));
+    }
+    return condOutSets.filter(s => s.simTypeId === simTypeId);
+  }, [condOutSets, conditionConfig, simTypeId]);
 
   const toggleCondition = (condId: number) => {
     const current = config.condOut.selectedConditionIds;

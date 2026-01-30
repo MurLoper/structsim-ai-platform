@@ -17,6 +17,7 @@ import type {
   WorkingCondition,
   FoldTypeSimTypeRel,
   SimTypeWithDefault,
+  ConditionConfig,
 } from '@/types';
 
 // ============ 基础配置 CRUD API ============
@@ -103,4 +104,18 @@ export const baseConfigApi = {
     api.put(`/config/fold-type-sim-type-rels/fold-type/${foldTypeId}/default/${simTypeId}`),
   removeSimTypeFromFoldType: (foldTypeId: number, simTypeId: number) =>
     api.delete(`/config/fold-type-sim-type-rels/fold-type/${foldTypeId}/sim-type/${simTypeId}`),
+
+  // 工况配置（新版）
+  getConditionConfigs: () => api.get<ConditionConfig[]>('/conditions'),
+  getConditionConfig: (id: number) => api.get<ConditionConfig>(`/conditions/${id}`),
+  getConditionByFoldSim: (foldTypeId: number, simTypeId: number) =>
+    api.get<ConditionConfig>('/conditions/by-fold-sim', {
+      params: { foldTypeId, simTypeId },
+    }),
+  getConditionsByFoldType: (foldTypeId: number) =>
+    api.get<ConditionConfig[]>(`/conditions/by-fold-type/${foldTypeId}`),
+  createConditionConfig: (data: Partial<ConditionConfig>) =>
+    api.post<ConditionConfig>('/conditions', data),
+  updateConditionConfig: (id: number, data: Partial<ConditionConfig>) =>
+    api.put<ConditionConfig>(`/conditions/${id}`, data),
 };
