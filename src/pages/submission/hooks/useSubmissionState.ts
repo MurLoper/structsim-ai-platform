@@ -30,6 +30,12 @@ export interface FoldTypeWithSimTypes {
   simTypes: Array<SimType & { isDefault: boolean; relSort: number }>;
 }
 
+// 选中的仿真类型（姿态+仿真类型组合）
+export interface SelectedSimType {
+  foldTypeId: number;
+  simTypeId: number;
+}
+
 export const useSubmissionState = (
   selectedProjectId: number | null,
   foldTypeIds: number[] = []
@@ -110,8 +116,8 @@ export const useSubmissionState = (
   const [isDragging, setIsDragging] = useState(false);
   const [startPan, setStartPan] = useState({ x: 0, y: 0 });
 
-  // 仿真类型与配置状态
-  const [selectedSimTypeIds, setSelectedSimTypeIds] = useState<number[]>([]);
+  // 仿真类型与配置状态（使用姿态+仿真类型组合）
+  const [selectedSimTypes, setSelectedSimTypes] = useState<SelectedSimType[]>([]);
   const [simTypeConfigs, setSimTypeConfigs] = useState<Record<number, SimTypeConfig>>({});
 
   // 全局求解器配置
@@ -176,21 +182,18 @@ export const useSubmissionState = (
     return allSimTypes;
   }, [foldTypeIds, foldTypesWithSimTypes, simTypes]);
 
-  // 获取默认选中的仿真类型ID（根据 isDefault 标记，支持多姿态）
-  const defaultSimTypeIds = useMemo(() => {
+  // 获取默认选中的仿真类型（根据 isDefault 标记，支持多姿态）
+  const defaultSimTypes = useMemo<SelectedSimType[]>(() => {
     if (foldTypeIds.length === 0) return [];
-    const defaultIds: number[] = [];
+    const defaults: SelectedSimType[] = [];
     foldTypeIds.forEach(ftId => {
       const foldTypeData = foldTypesWithSimTypes.find(ft => ft.id === ftId);
-      (foldTypeData?.simTypes || [])
-        .filter(st => st.isDefault)
-        .forEach(st => {
-          if (!defaultIds.includes(st.id)) {
-            defaultIds.push(st.id);
-          }
-        });
+      const defaultSt = foldTypeData?.simTypes.find(st => st.isDefault);
+      if (defaultSt) {
+        defaults.push({ foldTypeId: ftId, simTypeId: defaultSt.id });
+      }
     });
-    return defaultIds;
+    return defaults;
   }, [foldTypeIds, foldTypesWithSimTypes]);
   const safeFoldTypes = useMemo(() => foldTypes || [], [foldTypes]);
   const safeSolvers = useMemo(() => solvers || [], [solvers]);
@@ -264,45 +267,41 @@ export const useSubmissionState = (
   );
 
   // 初始化默认选中的仿真类型
-  // 当姿态变化时，添加新姿态的默认仿真类型（保留已选择的）
+  // 仅在初始加载时自动选择默认仿真类型，用户手动操作时不自动添加
   useEffect(() => {
-    if (safeSimTypes.length === 0) return;
+    if (foldTypeIds.length === 0 || foldTypesWithSimTypes.length === 0) return;
 
-    // 合并：保留已选择的 + 添加新的默认仿真类型
-    setSelectedSimTypeIds(prev => {
-      // 过滤掉不再有效的仿真类型（所属姿态被取消选择）
-      const validPrev = prev.filter(id => safeSimTypes.some(st => st.id === id));
+    setSelectedSimTypes(prev => {
+      // 过滤掉所属姿态被取消选择的项
+      const validPrev = prev.filter(item => foldTypeIds.includes(item.foldTypeId));
 
-      // 添加新的默认仿真类型（如果还没选择）
-      const newDefaults = defaultSimTypeIds.filter(id => !validPrev.includes(id));
-
-      // 如果没有任何选择，至少选择第一个
-      if (validPrev.length === 0 && newDefaults.length === 0 && safeSimTypes.length > 0) {
-        const firstId = safeSimTypes[0].id;
-        initSimTypeConfig(firstId);
-        return [firstId];
+      // 仅在初始状态（没有任何选择）时，自动选择第一个姿态的默认仿真类型
+      if (validPrev.length === 0 && defaultSimTypes.length > 0) {
+        const firstDefault = defaultSimTypes[0];
+        initSimTypeConfig(firstDefault.simTypeId, firstDefault.foldTypeId);
+        return [firstDefault];
       }
 
-      // 初始化新添加的默认仿真类型配置
-      newDefaults.forEach(id => {
-        initSimTypeConfig(id);
-      });
-
-      return [...validPrev, ...newDefaults];
+      return validPrev;
     });
-  }, [foldTypeIds, safeSimTypes, defaultSimTypeIds, initSimTypeConfig]);
+  }, [foldTypeIds, foldTypesWithSimTypes, defaultSimTypes, initSimTypeConfig]);
 
-  // 切换仿真类型选择
+  // 切换仿真类型选择（需要同时传入姿态ID和仿真类型ID）
   const toggleSimType = useCallback(
-    (simTypeId: number) => {
-      setSelectedSimTypeIds(prev => {
-        if (prev.includes(simTypeId)) {
-          return prev.filter(id => id !== simTypeId);
+    (foldTypeId: number, simTypeId: number) => {
+      setSelectedSimTypes(prev => {
+        const existingIndex = prev.findIndex(
+          item => item.foldTypeId === foldTypeId && item.simTypeId === simTypeId
+        );
+        if (existingIndex >= 0) {
+          // 已选中，取消选择
+          return prev.filter((_, idx) => idx !== existingIndex);
         } else {
+          // 未选中，添加选择
           if (!simTypeConfigs[simTypeId]) {
-            initSimTypeConfig(simTypeId);
+            initSimTypeConfig(simTypeId, foldTypeId);
           }
-          return [...prev, simTypeId];
+          return [...prev, { foldTypeId, simTypeId }];
         }
       });
     },
@@ -331,11 +330,11 @@ export const useSubmissionState = (
   // 应用求解器配置到所有仿真类型
   const applySolverToAll = useCallback(
     (updates: Partial<SolverConfig>) => {
-      selectedSimTypeIds.forEach(id => {
-        updateSolverConfig(id, updates);
+      selectedSimTypes.forEach(item => {
+        updateSolverConfig(item.simTypeId, updates);
       });
     },
-    [selectedSimTypeIds, updateSolverConfig]
+    [selectedSimTypes, updateSolverConfig]
   );
 
   // 计算仿真类型节点Y坐标（已废弃，改用页面内计算）
@@ -425,7 +424,7 @@ export const useSubmissionState = (
     startPan,
     setStartPan,
     // 仿真类型与配置状态
-    selectedSimTypeIds,
+    selectedSimTypes,
     simTypeConfigs,
     globalSolver,
     setGlobalSolver,

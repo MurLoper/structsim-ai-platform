@@ -78,8 +78,10 @@ const Submission: React.FC = () => {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    form.setValue('simTypeIds', state.selectedSimTypeIds, { shouldValidate: isSubmitted });
-  }, [form, state.selectedSimTypeIds, isSubmitted]);
+    // 提取所有选中的 simTypeId（去重）
+    const simTypeIds = [...new Set(state.selectedSimTypes.map(item => item.simTypeId))];
+    form.setValue('simTypeIds', simTypeIds, { shouldValidate: isSubmitted });
+  }, [form, state.selectedSimTypes, isSubmitted]);
 
   useEffect(() => {
     if (state.safeFoldTypes.length === 0) return;
@@ -118,16 +120,15 @@ const Submission: React.FC = () => {
   const handleSubmit = form.handleSubmit(
     async values => {
       try {
-        const optParam = state.selectedSimTypeIds.reduce<Record<string, unknown>>(
-          (acc, simTypeId) => {
-            const config = state.simTypeConfigs[simTypeId];
-            if (config) {
-              acc[String(simTypeId)] = config;
-            }
-            return acc;
-          },
-          {}
-        );
+        // 提取所有选中的 simTypeId（去重）
+        const selectedSimTypeIds = [...new Set(state.selectedSimTypes.map(item => item.simTypeId))];
+        const optParam = selectedSimTypeIds.reduce<Record<string, unknown>>((acc, simTypeId) => {
+          const config = state.simTypeConfigs[simTypeId];
+          if (config) {
+            acc[String(simTypeId)] = config;
+          }
+          return acc;
+        }, {});
 
         const originFile = {
           type: values.originFile.type,
@@ -266,11 +267,12 @@ const Submission: React.FC = () => {
                     id: ftId,
                     name: state.safeFoldTypes.find(f => f.id === ftId)?.name || '',
                   })),
-                  simTypes: state.selectedSimTypeIds.map(id => {
-                    const st = state.safeSimTypes.find(s => s.id === id);
-                    const config = state.simTypeConfigs[id];
+                  simTypes: state.selectedSimTypes.map(item => {
+                    const st = state.safeSimTypes.find(s => s.id === item.simTypeId);
+                    const config = state.simTypeConfigs[item.simTypeId];
                     return {
-                      id,
+                      id: item.simTypeId,
+                      foldTypeId: item.foldTypeId,
                       name: st?.name || '',
                       isDefault: (st as { isDefault?: boolean })?.isDefault || false,
                       config: config
@@ -436,7 +438,10 @@ const Submission: React.FC = () => {
                 {/* 该姿态下的仿真类型节点 */}
                 {foldTypeData.simTypes.map((simType, simIdx) => {
                   const simTypeNodeY = baseY + simIdx * SIM_TYPE_VERTICAL_SPACING;
-                  const isSimTypeSelected = state.selectedSimTypeIds.includes(simType.id);
+                  // 使用姿态+仿真类型组合判断选中状态
+                  const isSimTypeSelected = state.selectedSimTypes.some(
+                    item => item.foldTypeId === foldTypeData.id && item.simTypeId === simType.id
+                  );
                   const config = state.simTypeConfigs[simType.id];
 
                   return (
@@ -463,8 +468,8 @@ const Submission: React.FC = () => {
                             const currentIds = form.getValues('foldTypeIds') || [];
                             form.setValue('foldTypeIds', [...currentIds, foldTypeData.id]);
                           }
-                          // 切换仿真类型选择
-                          state.toggleSimType(simType.id);
+                          // 切换仿真类型选择（传入姿态ID和仿真类型ID）
+                          state.toggleSimType(foldTypeData.id, simType.id);
                         }}
                       >
                         <div className="text-xs text-slate-500 text-center">
