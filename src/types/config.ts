@@ -208,3 +208,35 @@ export interface Parameter {
   max?: number;
   options?: string[];
 }
+
+// ============ 工况配置类型 ============
+
+/** 工况配置 */
+export interface WorkingCondition {
+  id: number;
+  name: string;
+  code: string;
+  foldTypeId: number;
+  simTypeId: number;
+  defaultParamGroupId?: number;
+  defaultCondOutGroupId?: number;
+  defaultSolverId?: number;
+  extraConfig?: Record<string, unknown>;
+  valid: number;
+  sort: number;
+  remark?: string;
+}
+
+/** 姿态-仿真类型关联 */
+export interface FoldTypeSimTypeRel {
+  id: number;
+  foldTypeId: number;
+  simTypeId: number;
+  isDefault: number;
+  sort: number;
+}
+
+/** 带默认标记的仿真类型 */
+export interface SimTypeWithDefault extends SimType {
+  isDefault: boolean;
+}

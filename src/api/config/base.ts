@@ -14,6 +14,9 @@ import type {
   AutomationModule,
   Workflow,
   BaseDataResponse,
+  WorkingCondition,
+  FoldTypeSimTypeRel,
+  SimTypeWithDefault,
 } from '@/types';
 
 // ============ 基础配置 CRUD API ============
@@ -82,4 +85,22 @@ export const baseConfigApi = {
   getAutomationModules: () => api.get<AutomationModule[]>('/config/automation-modules'),
   getWorkflows: () => api.get<Workflow[]>('/config/workflows'),
   getBaseData: () => api.get<BaseDataResponse>('/config/base-data'),
+
+  // 工况配置
+  getWorkingConditions: () => api.get<WorkingCondition[]>('/config/working-conditions'),
+  getWorkingConditionsByFoldType: (foldTypeId: number) =>
+    api.get<WorkingCondition[]>(`/config/working-conditions/by-fold-type/${foldTypeId}`),
+  getFoldTypeSimTypeRels: () => api.get<FoldTypeSimTypeRel[]>('/config/fold-type-sim-type-rels'),
+  getSimTypesByFoldType: (foldTypeId: number) =>
+    api.get<SimTypeWithDefault[]>(`/config/fold-type-sim-type-rels/by-fold-type/${foldTypeId}`),
+
+  // 姿态-仿真类型关联管理
+  getFoldTypeSimTypeRelsByFoldType: (foldTypeId: number) =>
+    api.get<FoldTypeSimTypeRel[]>(`/config/fold-type-sim-type-rels/fold-type/${foldTypeId}/rels`),
+  addSimTypeToFoldType: (foldTypeId: number, data: { simTypeId: number; isDefault?: number }) =>
+    api.post<FoldTypeSimTypeRel>(`/config/fold-type-sim-type-rels/fold-type/${foldTypeId}`, data),
+  setDefaultSimTypeForFoldType: (foldTypeId: number, simTypeId: number) =>
+    api.put(`/config/fold-type-sim-type-rels/fold-type/${foldTypeId}/default/${simTypeId}`),
+  removeSimTypeFromFoldType: (foldTypeId: number, simTypeId: number) =>
+    api.delete(`/config/fold-type-sim-type-rels/fold-type/${foldTypeId}/sim-type/${simTypeId}`),
 };

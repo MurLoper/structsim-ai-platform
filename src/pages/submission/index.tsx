@@ -10,12 +10,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   FolderIcon,
   CubeIcon,
+  DevicePhoneMobileIcon,
   MagnifyingGlassPlusIcon,
   MagnifyingGlassMinusIcon,
   ArrowsPointingOutIcon,
+  CameraIcon,
+  DocumentArrowDownIcon,
 } from '@heroicons/react/24/outline';
 
-import { useSubmissionState, useCanvasInteraction } from './hooks';
+import { useSubmissionState, useCanvasInteraction, useCanvasExport } from './hooks';
 import { submissionFormSchema, type SubmissionFormValues } from './types';
 import {
   CanvasNode,
@@ -41,7 +44,7 @@ const Submission: React.FC = () => {
     defaultValues: {
       projectId: null as unknown as number,
       originFile: { type: 1, path: '', name: '' },
-      foldTypeId: 1,
+      foldTypeIds: [],
       remark: '',
       simTypeIds: [],
     },
@@ -56,13 +59,13 @@ const Submission: React.FC = () => {
     path: '',
     name: '',
   };
-  const foldTypeId = useWatch({ control: form.control, name: 'foldTypeId' }) ?? 1;
+  const foldTypeIds = useWatch({ control: form.control, name: 'foldTypeIds' }) ?? [];
   const simTypeError = form.formState.errors.simTypeIds?.message;
   const isSubmitted = form.formState.isSubmitted;
   const showSimTypeError = isSubmitted ? simTypeError : undefined;
 
   // 使用自定义 hooks
-  const state = useSubmissionState(selectedProjectId);
+  const state = useSubmissionState(selectedProjectId, foldTypeIds);
   const canvas = useCanvasInteraction({
     transform: state.transform,
     setTransform: state.setTransform,
@@ -71,6 +74,8 @@ const Submission: React.FC = () => {
     startPan: state.startPan,
     setStartPan: state.setStartPan,
   });
+  const { exportAsImage, exportAsFlowData } = useCanvasExport();
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     form.setValue('simTypeIds', state.selectedSimTypeIds, { shouldValidate: isSubmitted });
@@ -78,9 +83,10 @@ const Submission: React.FC = () => {
 
   useEffect(() => {
     if (state.safeFoldTypes.length === 0) return;
-    const currentFoldTypeId = form.getValues('foldTypeId');
-    if (!state.safeFoldTypes.some(ft => ft.id === currentFoldTypeId)) {
-      form.setValue('foldTypeId', state.safeFoldTypes[0].id, { shouldValidate: true });
+    const currentFoldTypeIds = form.getValues('foldTypeIds') || [];
+    // 如果当前没有选中任何姿态，默认选中第一个
+    if (currentFoldTypeIds.length === 0) {
+      form.setValue('foldTypeIds', [state.safeFoldTypes[0].id], { shouldValidate: true });
     }
   }, [form, state.safeFoldTypes]);
 
@@ -134,7 +140,7 @@ const Submission: React.FC = () => {
         const response = await ordersApi.createOrder({
           projectId: values.projectId!,
           originFile,
-          foldTypeId: values.foldTypeId,
+          foldTypeIds: values.foldTypeIds,
           remark: values.remark,
           simTypeIds: values.simTypeIds,
           optParam,
@@ -151,7 +157,7 @@ const Submission: React.FC = () => {
       }
     },
     errors => {
-      if (errors.projectId || errors.originFile || errors.foldTypeId || errors.remark) {
+      if (errors.projectId || errors.originFile || errors.foldTypeIds || errors.remark) {
         openProjectDrawer();
         requestAnimationFrame(() => {
           if (errors.projectId) {
@@ -166,8 +172,8 @@ const Submission: React.FC = () => {
             form.setFocus('originFile.name');
             return;
           }
-          if (errors.foldTypeId) {
-            form.setFocus('foldTypeId');
+          if (errors.foldTypeIds) {
+            // foldTypeIds 是数组，不需要 setFocus
           }
         });
       }
@@ -193,11 +199,16 @@ const Submission: React.FC = () => {
   const {
     PROJECT_NODE_X,
     PROJECT_NODE_WIDTH,
+    FOLD_TYPE_NODE_X,
+    FOLD_TYPE_NODE_WIDTH,
     SIM_TYPE_NODE_X,
     SIM_TYPE_NODE_WIDTH,
     CONFIG_BOX_X,
     CONFIG_BOX_WIDTH,
     CONFIG_BOX_HEIGHT,
+    SIM_TYPE_VERTICAL_SPACING,
+    FOLD_TYPE_GAP,
+    START_Y,
     LINE_OFFSET_Y,
   } = CANVAS_LAYOUT;
 
@@ -211,6 +222,7 @@ const Submission: React.FC = () => {
             <button
               onClick={canvas.zoomOut}
               className="p-2 hover:bg-white dark:hover:bg-slate-600 rounded"
+              title="缩小"
             >
               <MagnifyingGlassMinusIcon className="w-5 h-5" />
             </button>
@@ -220,14 +232,63 @@ const Submission: React.FC = () => {
             <button
               onClick={canvas.zoomIn}
               className="p-2 hover:bg-white dark:hover:bg-slate-600 rounded"
+              title="放大"
             >
               <MagnifyingGlassPlusIcon className="w-5 h-5" />
             </button>
             <button
               onClick={canvas.resetView}
               className="p-2 hover:bg-white dark:hover:bg-slate-600 rounded"
+              title="重置视图"
             >
               <ArrowsPointingOutIcon className="w-5 h-5" />
+            </button>
+          </div>
+          {/* 导出按钮组 */}
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
+            <button
+              onClick={() => exportAsImage(canvasContainerRef.current, { scale: 3 })}
+              className="p-2 hover:bg-white dark:hover:bg-slate-600 rounded"
+              title="导出高清图片"
+            >
+              <CameraIcon className="w-5 h-5" />
+            </button>
+            <button
+              onClick={() => {
+                const flowData = {
+                  version: '1.0',
+                  exportTime: new Date().toISOString(),
+                  project: {
+                    id: selectedProjectId,
+                    name: state.selectedProject?.name || '',
+                  },
+                  foldTypes: foldTypeIds.map(ftId => ({
+                    id: ftId,
+                    name: state.safeFoldTypes.find(f => f.id === ftId)?.name || '',
+                  })),
+                  simTypes: state.selectedSimTypeIds.map(id => {
+                    const st = state.safeSimTypes.find(s => s.id === id);
+                    const config = state.simTypeConfigs[id];
+                    return {
+                      id,
+                      name: st?.name || '',
+                      isDefault: (st as { isDefault?: boolean })?.isDefault || false,
+                      config: config
+                        ? {
+                            params: config.params,
+                            condOut: config.condOut,
+                            solver: config.solver,
+                          }
+                        : undefined,
+                    };
+                  }),
+                };
+                exportAsFlowData(flowData);
+              }}
+              className="p-2 hover:bg-white dark:hover:bg-slate-600 rounded"
+              title="导出流程数据"
+            >
+              <DocumentArrowDownIcon className="w-5 h-5" />
             </button>
           </div>
           {state.configError && (
@@ -265,6 +326,7 @@ const Submission: React.FC = () => {
         onMouseLeave={canvas.handleMouseUp}
       >
         <div
+          ref={canvasContainerRef}
           style={{
             transform: `translate(${state.transform.x}px, ${state.transform.y}px) scale(${state.transform.scale})`,
             transformOrigin: '0 0',
@@ -291,9 +353,14 @@ const Submission: React.FC = () => {
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span>折叠类型:</span>
+                  <span>目标姿态:</span>
                   <span className="font-medium">
-                    {state.safeFoldTypes.find(f => f.id === foldTypeId)?.name || '-'}
+                    {foldTypeIds.length > 0
+                      ? foldTypeIds
+                          .map(id => state.safeFoldTypes.find(f => f.id === id)?.name)
+                          .filter(Boolean)
+                          .join(', ')
+                      : '-'}
                   </span>
                 </div>
               </div>
@@ -302,82 +369,161 @@ const Submission: React.FC = () => {
             )}
           </CanvasNode>
 
-          {/* 仿真类型节点 */}
-          {state.safeSimTypes.map((simType, idx) => {
-            const nodeY = state.getSimTypeNodeY(idx);
-            const isSelected = state.selectedSimTypeIds.includes(simType.id);
-            const config = state.simTypeConfigs[simType.id];
+          {/* 姿态节点和仿真类型节点 */}
+          {state.foldTypesWithSimTypes.map((foldTypeData, foldIdx) => {
+            const isFoldTypeSelected = foldTypeIds.includes(foldTypeData.id);
+            const simTypeCount = Math.max(foldTypeData.simTypes.length, 1);
+            // 计算该姿态下所有仿真类型的起始Y坐标
+            const prevFoldTypesSimCount = state.foldTypesWithSimTypes
+              .slice(0, foldIdx)
+              .reduce((sum, ft) => sum + Math.max(ft.simTypes.length, 1), 0);
+            const baseY =
+              START_Y + prevFoldTypesSimCount * SIM_TYPE_VERTICAL_SPACING + foldIdx * FOLD_TYPE_GAP;
+            // 姿态节点居中于其仿真类型
+            const simTypesHeight = (simTypeCount - 1) * SIM_TYPE_VERTICAL_SPACING;
+            const foldTypeNodeY = baseY + simTypesHeight / 2;
             const projectNodeY = state.getProjectNodeY();
 
             return (
-              <React.Fragment key={simType.id}>
-                {/* 连接线: 项目 -> 仿真类型 */}
+              <React.Fragment key={`fold-${foldTypeData.id}`}>
+                {/* 连接线: 项目 -> 姿态 */}
                 <ConnectionLine
                   x1={PROJECT_NODE_X + PROJECT_NODE_WIDTH}
                   y1={projectNodeY + LINE_OFFSET_Y}
-                  x2={SIM_TYPE_NODE_X}
-                  y2={nodeY + LINE_OFFSET_Y}
-                  isActive={isSelected}
+                  x2={FOLD_TYPE_NODE_X}
+                  y2={foldTypeNodeY + LINE_OFFSET_Y}
+                  isActive={isFoldTypeSelected}
                 />
 
+                {/* 姿态节点 */}
                 <CanvasNode
-                  title={simType.name}
-                  x={SIM_TYPE_NODE_X}
-                  y={nodeY}
-                  width={SIM_TYPE_NODE_WIDTH}
-                  icon={<CubeIcon className="w-6 h-6" />}
-                  isActive={isSelected}
-                  onClick={() => state.toggleSimType(simType.id)}
+                  title={foldTypeData.name}
+                  x={FOLD_TYPE_NODE_X}
+                  y={foldTypeNodeY}
+                  width={FOLD_TYPE_NODE_WIDTH}
+                  icon={<DevicePhoneMobileIcon className="w-6 h-6" />}
+                  isActive={isFoldTypeSelected}
+                  onClick={() => {
+                    // 切换姿态选择（多选）
+                    const currentIds = form.getValues('foldTypeIds') || [];
+                    if (currentIds.includes(foldTypeData.id)) {
+                      // 取消选择（至少保留一个）
+                      if (currentIds.length > 1) {
+                        form.setValue(
+                          'foldTypeIds',
+                          currentIds.filter(id => id !== foldTypeData.id)
+                        );
+                      }
+                    } else {
+                      // 添加选择
+                      form.setValue('foldTypeIds', [...currentIds, foldTypeData.id]);
+                    }
+                  }}
                 >
                   <div className="text-xs text-slate-500 text-center">
                     <span
                       className={`px-2 py-1 rounded ${
-                        isSelected
+                        isFoldTypeSelected
                           ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30'
                           : 'bg-slate-100 dark:bg-slate-700'
                       }`}
                     >
-                      {isSelected ? '已选择' : '点击选择'}
+                      {isFoldTypeSelected ? '已选择' : '点击选择'}
                     </span>
                   </div>
                 </CanvasNode>
 
-                {/* 配置模块组 */}
-                {isSelected && config && (
-                  <>
-                    <ConnectionLine
-                      x1={SIM_TYPE_NODE_X + SIM_TYPE_NODE_WIDTH}
-                      y1={nodeY + LINE_OFFSET_Y}
-                      x2={CONFIG_BOX_X}
-                      y2={nodeY + CONFIG_BOX_HEIGHT / 2}
-                      isActive={true}
-                    />
-                    <div
-                      className="absolute border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50/50 dark:bg-slate-900/30"
-                      style={{
-                        left: CONFIG_BOX_X,
-                        top: nodeY,
-                        width: CONFIG_BOX_WIDTH,
-                        height: CONFIG_BOX_HEIGHT,
-                      }}
-                    >
-                      <div className="absolute -top-3 left-4 px-2 bg-white dark:bg-slate-800 text-xs text-slate-500 font-medium">
-                        {simType.name} 配置
-                      </div>
-                      <SimTypeConfigBox
-                        simType={simType}
-                        config={config}
-                        solvers={state.safeSolvers}
-                        globalSolver={state.globalSolver}
-                        drawerMode={state.drawerMode}
-                        activeSimTypeId={state.activeSimTypeId}
-                        onOpenParams={() => openParamsDrawer(simType.id)}
-                        onOpenCondOut={() => openCondOutDrawer(simType.id)}
-                        onOpenSolver={() => openSolverDrawer(simType.id)}
+                {/* 该姿态下的仿真类型节点 */}
+                {foldTypeData.simTypes.map((simType, simIdx) => {
+                  const simTypeNodeY = baseY + simIdx * SIM_TYPE_VERTICAL_SPACING;
+                  const isSimTypeSelected = state.selectedSimTypeIds.includes(simType.id);
+                  const config = state.simTypeConfigs[simType.id];
+
+                  return (
+                    <React.Fragment key={`sim-${simType.id}`}>
+                      {/* 连接线: 姿态 -> 仿真类型 */}
+                      <ConnectionLine
+                        x1={FOLD_TYPE_NODE_X + FOLD_TYPE_NODE_WIDTH}
+                        y1={foldTypeNodeY + LINE_OFFSET_Y}
+                        x2={SIM_TYPE_NODE_X}
+                        y2={simTypeNodeY + LINE_OFFSET_Y}
+                        isActive={isFoldTypeSelected && isSimTypeSelected}
                       />
-                    </div>
-                  </>
-                )}
+
+                      <CanvasNode
+                        title={simType.name}
+                        x={SIM_TYPE_NODE_X}
+                        y={simTypeNodeY}
+                        width={SIM_TYPE_NODE_WIDTH}
+                        icon={<CubeIcon className="w-6 h-6" />}
+                        isActive={isFoldTypeSelected && isSimTypeSelected}
+                        onClick={() => {
+                          // 如果姿态未选中，先添加到选择列表
+                          if (!isFoldTypeSelected) {
+                            const currentIds = form.getValues('foldTypeIds') || [];
+                            form.setValue('foldTypeIds', [...currentIds, foldTypeData.id]);
+                          }
+                          // 切换仿真类型选择
+                          state.toggleSimType(simType.id);
+                        }}
+                      >
+                        <div className="text-xs text-slate-500 text-center">
+                          {simType.isDefault && (
+                            <span className="px-1.5 py-0.5 mr-1 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded">
+                              默认
+                            </span>
+                          )}
+                          <span
+                            className={`px-2 py-1 rounded ${
+                              isFoldTypeSelected && isSimTypeSelected
+                                ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30'
+                                : 'bg-slate-100 dark:bg-slate-700'
+                            }`}
+                          >
+                            {isSimTypeSelected ? '已选择' : '点击选择'}
+                          </span>
+                        </div>
+                      </CanvasNode>
+
+                      {/* 配置模块组 */}
+                      {isFoldTypeSelected && isSimTypeSelected && config && (
+                        <>
+                          <ConnectionLine
+                            x1={SIM_TYPE_NODE_X + SIM_TYPE_NODE_WIDTH}
+                            y1={simTypeNodeY + LINE_OFFSET_Y}
+                            x2={CONFIG_BOX_X}
+                            y2={simTypeNodeY + CONFIG_BOX_HEIGHT / 2}
+                            isActive={true}
+                          />
+                          <div
+                            className="absolute border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50/50 dark:bg-slate-900/30"
+                            style={{
+                              left: CONFIG_BOX_X,
+                              top: simTypeNodeY,
+                              width: CONFIG_BOX_WIDTH,
+                              height: CONFIG_BOX_HEIGHT,
+                            }}
+                          >
+                            <div className="absolute -top-3 left-4 px-2 bg-white dark:bg-slate-800 text-xs text-slate-500 font-medium">
+                              {simType.name} 配置
+                            </div>
+                            <SimTypeConfigBox
+                              simType={simType}
+                              config={config}
+                              solvers={state.safeSolvers}
+                              globalSolver={state.globalSolver}
+                              drawerMode={state.drawerMode}
+                              activeSimTypeId={state.activeSimTypeId}
+                              onOpenParams={() => openParamsDrawer(simType.id)}
+                              onOpenCondOut={() => openCondOutDrawer(simType.id)}
+                              onOpenSolver={() => openSolverDrawer(simType.id)}
+                            />
+                          </div>
+                        </>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </React.Fragment>
             );
           })}

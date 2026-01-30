@@ -41,6 +41,8 @@ export const queryKeys = {
     all: ['simTypes'] as const,
     list: () => [...queryKeys.simTypes.all, 'list'] as const,
     detail: (id: number) => [...queryKeys.simTypes.all, 'detail', id] as const,
+    byFoldType: (foldTypeId: number | null) =>
+      [...queryKeys.simTypes.all, 'byFoldType', foldTypeId] as const,
   },
   // 参数定义
   paramDefs: {
@@ -110,5 +112,17 @@ export const queryKeys = {
     all: ['automationModules'] as const,
     list: () => [...queryKeys.automationModules.all, 'list'] as const,
     detail: (id: number) => [...queryKeys.automationModules.all, 'detail', id] as const,
+  },
+  // 工况配置
+  workingConditions: {
+    all: ['workingConditions'] as const,
+    list: () => [...queryKeys.workingConditions.all, 'list'] as const,
+    byFoldType: (foldTypeId: number | null) =>
+      [...queryKeys.workingConditions.all, 'byFoldType', foldTypeId] as const,
+  },
+  // 姿态-仿真类型关联
+  foldTypeSimTypeRels: {
+    all: ['foldTypeSimTypeRels'] as const,
+    list: () => [...queryKeys.foldTypeSimTypeRels.all, 'list'] as const,
   },
 } as const;

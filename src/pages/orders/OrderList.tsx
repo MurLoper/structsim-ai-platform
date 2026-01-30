@@ -8,14 +8,21 @@ import { useStatusDefs } from '@/features/config/queries/useCompositeConfigs';
 import { useProjects, useSimTypes } from '@/features/config/queries';
 import { useOrders } from '@/features/orders/queries';
 import { DataTable } from '@/components/tables/DataTable';
+import OrderFilters from './components/OrderFilters';
+import Pagination from '@/components/ui/Pagination';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { OrderListItem } from '@/types/order';
+import type { OrdersQueryParams } from '@/api/orders';
 
 const OrderList: React.FC = () => {
   const navigate = useNavigate();
   const { language } = useUIStore();
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(20);
+
+  // 筛选状态
+  const [filters, setFilters] = useState<OrdersQueryParams>({
+    page: 1,
+    pageSize: 20,
+  });
 
   // 配置数据
   const { data: statusDefs, isLoading: statusDefsLoading } = useStatusDefs();
@@ -28,11 +35,13 @@ const OrderList: React.FC = () => {
     isLoading: ordersLoading,
     error: ordersError,
     refetch: refetchOrders,
-  } = useOrders({ page, pageSize });
+  } = useOrders(filters);
 
   const orders = ordersPage?.items ?? [];
   const total = ordersPage?.total ?? 0;
   const totalPages = ordersPage?.totalPages ?? 1;
+  const page = filters.page ?? 1;
+  const pageSize = filters.pageSize ?? 20;
 
   const t = useCallback((key: string) => RESOURCES[language]?.[key] ?? key, [language]);
   const tableLoading = ordersLoading || projectsLoading || simTypesLoading || statusDefsLoading;
@@ -45,6 +54,20 @@ const OrderList: React.FC = () => {
   const simTypeMap = useMemo(
     () => new Map(simTypes.map(simType => [simType.id, simType])),
     [simTypes]
+  );
+
+  // 筛选选项
+  const projectOptions = useMemo(
+    () => projects.map(p => ({ value: p.id, label: p.name })),
+    [projects]
+  );
+  const simTypeOptions = useMemo(
+    () => simTypes.map(s => ({ value: s.id, label: s.name })),
+    [simTypes]
+  );
+  const statusOptions = useMemo(
+    () => (statusDefs || []).map(s => ({ value: s.id, label: s.name })),
+    [statusDefs]
   );
 
   const getStatusBadge = useCallback(
@@ -77,6 +100,20 @@ const OrderList: React.FC = () => {
     const date = new Date(timestamp * 1000);
     return date.toLocaleString();
   };
+
+  // 筛选变更
+  const handleFilterChange = useCallback((newFilters: OrdersQueryParams) => {
+    setFilters(newFilters);
+  }, []);
+
+  // 分页变更
+  const handlePageChange = useCallback((newPage: number) => {
+    setFilters(prev => ({ ...prev, page: newPage }));
+  }, []);
+
+  const handlePageSizeChange = useCallback((newPageSize: number) => {
+    setFilters(prev => ({ ...prev, pageSize: newPageSize, page: 1 }));
+  }, []);
 
   const columns = useMemo<ColumnDef<OrderListItem>[]>(
     () => [
@@ -179,6 +216,15 @@ const OrderList: React.FC = () => {
         </Button>
       </div>
 
+      {/* Filters */}
+      <OrderFilters
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        projects={projectOptions}
+        simTypes={simTypeOptions}
+        statusOptions={statusOptions}
+      />
+
       {/* Orders Table */}
       <Card padding="none">
         {ordersError && (
@@ -202,34 +248,17 @@ const OrderList: React.FC = () => {
         />
 
         {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-slate-700">
-            <span className="text-sm text-slate-500">
-              {t('orders.total_count').replace('{count}', String(total))}
-            </span>
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={page <= 1}
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-              >
-                {t('common.prev')}
-              </Button>
-              <span className="text-sm text-slate-600 dark:text-slate-400">
-                {page} / {totalPages}
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={page >= totalPages}
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-              >
-                {t('common.next')}
-              </Button>
-            </div>
-          </div>
-        )}
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          showTotal={true}
+          showPageSize={true}
+          disabled={ordersLoading}
+        />
       </Card>
     </div>
   );

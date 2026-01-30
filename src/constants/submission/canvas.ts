@@ -8,18 +8,24 @@ export const CANVAS_LAYOUT = {
   PROJECT_NODE_Y: 300,
   PROJECT_NODE_WIDTH: 340,
 
+  // 姿态节点位置
+  FOLD_TYPE_NODE_X: 560,
+  FOLD_TYPE_NODE_WIDTH: 180,
+
   // 仿真类型节点位置
-  SIM_TYPE_NODE_X: 580,
-  SIM_TYPE_NODE_WIDTH: 240,
+  SIM_TYPE_NODE_X: 860,
+  SIM_TYPE_NODE_WIDTH: 220,
 
   // 配置模块位置
-  CONFIG_BOX_X: 920,
-  CONFIG_BOX_WIDTH: 600,
-  CONFIG_BOX_HEIGHT: 180,
+  CONFIG_BOX_X: 1180,
+  CONFIG_BOX_WIDTH: 620,
+  CONFIG_BOX_HEIGHT: 200,
 
-  // 间距
-  VERTICAL_SPACING: 260,
+  // 间距 - 仿真类型间距 = 配置卡片高度 + 间隙
+  SIM_TYPE_VERTICAL_SPACING: 240, // CONFIG_BOX_HEIGHT + 40px gap
+  FOLD_TYPE_GAP: 60, // 姿态之间的额外间隙
   LINE_OFFSET_Y: 70,
+  START_Y: 100, // 画布起始Y坐标
 } as const;
 
 /**

@@ -2,7 +2,7 @@ import { api } from './client';
 import type { OrdersListResponse, OrderDetail, OrderCreatePayload } from '@/types/order';
 import type { OrderStatistics, OrderTrend, StatusDistribution } from '@/types/statistics';
 import {
-  mockOrdersList,
+  getMockOrdersList,
   mockOrderStatistics,
   mockOrderTrends,
   mockStatusDistribution,
@@ -14,6 +14,11 @@ export interface OrdersQueryParams {
   pageSize?: number;
   status?: number;
   projectId?: number;
+  simTypeId?: number;
+  orderNo?: string;
+  createdBy?: number;
+  startDate?: number;
+  endDate?: number;
 }
 
 // 开发环境标识
@@ -25,7 +30,7 @@ const useMockData = isDev && import.meta.env.VITE_USE_MOCK !== 'false';
 export const ordersApi = {
   getOrders: async (params?: OrdersQueryParams) => {
     if (useMockData) {
-      return Promise.resolve(mockOrdersList);
+      return Promise.resolve(getMockOrdersList(params));
     }
     return api.get<OrdersListResponse>('/orders', { params });
   },

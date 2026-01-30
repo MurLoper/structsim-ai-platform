@@ -9,6 +9,7 @@ import {
   useConditionDefs,
   useParamTplSets,
   useCondOutSets,
+  useFoldTypeSimTypeRels,
 } from '@/features/config/queries';
 import type {
   SimTypeConfig,
@@ -17,8 +18,21 @@ import type {
   CanvasTransform,
   SolverConfig,
 } from '../types';
+import type { SimType } from '@/types/config';
 
-export const useSubmissionState = (selectedProjectId: number | null) => {
+// 姿态及其关联的仿真类型
+export interface FoldTypeWithSimTypes {
+  id: number;
+  name: string;
+  code?: string;
+  angle?: number;
+  simTypes: Array<SimType & { isDefault: boolean; relSort: number }>;
+}
+
+export const useSubmissionState = (
+  selectedProjectId: number | null,
+  foldTypeIds: number[] = []
+) => {
   const {
     data: projects = [],
     error: projectsError,
@@ -31,6 +45,14 @@ export const useSubmissionState = (selectedProjectId: number | null) => {
     isLoading: simTypesLoading,
     refetch: refetchSimTypes,
   } = useSimTypes();
+
+  // 获取所有姿态-仿真类型关联
+  const {
+    data: foldTypeSimTypeRels = [],
+    error: foldTypeSimTypeRelsError,
+    isLoading: foldTypeSimTypeRelsLoading,
+    refetch: refetchFoldTypeSimTypeRels,
+  } = useFoldTypeSimTypeRels();
   const {
     data: foldTypes = [],
     error: foldTypesError,
@@ -98,7 +120,69 @@ export const useSubmissionState = (selectedProjectId: number | null) => {
   const [activeSimTypeId, setActiveSimTypeId] = useState<number | null>(null);
 
   // 安全数据 - 使用 useMemo 优化性能
-  const safeSimTypes = useMemo(() => simTypes || [], [simTypes]);
+  // 构建姿态及其关联仿真类型的完整数据结构
+  const foldTypesWithSimTypes = useMemo<FoldTypeWithSimTypes[]>(() => {
+    if (!foldTypes.length || !simTypes.length) return [];
+
+    return foldTypes.map(ft => {
+      const rels = foldTypeSimTypeRels.filter(rel => rel.foldTypeId === ft.id);
+      const ftSimTypes = rels
+        .map(rel => {
+          const st = simTypes.find(s => s.id === rel.simTypeId);
+          if (!st) return null;
+          return {
+            ...st,
+            isDefault: rel.isDefault === 1,
+            relSort: rel.sort,
+          };
+        })
+        .filter((st): st is SimType & { isDefault: boolean; relSort: number } => st !== null)
+        .sort((a, b) => a.relSort - b.relSort);
+
+      return {
+        id: ft.id,
+        name: ft.name,
+        code: ft.code,
+        angle: ft.angle,
+        simTypes: ftSimTypes,
+      };
+    });
+  }, [foldTypes, simTypes, foldTypeSimTypeRels]);
+
+  // 当前选中姿态的仿真类型（支持多姿态）
+  const safeSimTypes = useMemo(() => {
+    if (foldTypeIds.length === 0) return simTypes || [];
+    // 合并所有选中姿态的仿真类型
+    const allSimTypes: Array<SimType & { isDefault: boolean; relSort: number }> = [];
+    foldTypeIds.forEach(ftId => {
+      const foldTypeData = foldTypesWithSimTypes.find(ft => ft.id === ftId);
+      if (foldTypeData) {
+        foldTypeData.simTypes.forEach(st => {
+          if (!allSimTypes.some(s => s.id === st.id)) {
+            allSimTypes.push(st);
+          }
+        });
+      }
+    });
+    return allSimTypes;
+  }, [foldTypeIds, foldTypesWithSimTypes, simTypes]);
+
+  // 获取默认选中的仿真类型ID（根据 isDefault 标记，支持多姿态）
+  const defaultSimTypeIds = useMemo(() => {
+    if (foldTypeIds.length === 0) return [];
+    const defaultIds: number[] = [];
+    foldTypeIds.forEach(ftId => {
+      const foldTypeData = foldTypesWithSimTypes.find(ft => ft.id === ftId);
+      (foldTypeData?.simTypes || [])
+        .filter(st => st.isDefault)
+        .forEach(st => {
+          if (!defaultIds.includes(st.id)) {
+            defaultIds.push(st.id);
+          }
+        });
+    });
+    return defaultIds;
+  }, [foldTypeIds, foldTypesWithSimTypes]);
   const safeFoldTypes = useMemo(() => foldTypes || [], [foldTypes]);
   const safeSolvers = useMemo(() => solvers || [], [solvers]);
   const safeParamDefs = useMemo(() => paramDefs || [], [paramDefs]);
@@ -148,13 +232,33 @@ export const useSubmissionState = (selectedProjectId: number | null) => {
   );
 
   // 初始化默认选中的仿真类型
+  // 当姿态变化时，添加新姿态的默认仿真类型（保留已选择的）
   useEffect(() => {
-    if (safeSimTypes.length > 0 && selectedSimTypeIds.length === 0) {
-      const defaultType = safeSimTypes[0];
-      setSelectedSimTypeIds([defaultType.id]);
-      initSimTypeConfig(defaultType.id);
-    }
-  }, [safeSimTypes, selectedSimTypeIds.length, initSimTypeConfig]);
+    if (safeSimTypes.length === 0) return;
+
+    // 合并：保留已选择的 + 添加新的默认仿真类型
+    setSelectedSimTypeIds(prev => {
+      // 过滤掉不再有效的仿真类型（所属姿态被取消选择）
+      const validPrev = prev.filter(id => safeSimTypes.some(st => st.id === id));
+
+      // 添加新的默认仿真类型（如果还没选择）
+      const newDefaults = defaultSimTypeIds.filter(id => !validPrev.includes(id));
+
+      // 如果没有任何选择，至少选择第一个
+      if (validPrev.length === 0 && newDefaults.length === 0 && safeSimTypes.length > 0) {
+        const firstId = safeSimTypes[0].id;
+        initSimTypeConfig(firstId);
+        return [firstId];
+      }
+
+      // 初始化新添加的默认仿真类型配置
+      newDefaults.forEach(id => {
+        initSimTypeConfig(id);
+      });
+
+      return [...validPrev, ...newDefaults];
+    });
+  }, [foldTypeIds, safeSimTypes, defaultSimTypeIds, initSimTypeConfig]);
 
   // 切换仿真类型选择
   const toggleSimType = useCallback(
@@ -202,23 +306,37 @@ export const useSubmissionState = (selectedProjectId: number | null) => {
     [selectedSimTypeIds, updateSolverConfig]
   );
 
-  // 计算仿真类型节点Y坐标
+  // 计算仿真类型节点Y坐标（已废弃，改用页面内计算）
   const getSimTypeNodeY = useCallback((index: number) => {
     return 200 + index * 260;
   }, []);
 
-  // 计算项目节点Y坐标（相对于所有仿真类型垂直居中）
+  // 计算项目节点Y坐标（相对于所有姿态垂直居中）
   const getProjectNodeY = useCallback(() => {
-    const simTypeCount = safeSimTypes.length;
-    if (simTypeCount === 0) return 300;
-    const firstY = 200;
-    const lastY = 200 + (simTypeCount - 1) * 260;
-    return (firstY + lastY) / 2;
-  }, [safeSimTypes.length]);
+    if (foldTypesWithSimTypes.length === 0) return 300;
+
+    // 计算所有姿态的总仿真类型数量
+    const totalSimTypes = foldTypesWithSimTypes.reduce(
+      (sum, ft) => sum + Math.max(ft.simTypes.length, 1),
+      0
+    );
+    // 姿态之间的间隙数量
+    const foldTypeGaps = Math.max(foldTypesWithSimTypes.length - 1, 0);
+
+    // 总高度 = 仿真类型数量 * 间距 + 姿态间隙
+    const startY = 100;
+    const simTypeSpacing = 240; // 与 CANVAS_LAYOUT.SIM_TYPE_VERTICAL_SPACING 保持一致
+    const foldTypeGap = 60; // 与 CANVAS_LAYOUT.FOLD_TYPE_GAP 保持一致
+
+    const totalHeight = (totalSimTypes - 1) * simTypeSpacing + foldTypeGaps * foldTypeGap;
+
+    return startY + totalHeight / 2;
+  }, [foldTypesWithSimTypes]);
 
   const isConfigLoading =
     projectsLoading ||
     simTypesLoading ||
+    foldTypeSimTypeRelsLoading ||
     foldTypesLoading ||
     paramDefsLoading ||
     solversLoading ||
@@ -229,6 +347,7 @@ export const useSubmissionState = (selectedProjectId: number | null) => {
   const configError =
     projectsError ||
     simTypesError ||
+    foldTypeSimTypeRelsError ||
     foldTypesError ||
     paramDefsError ||
     solversError ||
@@ -239,6 +358,7 @@ export const useSubmissionState = (selectedProjectId: number | null) => {
   const retryConfig = () => {
     void refetchProjects();
     void refetchSimTypes();
+    void refetchFoldTypeSimTypeRels();
     void refetchFoldTypes();
     void refetchParamDefs();
     void refetchSolvers();
@@ -259,6 +379,7 @@ export const useSubmissionState = (selectedProjectId: number | null) => {
     safeConditionDefs,
     safeParamTplSets,
     safeCondOutSets,
+    foldTypesWithSimTypes,
     selectedProject,
     isConfigLoading,
     configError,

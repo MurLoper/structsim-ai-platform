@@ -89,7 +89,7 @@ export const submissionFormSchema = z.object({
         });
       }
     }),
-  foldTypeId: z.number().int().positive({ message: '请选择折叠类型' }),
+  foldTypeIds: z.array(z.number().int()).min(1, { message: '请至少选择一个目标姿态' }),
   remark: z.string().max(500, { message: '备注不能超过500字' }).optional().default(''),
   simTypeIds: z.array(z.number().int()).min(1, { message: '请至少选择一个仿真类型' }),
 });

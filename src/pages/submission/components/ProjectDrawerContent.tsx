@@ -130,21 +130,45 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
 
       <FormField
         control={formControl}
-        name="foldTypeId"
-        label="折叠类型 (姿态)"
+        name="foldTypeIds"
+        label="目标姿态 (多选)"
         required
         render={({ field }) => (
-          <select
-            className="w-full p-3 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-            value={field.value ?? ''}
-            onChange={e => field.onChange(Number(e.target.value) || '')}
-          >
-            {foldTypes.map(ft => (
-              <option key={ft.id} value={ft.id}>
-                {ft.name} ({ft.angle}°)
-              </option>
-            ))}
-          </select>
+          <div className="space-y-2">
+            {foldTypes.map(ft => {
+              const isSelected = (field.value || []).includes(ft.id);
+              return (
+                <label
+                  key={ft.id}
+                  className={`flex items-center gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                    isSelected
+                      ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
+                      : 'border-slate-200 dark:border-slate-600 hover:border-slate-300'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={e => {
+                      const currentIds = field.value || [];
+                      if (e.target.checked) {
+                        field.onChange([...currentIds, ft.id]);
+                      } else {
+                        // 至少保留一个
+                        if (currentIds.length > 1) {
+                          field.onChange(currentIds.filter((id: number) => id !== ft.id));
+                        }
+                      }
+                    }}
+                    className="w-4 h-4 rounded border-slate-300"
+                  />
+                  <span className="flex-1">
+                    {ft.name} ({ft.angle}°)
+                  </span>
+                </label>
+              );
+            })}
+          </div>
         )}
       />
 

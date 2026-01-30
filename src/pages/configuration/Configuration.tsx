@@ -28,6 +28,7 @@ import { ConfigRelationsManagement } from './components/ConfigRelationsManagemen
 import { ProjectSimTypeManagement } from './components/ProjectSimTypeManagement';
 import { SystemConfigManagement } from './components/SystemConfigManagement';
 import { StatusConfigManagement } from './components/StatusConfigManagement';
+import { FoldTypeSimTypeManagement } from './components/FoldTypeSimTypeManagement';
 
 const CATEGORY_OPTIONS = [
   { value: 'STRUCTURE', label: '结构' },
@@ -99,6 +100,7 @@ const Configuration: React.FC = () => {
       icon: <LinkIcon className="w-4 h-4" />,
       items: [
         { key: 'configRelations', label: '配置关联管理', icon: <LinkIcon className="w-5 h-5" /> },
+        { key: 'foldTypeSimTypes', label: '姿态仿真类型', icon: <LinkIcon className="w-5 h-5" /> },
       ],
     },
     {
@@ -341,6 +343,9 @@ const Configuration: React.FC = () => {
 
           {/* 配置关联管理 */}
           {state.activeTab === 'configRelations' && <ConfigRelationsManagement />}
+
+          {/* 姿态仿真类型关联管理 */}
+          {state.activeTab === 'foldTypeSimTypes' && <FoldTypeSimTypeManagement />}
 
           {/* 项目管理 */}
           {state.activeTab === 'projects' && (

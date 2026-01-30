@@ -11,6 +11,7 @@ export * from './useConditionDefs';
 export * from './useOutputDefs';
 export * from './useFoldTypes';
 export * from './useWorkflows';
+export * from './useWorkingConditions';
 
 // 组合配置和其他
 export * from './useCompositeConfigs';

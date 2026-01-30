@@ -17,3 +17,4 @@ export { Tabs } from './Tabs';
 export { ToastProvider, useToast } from './Toast';
 export { ConfirmDialog, useConfirmDialog } from './ConfirmDialog';
 export { ThemeSwitcher, ThemeSelector } from './ThemeSwitcher';
+export { default as Pagination } from './Pagination';
