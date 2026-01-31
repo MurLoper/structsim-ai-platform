@@ -6,6 +6,13 @@ export const navEn = {
   'nav.new_simulation': 'New Simulation',
   'nav.config': 'Configuration',
   'nav.configuration': 'Configuration',
+  // 新配置子菜单
+  'nav.config.basic': 'Basic Config',
+  'nav.config.groups': 'Groups Config',
+  'nav.config.relations': 'Relations Config',
+  'nav.config.system': 'System Config',
+  'nav.config.permissions': 'Permissions',
+  // 旧配置子菜单（保留兼容）
   'nav.config.projects': 'Projects',
   'nav.config.sim_types': 'Sim Types',
   'nav.config.parameters': 'Parameters',
@@ -29,6 +36,13 @@ export const navZh = {
   'nav.new_simulation': '新建仿真',
   'nav.config': '配置管理',
   'nav.configuration': '配置管理',
+  // 新配置子菜单
+  'nav.config.basic': '基础配置',
+  'nav.config.groups': '组合配置',
+  'nav.config.relations': '关联配置',
+  'nav.config.system': '系统配置',
+  'nav.config.permissions': '权限配置',
+  // 旧配置子菜单（保留兼容）
   'nav.config.projects': '项目管理',
   'nav.config.sim_types': '仿真类型',
   'nav.config.parameters': '参数配置',

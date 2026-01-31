@@ -74,7 +74,7 @@ export const queryKeys = {
     list: () => [...queryKeys.foldTypes.all, 'list'] as const,
     detail: (id: number) => [...queryKeys.foldTypes.all, 'detail', id] as const,
   },
-  // 参数模板集 (ParamTplSet)
+  // 参数组合 (ParamGroup)
   paramGroups: {
     all: ['paramGroups'] as const,
     list: (simTypeId?: number) =>
@@ -83,14 +83,14 @@ export const queryKeys = {
         : ([...queryKeys.paramGroups.all, 'list'] as const),
     detail: (id: number) => [...queryKeys.paramGroups.all, 'detail', id] as const,
   },
-  // 工况输出组合 (CondOutSet)
-  condOutGroups: {
-    all: ['condOutGroups'] as const,
+  // 输出组合
+  outputGroups: {
+    all: ['outputGroups'] as const,
     list: (simTypeId?: number) =>
       simTypeId
-        ? ([...queryKeys.condOutGroups.all, 'list', { simTypeId }] as const)
-        : ([...queryKeys.condOutGroups.all, 'list'] as const),
-    detail: (id: number) => [...queryKeys.condOutGroups.all, 'detail', id] as const,
+        ? ([...queryKeys.outputGroups.all, 'list', { simTypeId }] as const)
+        : ([...queryKeys.outputGroups.all, 'list'] as const),
+    detail: (id: number) => [...queryKeys.outputGroups.all, 'detail', id] as const,
   },
   // 订单
   orders: {

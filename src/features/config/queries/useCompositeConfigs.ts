@@ -1,20 +1,21 @@
 /**
  * 组合配置 Query Hooks
- * 参数模板集 (ParamTplSet) 和 工况输出组合 (CondOutSet)
+ * 参数组合 (ParamGroup) 和 输出组合 (OutputGroup)
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { baseConfigApi } from '@/api/config/base';
+import { paramGroupsApi } from '@/api/config/groups';
 import { queryKeys } from '@/lib/queryClient';
 import type { StatusDef } from '@/types/config';
 
 /**
- * 获取参数模板集列表
+ * 获取参数组合列表
  */
-export function useParamTplSets(simTypeId?: number) {
+export function useParamGroups() {
   return useQuery({
-    queryKey: queryKeys.paramGroups.list(simTypeId),
+    queryKey: queryKeys.paramGroups.all,
     queryFn: async () => {
-      const response = await baseConfigApi.getParamTplSets(simTypeId);
+      const response = await paramGroupsApi.getParamGroups();
       return response.data || [];
     },
     staleTime: 5 * 60 * 1000,
@@ -22,33 +23,43 @@ export function useParamTplSets(simTypeId?: number) {
 }
 
 /**
- * 获取参数模板项列表
+ * @deprecated 使用 useParamGroups 替代
  */
-export function useParamTplItems(tplSetId: number) {
+export const useParamTplSets = useParamGroups;
+
+/**
+ * 获取参数组合的参数列表
+ */
+export function useParamGroupParams(groupId: number) {
   return useQuery({
-    queryKey: [...queryKeys.paramGroups.all, 'items', tplSetId] as const,
+    queryKey: [...queryKeys.paramGroups.all, 'params', groupId] as const,
     queryFn: async () => {
-      const response = await baseConfigApi.getParamTplItems(tplSetId);
+      const response = await paramGroupsApi.getParamGroupParams(groupId);
       return response.data || [];
     },
-    enabled: !!tplSetId && tplSetId > 0,
+    enabled: !!groupId && groupId > 0,
     staleTime: 5 * 60 * 1000,
   });
 }
 
 /**
- * 获取工况输出组合列表
+ * 获取输出组合列表
  */
-export function useCondOutSets(simTypeId?: number) {
+export function useOutputGroups(simTypeId?: number) {
   return useQuery({
-    queryKey: queryKeys.condOutGroups.list(simTypeId),
+    queryKey: queryKeys.outputGroups.list(simTypeId),
     queryFn: async () => {
-      const response = await baseConfigApi.getCondOutSets(simTypeId);
+      const response = await baseConfigApi.getOutputGroups(simTypeId);
       return response.data || [];
     },
     staleTime: 5 * 60 * 1000,
   });
 }
+
+/**
+ * 获取输出组合列表（别名，兼容旧代码）
+ */
+export const useCondOutSets = useOutputGroups;
 
 /**
  * 获取状态定义列表
@@ -93,3 +104,6 @@ export function useBaseData() {
     staleTime: 10 * 60 * 1000,
   });
 }
+
+// Note: useFoldTypeSimTypeRels and useConditionConfigs are exported from useWorkingConditions.ts
+// to avoid duplicate exports

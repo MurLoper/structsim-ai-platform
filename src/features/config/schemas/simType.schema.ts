@@ -14,8 +14,8 @@ export const simTypeSchema = z.object({
     .optional()
     .or(z.literal('')),
   category: z.string().max(50, '分类不能超过50字符').optional(),
-  defaultParamTplSetId: z.number().positive().optional(),
-  defaultCondOutSetId: z.number().positive().optional(),
+  defaultParamGroupId: z.number().positive().optional(),
+  defaultOutputGroupId: z.number().positive().optional(),
   defaultSolverId: z.number().positive().optional(),
   supportAlgMask: z.number().int().min(0).default(0),
   nodeIcon: z.string().max(100).optional(),

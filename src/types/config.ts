@@ -20,8 +20,8 @@ export interface SimType {
   name: string;
   code?: string;
   category?: string;
-  defaultParamTplSetId?: number;
-  defaultCondOutSetId?: number;
+  defaultParamGroupId?: number;
+  defaultOutputGroupId?: number;
   defaultSolverId?: number;
   supportAlgMask: number;
   nodeIcon?: string;
@@ -109,25 +109,8 @@ export interface FoldType {
   updatedAt?: number;
 }
 
-export interface ParamTplSet {
-  id: number;
-  name: string;
-  simTypeId?: number;
-  valid: number;
-  sort: number;
-  remark?: string;
-  createdAt?: number;
-  updatedAt?: number;
-}
-
-export interface ParamTplItem {
-  id: number;
-  tplSetId: number;
-  paramDefId: number;
-  defaultValue?: string;
-  sort: number;
-  createdAt?: number;
-}
+// ParamTplSet 和 ParamTplItem 已废弃，使用 ParamGroup 和 ParamInGroup 替代
+// 类型定义在 @/types/configGroups.ts
 
 export interface CondOutSet {
   id: number;
@@ -241,7 +224,7 @@ export interface WorkingCondition {
   foldTypeId: number;
   simTypeId: number;
   defaultParamGroupId?: number;
-  defaultCondOutGroupId?: number;
+  defaultOutputGroupId?: number;
   defaultSolverId?: number;
   extraConfig?: Record<string, unknown>;
   valid: number;

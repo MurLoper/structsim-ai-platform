@@ -13,26 +13,36 @@ import {
 } from '@heroicons/react/24/outline';
 import { configApi } from '@/api';
 import { useFormState } from '@/hooks/useFormState';
-import type { ParamGroup, ParamInGroup, SearchParamResult } from '@/types/configGroups';
-import type { ParamDef } from '@/api';
+import type { OutputGroup, OutputInGroup } from '@/types/configGroups';
+import type { OutputDef } from '@/api';
+
+// 搜索结果类型
+interface SearchOutputResult {
+  outputDefId: number;
+  outputCode: string;
+  outputName: string;
+  unit?: string;
+  valType?: number;
+  inGroup: boolean;
+}
 
 interface TableRow {
-  group: ParamGroup;
-  param: ParamInGroup | null;
+  group: OutputGroup;
+  output: OutputInGroup | null;
   rowSpan: number;
   isFirstRow: boolean;
 }
 
-export const ParamGroupsManagement: React.FC = () => {
-  const [groups, setGroups] = useState<ParamGroup[]>([]);
-  const [allParamDefs, setAllParamDefs] = useState<ParamDef[]>([]);
-  const [groupParamsMap, setGroupParamsMap] = useState<Map<number, ParamInGroup[]>>(new Map());
+export const OutputGroupsManagement: React.FC = () => {
+  const [groups, setGroups] = useState<OutputGroup[]>([]);
+  const [allOutputDefs, setAllOutputDefs] = useState<OutputDef[]>([]);
+  const [groupOutputsMap, setGroupOutputsMap] = useState<Map<number, OutputInGroup[]>>(new Map());
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showGroupModal, setShowGroupModal] = useState(false);
-  const [showParamModal, setShowParamModal] = useState(false);
+  const [showOutputModal, setShowOutputModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [editingGroup, setEditingGroup] = useState<Partial<ParamGroup> | null>(null);
+  const [editingGroup, setEditingGroup] = useState<Partial<OutputGroup> | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
 
   const { showToast } = useToast();
@@ -42,30 +52,30 @@ export const ParamGroupsManagement: React.FC = () => {
   const loadAllData = async () => {
     try {
       setLoading(true);
-      const [groupsRes, paramDefsRes] = await Promise.all([
-        configApi.getParamGroups(),
-        configApi.getParamDefs(),
+      const [groupsRes, outputDefsRes] = await Promise.all([
+        configApi.getOutputGroups(),
+        configApi.getOutputDefs(),
       ]);
 
       const groupsData = Array.isArray(groupsRes?.data) ? groupsRes.data : [];
-      const paramDefsData = Array.isArray(paramDefsRes?.data) ? paramDefsRes.data : [];
+      const outputDefsData = Array.isArray(outputDefsRes?.data) ? outputDefsRes.data : [];
 
       setGroups(groupsData);
-      setAllParamDefs(paramDefsData);
+      setAllOutputDefs(outputDefsData);
 
-      // 加载所有组合的参数
-      const paramsMap = new Map<number, ParamInGroup[]>();
+      // 加载所有组合的输出
+      const outputsMap = new Map<number, OutputInGroup[]>();
       await Promise.all(
-        groupsData.map(async (group: ParamGroup) => {
+        groupsData.map(async (group: OutputGroup) => {
           try {
-            const res = await configApi.getParamGroupParams(group.id);
-            paramsMap.set(group.id, Array.isArray(res?.data) ? res.data : []);
+            const res = await configApi.getOutputGroupOutputs(group.id);
+            outputsMap.set(group.id, Array.isArray(res?.data) ? res.data : []);
           } catch {
-            paramsMap.set(group.id, []);
+            outputsMap.set(group.id, []);
           }
         })
       );
-      setGroupParamsMap(paramsMap);
+      setGroupOutputsMap(outputsMap);
     } catch (error) {
       console.error('加载数据失败:', error);
     } finally {
@@ -84,32 +94,32 @@ export const ParamGroupsManagement: React.FC = () => {
       g =>
         !searchTerm ||
         g.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (groupParamsMap.get(g.id) || []).some(
-          p =>
-            p.paramName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.paramKey?.toLowerCase().includes(searchTerm.toLowerCase())
+        (groupOutputsMap.get(g.id) || []).some(
+          o =>
+            o.outputName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            o.outputCode?.toLowerCase().includes(searchTerm.toLowerCase())
         )
     );
 
     filteredGroups.forEach(group => {
-      const params = groupParamsMap.get(group.id) || [];
-      if (params.length === 0) {
-        rows.push({ group, param: null, rowSpan: 1, isFirstRow: true });
+      const outputs = groupOutputsMap.get(group.id) || [];
+      if (outputs.length === 0) {
+        rows.push({ group, output: null, rowSpan: 1, isFirstRow: true });
       } else {
-        const filteredParams = searchTerm
-          ? params.filter(
-              p =>
-                p.paramName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                p.paramKey?.toLowerCase().includes(searchTerm.toLowerCase())
+        const filteredOutputs = searchTerm
+          ? outputs.filter(
+              o =>
+                o.outputName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                o.outputCode?.toLowerCase().includes(searchTerm.toLowerCase())
             )
-          : params;
+          : outputs;
 
-        const displayParams = filteredParams.length > 0 ? filteredParams : params;
-        displayParams.forEach((param, idx) => {
+        const displayOutputs = filteredOutputs.length > 0 ? filteredOutputs : outputs;
+        displayOutputs.forEach((output, idx) => {
           rows.push({
             group,
-            param,
-            rowSpan: idx === 0 ? displayParams.length : 0,
+            output,
+            rowSpan: idx === 0 ? displayOutputs.length : 0,
             isFirstRow: idx === 0,
           });
         });
@@ -117,42 +127,42 @@ export const ParamGroupsManagement: React.FC = () => {
     });
 
     return rows;
-  }, [groups, groupParamsMap, searchTerm]);
+  }, [groups, groupOutputsMap, searchTerm]);
 
-  // 创建/更新参数组合
-  const handleSaveGroup = async (data: Partial<ParamGroup>) => {
+  // 创建/更新输出组合
+  const handleSaveGroup = async (data: Partial<OutputGroup>) => {
     try {
       if (editingGroup?.id) {
-        await configApi.updateParamGroup(editingGroup.id, data);
+        await configApi.updateOutputGroup(editingGroup.id, data);
+        showToast('success', '更新成功');
       } else {
-        await configApi.createParamGroup(
+        await configApi.createOutputGroup(
           data as { name: string; description?: string; sort?: number }
         );
+        showToast('success', '创建成功');
       }
       setShowGroupModal(false);
       setEditingGroup(null);
       await loadAllData();
-      showToast('success', '保存成功');
     } catch (error: unknown) {
-      console.error('保存参数组合失败:', error);
+      console.error('保存输出组合失败:', error);
       const errMsg = (error as { message?: string })?.message || '保存失败';
       showToast('error', errMsg);
     }
   };
 
-  // 删除参数组合
+  // 删除输出组合
   const handleDeleteGroup = (id: number) => {
-    const group = groups.find(g => g.id === id);
     showConfirm(
-      '删除参数组合',
-      `确定要删除「${group?.name}」吗？`,
+      '确认删除',
+      '确定要删除这个输出组合吗？',
       async () => {
         try {
-          await configApi.deleteParamGroup(id);
-          await loadAllData();
+          await configApi.deleteOutputGroup(id);
           showToast('success', '删除成功');
+          await loadAllData();
         } catch (error) {
-          console.error('删除参数组合失败:', error);
+          console.error('删除输出组合失败:', error);
           showToast('error', '删除失败');
         }
       },
@@ -160,61 +170,58 @@ export const ParamGroupsManagement: React.FC = () => {
     );
   };
 
-  // 批量添加参数到组合
-  const handleAddParams = async (groupId: number, paramDefIds: number[]) => {
+  // 批量添加输出到组合
+  const handleAddOutputs = async (groupId: number, outputDefIds: number[]) => {
     try {
-      for (const paramDefId of paramDefIds) {
-        await configApi.addParamToGroup(groupId, { paramDefId });
+      for (const outputDefId of outputDefIds) {
+        await configApi.addOutputToGroup(groupId, { outputDefId });
       }
+      showToast('success', `成功添加 ${outputDefIds.length} 个输出`);
       await loadAllData();
-      setShowParamModal(false);
+      setShowOutputModal(false);
       setEditingGroupId(null);
-      showToast('success', `成功添加 ${paramDefIds.length} 个参数`);
     } catch (error) {
-      console.error('添加参数失败:', error);
+      console.error('添加输出失败:', error);
       showToast('error', '添加失败');
     }
   };
 
-  // 从组合移除参数
-  const handleRemoveParam = (groupId: number, paramDefId: number) => {
-    const params = groupParamsMap.get(groupId) || [];
-    const param = params.find(p => p.paramDefId === paramDefId);
+  // 从组合移除输出
+  const handleRemoveOutput = (groupId: number, outputDefId: number) => {
     showConfirm(
-      '移除参数',
-      `确定要移除「${param?.paramName || paramDefId}」吗？`,
+      '确认移除',
+      '确定要移除这个输出吗？',
       async () => {
         try {
-          await configApi.removeParamFromGroup(groupId, paramDefId);
-          await loadAllData();
+          await configApi.removeOutputFromGroup(groupId, outputDefId);
           showToast('success', '移除成功');
+          await loadAllData();
         } catch (error) {
-          console.error('移除参数失败:', error);
+          console.error('移除输出失败:', error);
           showToast('error', '移除失败');
         }
       },
-      'danger'
+      'warning'
     );
   };
 
-  // 清空组合的所有参数
-  const handleClearParams = (groupId: number) => {
-    const group = groups.find(g => g.id === groupId);
-    const paramCount = groupParamsMap.get(groupId)?.length || 0;
-    if (paramCount === 0) {
-      showToast('warning', '该组合没有参数可清空');
+  // 清空组合的所有输出
+  const handleClearOutputs = (groupId: number) => {
+    const outputs = groupOutputsMap.get(groupId) || [];
+    if (outputs.length === 0) {
+      showToast('info', '该组合没有输出可清空');
       return;
     }
     showConfirm(
-      '清空参数',
-      `确定要清空「${group?.name}」的所有 ${paramCount} 个参数吗？`,
+      '确认清空',
+      `确定要清空该组合的所有 ${outputs.length} 个输出吗？`,
       async () => {
         try {
-          await configApi.clearGroupParams(groupId);
-          await loadAllData();
+          await configApi.clearGroupOutputs(groupId);
           showToast('success', '清空成功');
+          await loadAllData();
         } catch (error) {
-          console.error('清空参数失败:', error);
+          console.error('清空输出失败:', error);
           showToast('error', '清空失败');
         }
       },
@@ -224,15 +231,15 @@ export const ParamGroupsManagement: React.FC = () => {
 
   // 下载 Excel 模板
   const handleDownloadTemplate = () => {
-    const headers = ['参数Key(必填)', '参数名称', '默认值', '下限', '上限', '单位'];
-    const exampleRow = ['param_key_1', '参数名称示例', '0', '', '', 'mm'];
+    const headers = ['输出Code(必填)', '输出名称', '单位', '数据类型'];
+    const exampleRow = ['output_code_1', '输出名称示例', 'MPa', 'float'];
     const csvContent = [headers.join(','), exampleRow.join(',')].join('\n');
     const BOM = '\uFEFF';
     const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = '参数组合模板.csv';
+    a.download = '输出组合模板.csv';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -243,8 +250,8 @@ export const ParamGroupsManagement: React.FC = () => {
       <div className="p-4 border-b dark:border-slate-700">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h3 className="text-lg font-semibold">参数组合管理</h3>
-            <p className="text-sm text-slate-500 mt-1">管理参数组合，支持批量添加参数和导入</p>
+            <h3 className="text-lg font-semibold">输出组合管理</h3>
+            <p className="text-sm text-slate-500 mt-1">管理输出组合，支持批量添加输出和导入</p>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -278,7 +285,7 @@ export const ParamGroupsManagement: React.FC = () => {
           <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="搜索组合名称或参数..."
+            placeholder="搜索组合名称或输出..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
@@ -300,7 +307,7 @@ export const ParamGroupsManagement: React.FC = () => {
           <div className="p-12 text-center text-slate-500">加载中...</div>
         ) : tableData.length === 0 ? (
           <div className="p-12 text-center text-slate-500">
-            {searchTerm ? '未找到匹配的结果' : '暂无参数组合'}
+            {searchTerm ? '未找到匹配的结果' : '暂无输出组合'}
           </div>
         ) : (
           <table className="w-full">
@@ -310,13 +317,10 @@ export const ParamGroupsManagement: React.FC = () => {
                   组合名称
                 </th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 w-40">
-                  参数 Key
+                  输出 Code
                 </th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 w-40">
-                  参数名称
-                </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 w-24">
-                  默认值
+                  输出名称
                 </th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 w-20">
                   单位
@@ -329,7 +333,7 @@ export const ParamGroupsManagement: React.FC = () => {
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
               {tableData.map((row, idx) => (
                 <tr
-                  key={`${row.group.id}-${row.param?.paramDefId || 'empty'}-${idx}`}
+                  key={`${row.group.id}-${row.output?.outputDefId || 'empty'}-${idx}`}
                   className="hover:bg-slate-50 dark:hover:bg-slate-700/30"
                 >
                   {row.rowSpan > 0 && (
@@ -352,17 +356,17 @@ export const ParamGroupsManagement: React.FC = () => {
                           <button
                             onClick={() => {
                               setEditingGroupId(row.group.id);
-                              setShowParamModal(true);
+                              setShowOutputModal(true);
                             }}
                             className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg"
-                            title="添加参数"
+                            title="添加输出"
                           >
                             <PlusIcon className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleClearParams(row.group.id)}
+                            onClick={() => handleClearOutputs(row.group.id)}
                             className="p-1.5 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-lg"
-                            title="清空参数"
+                            title="清空输出"
                           >
                             <ArrowPathIcon className="w-4 h-4" />
                           </button>
@@ -388,31 +392,28 @@ export const ParamGroupsManagement: React.FC = () => {
                     </td>
                   )}
                   <td className="px-4 py-3">
-                    {row.param ? (
+                    {row.output ? (
                       <span className="font-mono text-xs text-slate-600 dark:text-slate-400">
-                        {row.param.paramKey}
+                        {row.output.outputCode}
                       </span>
                     ) : (
-                      <span className="text-slate-400 italic text-sm">未配置参数</span>
+                      <span className="text-slate-400 italic text-sm">未配置输出</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {row.param && (
-                      <span className="text-slate-900 dark:text-white">{row.param.paramName}</span>
+                    {row.output && (
+                      <span className="text-slate-900 dark:text-white">
+                        {row.output.outputName}
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {row.param && (
-                      <span className="text-slate-500">{row.param.defaultValue || '-'}</span>
-                    )}
+                    {row.output && <span className="text-slate-500">{row.output.unit || '-'}</span>}
                   </td>
                   <td className="px-4 py-3">
-                    {row.param && <span className="text-slate-500">{row.param.unit || '-'}</span>}
-                  </td>
-                  <td className="px-4 py-3">
-                    {row.param && (
+                    {row.output && (
                       <button
-                        onClick={() => handleRemoveParam(row.group.id, row.param!.paramDefId)}
+                        onClick={() => handleRemoveOutput(row.group.id, row.output!.outputDefId)}
                         className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
                         title="移除"
                       >
@@ -438,29 +439,30 @@ export const ParamGroupsManagement: React.FC = () => {
           }}
         />
       )}
-      {showParamModal && editingGroupId !== null && (
-        <AddParamsModal
+      {showOutputModal && editingGroupId !== null && (
+        <AddOutputsModal
           groupId={editingGroupId}
           groupName={groups.find(g => g.id === editingGroupId)?.name || ''}
-          paramDefs={allParamDefs}
-          existingParamIds={
-            new Set((groupParamsMap.get(editingGroupId) || []).map(p => p.paramDefId))
+          outputDefs={allOutputDefs}
+          existingOutputIds={
+            new Set((groupOutputsMap.get(editingGroupId) || []).map(o => o.outputDefId))
           }
-          onAdd={handleAddParams}
+          onAdd={handleAddOutputs}
           onClose={() => {
-            setShowParamModal(false);
+            setShowOutputModal(false);
             setEditingGroupId(null);
           }}
-          onRefresh={loadAllData}
           showToast={showToast}
+          onRefresh={loadAllData}
         />
       )}
       {showUploadModal && (
         <UploadExcelModal
           groups={groups}
-          allParamDefs={allParamDefs}
+          allOutputDefs={allOutputDefs}
           onSuccess={loadAllData}
           onClose={() => setShowUploadModal(false)}
+          showToast={showToast}
         />
       )}
       <ConfirmDialogComponent />
@@ -470,8 +472,8 @@ export const ParamGroupsManagement: React.FC = () => {
 
 // 组合编辑模态框组件
 const GroupModal: React.FC<{
-  group: Partial<ParamGroup> | null;
-  onSave: (data: Partial<ParamGroup>) => void;
+  group: Partial<OutputGroup> | null;
+  onSave: (data: Partial<OutputGroup>) => void;
   onClose: () => void;
 }> = ({ group, onSave, onClose }) => {
   const initialData = useMemo(
@@ -488,7 +490,7 @@ const GroupModal: React.FC<{
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-slate-800 rounded-lg p-6 w-full max-w-md">
-        <h3 className="text-lg font-semibold mb-4">{group?.id ? '编辑' : '创建'}参数组合</h3>
+        <h3 className="text-lg font-semibold mb-4">{group?.id ? '编辑' : '创建'}输出组合</h3>
         <div className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">名称</label>
@@ -537,84 +539,46 @@ const GroupModal: React.FC<{
   );
 };
 
-// 添加参数模态框组件（支持多选和快速创建）
-const AddParamsModal: React.FC<{
+// 添加输出模态框组件（支持多选和快速创建）
+const AddOutputsModal: React.FC<{
   groupId: number;
   groupName: string;
-  paramDefs: ParamDef[];
-  existingParamIds: Set<number>;
-  onAdd: (groupId: number, paramDefIds: number[]) => void;
+  outputDefs: OutputDef[];
+  existingOutputIds: Set<number>;
+  onAdd: (groupId: number, outputDefIds: number[]) => void;
   onClose: () => void;
-  onRefresh: () => void;
-  showToast: (type: 'success' | 'error' | 'warning' | 'info', message: string) => void;
+  showToast: (type: 'success' | 'error' | 'info', message: string) => void;
+  onRefresh: () => Promise<void>;
 }> = ({
   groupId,
   groupName,
-  paramDefs,
-  existingParamIds,
+  outputDefs,
+  existingOutputIds,
   onAdd,
   onClose,
-  onRefresh,
   showToast,
+  onRefresh,
 }) => {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchParamResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [showCreateForm, setShowCreateForm] = useState(false);
-  const [newParamData, setNewParamData] = useState({ key: '', name: '', unit: '' });
+  const [showQuickCreate, setShowQuickCreate] = useState(false);
+  const [quickCreateData, setQuickCreateData] = useState({
+    code: '',
+    name: '',
+    unit: '',
+    dataType: 'float',
+  });
   const [creating, setCreating] = useState(false);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 本地过滤的可用参数
-  const availableParams = paramDefs.filter(p => !existingParamIds.has(p.id));
-  const filteredParams = availableParams.filter(
-    p =>
+  const availableOutputs = outputDefs.filter(o => !existingOutputIds.has(o.id));
+  const filteredOutputs = availableOutputs.filter(
+    o =>
       !searchTerm ||
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.key.toLowerCase().includes(searchTerm.toLowerCase())
+      o.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      o.code?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // 搜索参数（调用后端API）
-  const handleSearch = useCallback(
-    async (keyword: string) => {
-      if (!keyword.trim()) {
-        setSearchResults([]);
-        return;
-      }
-      setIsSearching(true);
-      try {
-        const res = await configApi.searchParams(keyword, groupId);
-        setSearchResults(res?.data?.params || []);
-      } catch (error) {
-        console.error('搜索参数失败:', error);
-      } finally {
-        setIsSearching(false);
-      }
-    },
-    [groupId]
-  );
-
-  // 防抖搜索
-  useEffect(() => {
-    if (searchTimeoutRef.current) {
-      clearTimeout(searchTimeoutRef.current);
-    }
-    if (searchTerm.trim().length >= 2) {
-      searchTimeoutRef.current = setTimeout(() => {
-        handleSearch(searchTerm);
-      }, 300);
-    } else {
-      setSearchResults([]);
-    }
-    return () => {
-      if (searchTimeoutRef.current) {
-        clearTimeout(searchTimeoutRef.current);
-      }
-    };
-  }, [searchTerm, handleSearch]);
-
-  const toggleParam = (id: number) => {
+  const toggleOutput = (id: number) => {
     const newSet = new Set(selectedIds);
     if (newSet.has(id)) {
       newSet.delete(id);
@@ -624,83 +588,56 @@ const AddParamsModal: React.FC<{
     setSelectedIds(newSet);
   };
 
-  const selectAll = () => {
-    setSelectedIds(new Set(filteredParams.map(p => p.id)));
-  };
+  const selectAll = () => setSelectedIds(new Set(filteredOutputs.map(o => o.id)));
+  const clearAll = () => setSelectedIds(new Set());
 
-  const clearAll = () => {
-    setSelectedIds(new Set());
-  };
-
-  // 快速创建并添加参数
-  const handleCreateAndAdd = async () => {
-    if (!newParamData.key.trim()) {
-      showToast('warning', '参数Key不能为空');
+  // 快速创建并添加输出
+  const handleQuickCreate = async () => {
+    if (!quickCreateData.code.trim()) {
+      showToast('error', '输出Code不能为空');
       return;
     }
     setCreating(true);
     try {
-      const res = await configApi.createAndAddParam(groupId, {
-        key: newParamData.key.trim(),
-        name: newParamData.name.trim() || newParamData.key.trim(),
-        unit: newParamData.unit.trim() || undefined,
+      await configApi.createAndAddOutput(groupId, {
+        code: quickCreateData.code.trim(),
+        name: quickCreateData.name.trim() || quickCreateData.code.trim(),
+        unit: quickCreateData.unit.trim() || undefined,
+        dataType: quickCreateData.dataType,
       });
-      if (res?.data?.added) {
-        showToast(
-          'success',
-          `参数「${res.data.param.paramName}」${res.data.created ? '创建并' : ''}添加成功`
-        );
-        setNewParamData({ key: '', name: '', unit: '' });
-        setShowCreateForm(false);
-        // 刷新数据后重新搜索以更新列表
-        await onRefresh();
-        if (searchTerm.trim().length >= 2) {
-          handleSearch(searchTerm);
-        }
-      } else if (res?.data?.reason) {
-        showToast('warning', res.data.reason);
-      }
-    } catch (error: any) {
-      console.error('创建参数失败:', error);
-      showToast('error', error?.response?.data?.message || '创建失败');
+      showToast('success', '创建并添加成功');
+      setQuickCreateData({ code: '', name: '', unit: '', dataType: 'float' });
+      setShowQuickCreate(false);
+      await onRefresh();
+    } catch (error) {
+      console.error('创建并添加失败:', error);
+      showToast('error', '创建并添加失败');
     } finally {
       setCreating(false);
     }
   };
 
-  // 显示的参数列表：优先显示搜索结果
-  const displayParams =
-    searchTerm.trim().length >= 2 && searchResults.length > 0
-      ? searchResults.filter(p => !p.inGroup)
-      : filteredParams;
-
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
         <div className="p-4 border-b dark:border-slate-700">
-          <h3 className="text-lg font-bold">添加参数到 {groupName}</h3>
-          <p className="text-sm text-slate-500 mt-1">选择要添加的参数，或快速创建新参数</p>
+          <h3 className="text-lg font-bold">添加输出到 {groupName}</h3>
+          <p className="text-sm text-slate-500 mt-1">选择要添加的输出（支持多选）</p>
         </div>
 
-        {/* 搜索和操作 */}
         <div className="p-4 border-b dark:border-slate-700 space-y-3">
           <div className="relative">
             <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="搜索参数名称或 Key（输入2个字符开始搜索）..."
+              placeholder="搜索输出名称或 Code..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
             />
-            {isSearching && (
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              </div>
-            )}
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-500">已选择 {selectedIds.size} 个参数</span>
+            <span className="text-slate-500">已选择 {selectedIds.size} 个输出</span>
             <div className="flex gap-2">
               <button onClick={selectAll} className="text-blue-600 hover:underline">
                 全选
@@ -709,111 +646,96 @@ const AddParamsModal: React.FC<{
                 清空
               </button>
               <button
-                onClick={() => setShowCreateForm(!showCreateForm)}
-                className="text-green-600 hover:underline flex items-center gap-1"
+                onClick={() => setShowQuickCreate(!showQuickCreate)}
+                className="text-green-600 hover:underline"
               >
-                <PlusIcon className="w-3 h-3" />
-                快速创建
+                {showQuickCreate ? '取消创建' : '创建并添加'}
               </button>
             </div>
           </div>
-        </div>
-
-        {/* 快速创建表单 */}
-        {showCreateForm && (
-          <div className="p-4 border-b dark:border-slate-700 bg-green-50 dark:bg-green-900/20">
-            <h4 className="text-sm font-medium text-green-700 dark:text-green-400 mb-3">
-              快速创建新参数
-            </h4>
-            <div className="grid grid-cols-3 gap-2">
-              <input
-                type="text"
-                placeholder="参数Key *"
-                value={newParamData.key}
-                onChange={e => setNewParamData(prev => ({ ...prev, key: e.target.value }))}
-                className="px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
-              />
-              <input
-                type="text"
-                placeholder="参数名称"
-                value={newParamData.name}
-                onChange={e => setNewParamData(prev => ({ ...prev, name: e.target.value }))}
-                className="px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
-              />
-              <input
-                type="text"
-                placeholder="单位"
-                value={newParamData.unit}
-                onChange={e => setNewParamData(prev => ({ ...prev, unit: e.target.value }))}
-                className="px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
-              />
-            </div>
-            <div className="flex justify-end mt-2">
+          {/* 快速创建表单 */}
+          {showQuickCreate && (
+            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg space-y-2">
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder="输出Code (必填)"
+                  value={quickCreateData.code}
+                  onChange={e => setQuickCreateData({ ...quickCreateData, code: e.target.value })}
+                  className="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 text-sm"
+                />
+                <input
+                  type="text"
+                  placeholder="输出名称"
+                  value={quickCreateData.name}
+                  onChange={e => setQuickCreateData({ ...quickCreateData, name: e.target.value })}
+                  className="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 text-sm"
+                />
+                <input
+                  type="text"
+                  placeholder="单位"
+                  value={quickCreateData.unit}
+                  onChange={e => setQuickCreateData({ ...quickCreateData, unit: e.target.value })}
+                  className="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 text-sm"
+                />
+                <select
+                  value={quickCreateData.dataType}
+                  onChange={e =>
+                    setQuickCreateData({ ...quickCreateData, dataType: e.target.value })
+                  }
+                  className="px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 text-sm"
+                >
+                  <option value="float">float</option>
+                  <option value="int">int</option>
+                  <option value="string">string</option>
+                </select>
+              </div>
               <button
-                onClick={handleCreateAndAdd}
-                disabled={creating || !newParamData.key.trim()}
-                className="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                onClick={handleQuickCreate}
+                disabled={creating || !quickCreateData.code.trim()}
+                className="w-full px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm"
               >
-                {creating ? '创建中...' : '创建并添加'}
+                {creating ? '创建中...' : '创建并添加到组合'}
               </button>
-            </div>
-          </div>
-        )}
-
-        {/* 参数列表 */}
-        <div className="flex-1 overflow-y-auto p-4">
-          {displayParams.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
-              {searchTerm ? (
-                <div>
-                  <p>未找到匹配的参数</p>
-                  <button
-                    onClick={() => {
-                      setNewParamData(prev => ({ ...prev, key: searchTerm }));
-                      setShowCreateForm(true);
-                    }}
-                    className="mt-2 text-green-600 hover:underline"
-                  >
-                    点击创建「{searchTerm}」
-                  </button>
-                </div>
-              ) : (
-                '没有可添加的参数'
-              )}
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {displayParams.map(param => {
-                const paramId = 'paramDefId' in param ? param.paramDefId : (param as ParamDef).id;
-                const paramName = 'paramName' in param ? param.paramName : (param as ParamDef).name;
-                const paramKey = 'paramKey' in param ? param.paramKey : (param as ParamDef).key;
-                return (
-                  <label
-                    key={paramId}
-                    className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${
-                      selectedIds.has(paramId)
-                        ? 'bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-500'
-                        : 'bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border-2 border-transparent'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(paramId)}
-                      onChange={() => toggleParam(paramId)}
-                      className="rounded mr-3"
-                    />
-                    <div className="flex-1">
-                      <div className="font-medium">{paramName}</div>
-                      <div className="text-xs text-slate-500 font-mono">{paramKey}</div>
-                    </div>
-                  </label>
-                );
-              })}
             </div>
           )}
         </div>
 
-        {/* 底部按钮 */}
+        <div className="flex-1 overflow-y-auto p-4">
+          {filteredOutputs.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">
+              {searchTerm ? '未找到匹配的输出' : '没有可添加的输出'}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredOutputs.map(output => (
+                <label
+                  key={output.id}
+                  className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${
+                    selectedIds.has(output.id)
+                      ? 'bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-500'
+                      : 'bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border-2 border-transparent'
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(output.id)}
+                    onChange={() => toggleOutput(output.id)}
+                    className="rounded mr-3"
+                  />
+                  <div className="flex-1">
+                    <div className="font-medium">{output.name}</div>
+                    <div className="text-xs text-slate-500 font-mono">{output.code}</div>
+                  </div>
+                  {output.unit && (
+                    <span className="text-xs text-slate-500">单位: {output.unit}</span>
+                  )}
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="flex justify-end gap-3 p-4 border-t dark:border-slate-700">
           <button
             onClick={onClose}
@@ -836,26 +758,25 @@ const AddParamsModal: React.FC<{
 
 // Excel 上传模态框组件
 const UploadExcelModal: React.FC<{
-  groups: ParamGroup[];
-  allParamDefs: ParamDef[];
+  groups: OutputGroup[];
+  allOutputDefs: OutputDef[];
   onSuccess: () => void;
   onClose: () => void;
-}> = ({ groups, allParamDefs, onSuccess, onClose }) => {
+  showToast: (type: 'success' | 'error' | 'info', message: string) => void;
+}> = ({ groups, allOutputDefs, onSuccess, onClose, showToast }) => {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [parsedData, setParsedData] = useState<ParsedParam[]>([]);
+  const [parsedData, setParsedData] = useState<ParsedOutput[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  interface ParsedParam {
-    key: string;
+  interface ParsedOutput {
+    code: string;
     name: string;
-    defaultValue: string;
-    minValue: string;
-    maxValue: string;
     unit: string;
+    dataType: string;
     exists: boolean;
-    paramDefId?: number;
+    outputDefId?: number;
   }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -869,28 +790,26 @@ const UploadExcelModal: React.FC<{
     const text = await file.text();
     const lines = text.split('\n').filter(line => line.trim());
     if (lines.length < 2) {
-      alert('文件格式错误，至少需要标题行和一行数据');
+      showToast('error', '文件格式错误，至少需要标题行和一行数据');
       return;
     }
 
     const dataLines = lines.slice(1);
-    const parsed: ParsedParam[] = dataLines
+    const parsed: ParsedOutput[] = dataLines
       .map(line => {
         const cols = line.split(',').map(c => c.trim());
-        const key = cols[0] || '';
-        const existingParam = allParamDefs.find(p => p.key === key);
+        const code = cols[0] || '';
+        const existingOutput = allOutputDefs.find(o => o.code === code);
         return {
-          key,
+          code,
           name: cols[1] || '',
-          defaultValue: cols[2] || '',
-          minValue: cols[3] || '',
-          maxValue: cols[4] || '',
-          unit: cols[5] || '',
-          exists: !!existingParam,
-          paramDefId: existingParam?.id,
+          unit: cols[2] || '',
+          dataType: cols[3] || 'float',
+          exists: !!existingOutput,
+          outputDefId: existingOutput?.id,
         };
       })
-      .filter(p => p.key);
+      .filter(o => o.code);
 
     setParsedData(parsed);
   };
@@ -899,30 +818,30 @@ const UploadExcelModal: React.FC<{
     if (!selectedGroupId || parsedData.length === 0) return;
     setUploading(true);
     try {
-      for (const param of parsedData) {
-        if (!param.exists) {
-          const res = await configApi.createParamDef({
-            key: param.key,
-            name: param.name || param.key,
-            defaultValue: param.defaultValue || undefined,
-            unit: param.unit || undefined,
+      for (const output of parsedData) {
+        if (!output.exists) {
+          const res = await configApi.createOutputDef({
+            code: output.code,
+            name: output.name || output.code,
+            unit: output.unit || undefined,
+            dataType: output.dataType || 'float',
           });
-          param.paramDefId = res.data?.id;
+          output.outputDefId = res.data?.id;
         }
       }
 
-      for (const param of parsedData) {
-        if (param.paramDefId) {
-          await configApi.addParamToGroup(selectedGroupId, { paramDefId: param.paramDefId });
+      for (const output of parsedData) {
+        if (output.outputDefId) {
+          await configApi.addOutputToGroup(selectedGroupId, { outputDefId: output.outputDefId });
         }
       }
 
-      alert('导入成功');
+      showToast('success', '导入成功');
       onSuccess();
       onClose();
     } catch (error) {
       console.error('导入失败:', error);
-      alert('导入失败');
+      showToast('error', '导入失败');
     } finally {
       setUploading(false);
     }
@@ -932,8 +851,8 @@ const UploadExcelModal: React.FC<{
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
         <div className="p-4 border-b dark:border-slate-700">
-          <h3 className="text-lg font-bold">导入参数组合</h3>
-          <p className="text-sm text-slate-500 mt-1">上传 CSV 文件，自动识别并创建参数</p>
+          <h3 className="text-lg font-bold">导入输出组合</h3>
+          <p className="text-sm text-slate-500 mt-1">上传 CSV 文件，自动识别并创建输出</p>
         </div>
 
         <div className="p-4 space-y-4 flex-1 overflow-y-auto">
@@ -973,24 +892,24 @@ const UploadExcelModal: React.FC<{
           {parsedData.length > 0 && (
             <div>
               <label className="block text-sm font-medium mb-2">
-                预览 ({parsedData.length} 个参数)
+                预览 ({parsedData.length} 个输出)
               </label>
               <div className="border rounded-lg overflow-hidden max-h-60 overflow-y-auto">
                 <table className="w-full text-sm">
                   <thead className="bg-slate-50 dark:bg-slate-700">
                     <tr>
-                      <th className="px-3 py-2 text-left">Key</th>
+                      <th className="px-3 py-2 text-left">Code</th>
                       <th className="px-3 py-2 text-left">名称</th>
                       <th className="px-3 py-2 text-left">状态</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y dark:divide-slate-700">
-                    {parsedData.map((p, i) => (
+                    {parsedData.map((o, i) => (
                       <tr key={i}>
-                        <td className="px-3 py-2 font-mono text-xs">{p.key}</td>
-                        <td className="px-3 py-2">{p.name || '-'}</td>
+                        <td className="px-3 py-2 font-mono text-xs">{o.code}</td>
+                        <td className="px-3 py-2">{o.name || '-'}</td>
                         <td className="px-3 py-2">
-                          {p.exists ? (
+                          {o.exists ? (
                             <span className="text-green-600 flex items-center gap-1">
                               <CheckIcon className="w-4 h-4" /> 已存在
                             </span>

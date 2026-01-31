@@ -7,8 +7,6 @@ import type {
   OutputDef,
   Solver,
   FoldType,
-  ParamTplSet,
-  ParamTplItem,
   CondOutSet,
   StatusDef,
   AutomationModule,
@@ -39,7 +37,17 @@ export const baseConfigApi = {
 
   // 参数定义
   getParamDefs: () => api.get<ParamDef[]>('/config/param-defs'),
+  getParamDefsPaginated: (params: { page: number; pageSize?: number; keyword?: string }) =>
+    api.get<{ items: ParamDef[]; total: number; page: number; pageSize: number }>(
+      '/config/param-defs',
+      { params }
+    ),
   createParamDef: (data: Partial<ParamDef>) => api.post<ParamDef>('/config/param-defs', data),
+  batchCreateParamDefs: (items: Partial<ParamDef>[]) =>
+    api.post<{ created: ParamDef[]; skipped: Array<{ key: string; reason: string }> }>(
+      '/config/param-defs/batch',
+      { items }
+    ),
   updateParamDef: (id: number, data: Partial<ParamDef>) =>
     api.put<ParamDef>(`/config/param-defs/${id}`, data),
   deleteParamDef: (id: number) => api.delete(`/config/param-defs/${id}`),
@@ -61,7 +69,17 @@ export const baseConfigApi = {
 
   // 输出定义
   getOutputDefs: () => api.get<OutputDef[]>('/config/output-defs'),
+  getOutputDefsPaginated: (params: { page: number; pageSize?: number; keyword?: string }) =>
+    api.get<{ items: OutputDef[]; total: number; page: number; pageSize: number }>(
+      '/config/output-defs',
+      { params }
+    ),
   createOutputDef: (data: Partial<OutputDef>) => api.post<OutputDef>('/config/output-defs', data),
+  batchCreateOutputDefs: (items: Partial<OutputDef>[]) =>
+    api.post<{ created: OutputDef[]; skipped: Array<{ code: string; reason: string }> }>(
+      '/config/output-defs/batch',
+      { items }
+    ),
   updateOutputDef: (id: number, data: Partial<OutputDef>) =>
     api.put<OutputDef>(`/config/output-defs/${id}`, data),
   deleteOutputDef: (id: number) => api.delete(`/config/output-defs/${id}`),
@@ -73,13 +91,9 @@ export const baseConfigApi = {
     api.put<FoldType>(`/config/fold-types/${id}`, data),
   deleteFoldType: (id: number) => api.delete(`/config/fold-types/${id}`),
 
-  // 其他查询接口
-  getParamTplSets: (simTypeId?: number) =>
-    api.get<ParamTplSet[]>('/config/param-tpl-sets', { params: { simTypeId } }),
-  getParamTplItems: (tplSetId: number) =>
-    api.get<ParamTplItem[]>('/config/param-tpl-items', { params: { tplSetId } }),
-  getCondOutSets: (simTypeId?: number) =>
-    api.get<CondOutSet[]>('/config/cond-out-sets', { params: { simTypeId } }),
+  // 输出组合（旧版兼容，推荐使用 outputGroupsApi）
+  getOutputGroups: (simTypeId?: number) =>
+    api.get<CondOutSet[]>('/config/output-groups', { params: { simTypeId } }),
   getStatusDefs: () => api.get<StatusDef[]>('/config/status-defs'),
   updateStatusDef: (id: number, data: Partial<StatusDef>) =>
     api.put<StatusDef>(`/config/status-defs/${id}`, data),
@@ -118,4 +132,5 @@ export const baseConfigApi = {
     api.post<ConditionConfig>('/conditions', data),
   updateConditionConfig: (id: number, data: Partial<ConditionConfig>) =>
     api.put<ConditionConfig>(`/conditions/${id}`, data),
+  deleteConditionConfig: (id: number) => api.delete(`/conditions/${id}`),
 };

@@ -1,6 +1,12 @@
 // Configuration page translations
 export const configEn = {
   'cfg.title': 'System Configuration',
+  // 新配置页面标题
+  'cfg.basic': 'Basic Configuration',
+  'cfg.groups': 'Groups Configuration',
+  'cfg.relations': 'Relations Configuration',
+  'cfg.system': 'System Configuration',
+  'cfg.permissions': 'Permissions Configuration',
   'cfg.tab.base': 'Base Data',
   'cfg.tab.templates': 'Mappings & Templates',
   'cfg.tab.workflow': 'Workflows',
@@ -55,6 +61,12 @@ export const configEn = {
 
 export const configZh = {
   'cfg.title': '系统配置',
+  // 新配置页面标题
+  'cfg.basic': '基础配置',
+  'cfg.groups': '组合配置',
+  'cfg.relations': '关联配置',
+  'cfg.system': '系统配置',
+  'cfg.permissions': '权限配置',
   'cfg.tab.base': '基础数据',
   'cfg.tab.templates': '映射与模板',
   'cfg.tab.workflow': '工作流程',

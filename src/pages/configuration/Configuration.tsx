@@ -23,7 +23,7 @@ import {
   ActionButtons,
 } from './components';
 import { ParamGroupsManagement } from './components/ParamGroupsManagement';
-import { CondOutGroupsManagement } from './components/CondOutGroupsManagement';
+import { OutputGroupsManagement } from './components/OutputGroupsManagement';
 import { ConfigRelationsManagement } from './components/ConfigRelationsManagement';
 import { ProjectSimTypeManagement } from './components/ProjectSimTypeManagement';
 import { SystemConfigManagement } from './components/SystemConfigManagement';
@@ -91,7 +91,7 @@ const Configuration: React.FC = () => {
           label: '参数组合',
           icon: <AdjustmentsHorizontalIcon className="w-5 h-5" />,
         },
-        { key: 'condOutGroups', label: '工况输出组合', icon: <BeakerIcon className="w-5 h-5" /> },
+        { key: 'outputGroups', label: '输出组合', icon: <BeakerIcon className="w-5 h-5" /> },
       ],
     },
     {
@@ -338,8 +338,8 @@ const Configuration: React.FC = () => {
           {/* 参数组合管理 */}
           {state.activeTab === 'paramGroups' && <ParamGroupsManagement />}
 
-          {/* 工况输出组合管理 */}
-          {state.activeTab === 'condOutGroups' && <CondOutGroupsManagement />}
+          {/* 输出组合管理 */}
+          {state.activeTab === 'outputGroups' && <OutputGroupsManagement />}
 
           {/* 配置关联管理 */}
           {state.activeTab === 'configRelations' && <ConfigRelationsManagement />}

@@ -3,99 +3,82 @@
  */
 import { lazy } from 'react';
 import type { RouteObject } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { PageSuspense, RouteErrorBoundary } from '../components';
 
-// 懒加载页面
-const Configuration = lazy(() => import('@/pages/configuration/Configuration'));
+// 懒加载页面 - 新配置页面
+const BasicConfig = lazy(() => import('@/pages/configuration/BasicConfig'));
+const GroupsConfig = lazy(() => import('@/pages/configuration/GroupsConfig'));
+const RelationsConfig = lazy(() => import('@/pages/configuration/RelationsConfig'));
+const SystemConfig = lazy(() => import('@/pages/configuration/SystemConfig'));
+const PermissionsConfig = lazy(() => import('@/pages/configuration/PermissionsConfig'));
 
 /**
  * 配置管理相关路由
  */
 export const configRoutes: RouteObject[] = [
-  // 旧路径兼容
+  // 配置中心 - 重定向到基础配置
   {
     path: 'config',
-    element: (
-      <RouteErrorBoundary>
-        <PageSuspense>
-          <Configuration />
-        </PageSuspense>
-      </RouteErrorBoundary>
-    ),
-    handle: {
-      title: '配置中心',
-      permission: 'MANAGE_CONFIG',
-    },
-  },
-  // 新路径 - 配置中心
-  {
-    path: 'configuration',
     children: [
       {
         index: true,
-        element: (
-          <RouteErrorBoundary>
-            <PageSuspense>
-              <Configuration />
-            </PageSuspense>
-          </RouteErrorBoundary>
-        ),
-        handle: { title: '配置中心', permission: 'CONFIG_VIEW' },
+        element: <Navigate to="/config/basic" replace />,
       },
       {
-        path: 'projects',
+        path: 'basic',
         element: (
           <RouteErrorBoundary>
             <PageSuspense>
-              <Configuration />
+              <BasicConfig />
             </PageSuspense>
           </RouteErrorBoundary>
         ),
-        handle: { title: '项目管理', permission: 'CONFIG_VIEW' },
+        handle: { title: '基础配置', permission: 'CONFIG_VIEW' },
       },
       {
-        path: 'sim-types',
+        path: 'groups',
         element: (
           <RouteErrorBoundary>
             <PageSuspense>
-              <Configuration />
+              <GroupsConfig />
             </PageSuspense>
           </RouteErrorBoundary>
         ),
-        handle: { title: '仿真类型', permission: 'CONFIG_VIEW' },
+        handle: { title: '组合配置', permission: 'CONFIG_VIEW' },
       },
       {
-        path: 'parameters',
+        path: 'relations',
         element: (
           <RouteErrorBoundary>
             <PageSuspense>
-              <Configuration />
+              <RelationsConfig />
             </PageSuspense>
           </RouteErrorBoundary>
         ),
-        handle: { title: '参数配置', permission: 'CONFIG_VIEW' },
+        handle: { title: '关联配置', permission: 'CONFIG_VIEW' },
       },
       {
-        path: 'outputs',
+        path: 'system',
         element: (
           <RouteErrorBoundary>
             <PageSuspense>
-              <Configuration />
+              <SystemConfig />
             </PageSuspense>
           </RouteErrorBoundary>
         ),
-        handle: { title: '输出配置', permission: 'CONFIG_VIEW' },
+        handle: { title: '系统配置', permission: 'CONFIG_VIEW' },
       },
       {
-        path: 'solvers',
+        path: 'permissions',
         element: (
           <RouteErrorBoundary>
             <PageSuspense>
-              <Configuration />
+              <PermissionsConfig />
             </PageSuspense>
           </RouteErrorBoundary>
         ),
-        handle: { title: '求解器', permission: 'CONFIG_VIEW' },
+        handle: { title: '权限配置', permission: 'CONFIG_VIEW' },
       },
     ],
   },

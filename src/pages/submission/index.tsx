@@ -556,7 +556,7 @@ const Submission: React.FC = () => {
             config={state.simTypeConfigs[state.activeSimTypeId]}
             simTypeId={state.activeSimTypeId}
             paramDefs={state.safeParamDefs}
-            paramTplSets={state.safeParamTplSets}
+            paramGroups={state.safeParamGroups}
             conditionConfig={
               foldTypeIds.length > 0
                 ? state.getConditionConfig(foldTypeIds[0], state.activeSimTypeId)

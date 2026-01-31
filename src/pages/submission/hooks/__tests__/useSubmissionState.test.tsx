@@ -10,8 +10,9 @@ vi.mock('@/features/config/queries', () => ({
   useSolvers: vi.fn(),
   useOutputDefs: vi.fn(),
   useConditionDefs: vi.fn(),
-  useParamTplSets: vi.fn(),
+  useParamGroups: vi.fn(),
   useCondOutSets: vi.fn(),
+  useConditionConfigs: vi.fn(),
 }));
 
 const createQueryResult = (overrides = {}) => ({
@@ -37,8 +38,9 @@ describe('useSubmissionState', () => {
     vi.mocked(queries.useSolvers).mockReturnValue(createQueryResult());
     vi.mocked(queries.useOutputDefs).mockReturnValue(createQueryResult());
     vi.mocked(queries.useConditionDefs).mockReturnValue(createQueryResult());
-    vi.mocked(queries.useParamTplSets).mockReturnValue(createQueryResult());
+    vi.mocked(queries.useParamGroups).mockReturnValue(createQueryResult());
     vi.mocked(queries.useCondOutSets).mockReturnValue(createQueryResult());
+    vi.mocked(queries.useConditionConfigs).mockReturnValue(createQueryResult());
 
     const { result } = renderHook(() => useSubmissionState(null));
 
@@ -56,8 +58,9 @@ describe('useSubmissionState', () => {
     const solvers = createQueryResult();
     const outputDefs = createQueryResult();
     const conditionDefs = createQueryResult();
-    const paramTplSets = createQueryResult();
+    const paramGroups = createQueryResult();
     const condOutSets = createQueryResult();
+    const conditionConfigs = createQueryResult();
 
     vi.mocked(queries.useProjects).mockReturnValue(projects);
     vi.mocked(queries.useSimTypes).mockReturnValue(simTypes);
@@ -66,8 +69,9 @@ describe('useSubmissionState', () => {
     vi.mocked(queries.useSolvers).mockReturnValue(solvers);
     vi.mocked(queries.useOutputDefs).mockReturnValue(outputDefs);
     vi.mocked(queries.useConditionDefs).mockReturnValue(conditionDefs);
-    vi.mocked(queries.useParamTplSets).mockReturnValue(paramTplSets);
+    vi.mocked(queries.useParamGroups).mockReturnValue(paramGroups);
     vi.mocked(queries.useCondOutSets).mockReturnValue(condOutSets);
+    vi.mocked(queries.useConditionConfigs).mockReturnValue(conditionConfigs);
 
     const { result } = renderHook(() => useSubmissionState(null));
 
@@ -82,7 +86,8 @@ describe('useSubmissionState', () => {
     expect(solvers.refetch).toHaveBeenCalled();
     expect(outputDefs.refetch).toHaveBeenCalled();
     expect(conditionDefs.refetch).toHaveBeenCalled();
-    expect(paramTplSets.refetch).toHaveBeenCalled();
+    expect(paramGroups.refetch).toHaveBeenCalled();
     expect(condOutSets.refetch).toHaveBeenCalled();
+    expect(conditionConfigs.refetch).toHaveBeenCalled();
   });
 });

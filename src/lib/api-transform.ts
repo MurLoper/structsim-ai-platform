@@ -14,7 +14,7 @@ type JsonArray = JsonValue[];
  * @example { projectId: 1 } => { project_id: 1 }
  */
 export function toSnakeCase<T>(obj: T): T {
-  if (obj === null || typeof obj !== 'object') {
+  if (obj === null || obj === undefined || typeof obj !== 'object') {
     return obj;
   }
 

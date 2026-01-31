@@ -24,8 +24,63 @@ export interface ParamInGroup {
   required?: number;
 }
 
-// ============ 工况输出组合相关类型 ============
-export interface CondOutGroup {
+// ============ 搜索和批量操作结果类型 ============
+export interface SearchParamResult {
+  paramDefId: number;
+  paramKey: string;
+  paramName: string;
+  unit?: string;
+  valType?: number;
+  inGroup: boolean;
+}
+
+export interface SearchParamsResponse {
+  params: SearchParamResult[];
+  total: number;
+  keyword: string;
+}
+
+export interface CheckParamExistsResponse {
+  exists: boolean;
+  matchBy?: 'key' | 'name';
+  param?: {
+    paramDefId: number;
+    paramKey: string;
+    paramName: string;
+    unit?: string;
+    valType?: number;
+  };
+}
+
+export interface BatchOperationResult {
+  addedCount?: number;
+  skippedCount?: number;
+  errorCount?: number;
+  removedCount?: number;
+  notFoundCount?: number;
+  clearedCount?: number;
+  added?: Array<{ paramDefId: number; paramKey: string }>;
+  skipped?: Array<{ paramDefId: number; paramKey: string; reason: string }>;
+  errors?: Array<{ index: number; paramDefId?: number; reason: string }>;
+  removed?: number[];
+  notFound?: number[];
+}
+
+export interface CreateAndAddParamResult {
+  created: boolean;
+  added: boolean;
+  reason?: string;
+  param: {
+    paramDefId: number;
+    paramKey: string;
+    paramName: string;
+    unit?: string;
+    valType?: number;
+  };
+}
+
+// ============ 输出组合相关类型 ============
+export interface OutputGroup {
   id: number;
   name: string;
   description?: string;
@@ -35,22 +90,9 @@ export interface CondOutGroup {
   updatedAt: number;
 }
 
-export interface ConditionInGroup {
-  id: number;
-  condOutGroupId: number;
-  conditionDefId: number;
-  configData?: Record<string, unknown>;
-  sort: number;
-  createdAt: number;
-  // 工况定义信息
-  conditionName?: string;
-  conditionCode?: string;
-  conditionSchema?: Record<string, unknown>;
-}
-
 export interface OutputInGroup {
   id: number;
-  condOutGroupId: number;
+  outputGroupId: number;
   outputDefId: number;
   sort: number;
   createdAt: number;
@@ -84,15 +126,15 @@ export interface SimTypeParamGroupRel {
   paramGroupDescription?: string;
 }
 
-export interface SimTypeCondOutGroupRel {
+export interface SimTypeOutputGroupRel {
   id: number;
   simTypeId: number;
-  condOutGroupId: number;
+  outputGroupId: number;
   isDefault: number;
   sort: number;
   createdAt: number;
-  condOutGroupName?: string;
-  condOutGroupDescription?: string;
+  outputGroupName?: string;
+  outputGroupDescription?: string;
 }
 
 export interface SimTypeSolverRel {
@@ -148,11 +190,10 @@ export interface ParamGroupOption {
   params: ParamConfig[];
 }
 
-export interface CondOutGroupOption {
-  condOutGroupId: number;
-  condOutGroupName: string;
+export interface OutputGroupOption {
+  outputGroupId: number;
+  outputGroupName: string;
   isDefault: number;
-  conditions: ConditionConfig[];
   outputs: OutputConfig[];
 }
 
@@ -171,9 +212,9 @@ export interface OrderInitConfig {
   simTypeName: string;
   simTypeCode: string;
   defaultParamGroup?: ParamGroupOption;
-  defaultCondOutGroup?: CondOutGroupOption;
+  defaultOutputGroup?: OutputGroupOption;
   defaultSolver?: SolverConfig;
   paramGroupOptions: ParamGroupOption[];
-  condOutGroupOptions: CondOutGroupOption[];
+  outputGroupOptions: OutputGroupOption[];
   solverOptions: SolverOption[];
 }

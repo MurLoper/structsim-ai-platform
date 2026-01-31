@@ -121,7 +121,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         configApi.getProjects().catch(() => ({ data: [] })),
         configApi.getWorkflows().catch(() => ({ data: [] })),
         configApi.getParamTplSets().catch(() => ({ data: [] })),
-        configApi.getCondOutSets().catch(() => ({ data: [] })),
+        configApi.getOutputGroups().catch(() => ({ data: [] })),
       ]);
 
       set({

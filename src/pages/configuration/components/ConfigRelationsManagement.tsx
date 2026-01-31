@@ -6,13 +6,13 @@ import { configApi } from '@/api';
 import { useFormState } from '@/hooks/useFormState';
 import type {
   SimTypeParamGroupRel,
-  SimTypeCondOutGroupRel,
+  SimTypeOutputGroupRel,
   SimTypeSolverRel,
 } from '@/types/configGroups';
-import type { SimType, ParamGroup, CondOutGroup, Solver } from '@/api';
+import type { SimType, ParamGroup, OutputGroup, Solver } from '@/types/configGroups';
 
 export const ConfigRelationsManagement: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'paramGroups' | 'condOutGroups' | 'solvers'>(
+  const [activeTab, setActiveTab] = useState<'paramGroups' | 'outputGroups' | 'solvers'>(
     'paramGroups'
   );
   const [simTypes, setSimTypes] = useState<SimType[]>([]);
@@ -24,10 +24,10 @@ export const ConfigRelationsManagement: React.FC = () => {
   const [allParamGroups, setAllParamGroups] = useState<ParamGroup[]>([]);
   const [showAddParamGroupModal, setShowAddParamGroupModal] = useState(false);
 
-  // 工况输出组合相关
-  const [condOutGroupRels, setCondOutGroupRels] = useState<SimTypeCondOutGroupRel[]>([]);
-  const [allCondOutGroups, setAllCondOutGroups] = useState<CondOutGroup[]>([]);
-  const [showAddCondOutGroupModal, setShowAddCondOutGroupModal] = useState(false);
+  // 输出组合相关
+  const [outputGroupRels, setOutputGroupRels] = useState<SimTypeOutputGroupRel[]>([]);
+  const [allOutputGroups, setAllOutputGroups] = useState<OutputGroup[]>([]);
+  const [showAddOutputGroupModal, setShowAddOutputGroupModal] = useState(false);
 
   // 求解器相关
   const [solverRels, setSolverRels] = useState<SimTypeSolverRel[]>([]);
@@ -50,13 +50,13 @@ export const ConfigRelationsManagement: React.FC = () => {
   // 加载所有可用的配置
   const loadAllConfigs = async () => {
     try {
-      const [paramGroupsRes, condOutGroupsRes, solversRes] = await Promise.all([
+      const [paramGroupsRes, outputGroupsRes, solversRes] = await Promise.all([
         configApi.getParamGroups(),
-        configApi.getCondOutGroups(),
+        configApi.getOutputGroups(),
         configApi.getSolvers(),
       ]);
       setAllParamGroups((paramGroupsRes.data || []) as ParamGroup[]);
-      setAllCondOutGroups((condOutGroupsRes.data || []) as CondOutGroup[]);
+      setAllOutputGroups((outputGroupsRes.data || []) as OutputGroup[]);
       setAllSolvers((solversRes.data || []) as Solver[]);
     } catch (error) {
       console.error('加载配置失败:', error);
@@ -69,9 +69,9 @@ export const ConfigRelationsManagement: React.FC = () => {
       if (activeTab === 'paramGroups') {
         const response = await configApi.getSimTypeParamGroups(simTypeId);
         setParamGroupRels((response.data || []) as SimTypeParamGroupRel[]);
-      } else if (activeTab === 'condOutGroups') {
-        const response = await configApi.getSimTypeCondOutGroups(simTypeId);
-        setCondOutGroupRels((response.data || []) as SimTypeCondOutGroupRel[]);
+      } else if (activeTab === 'outputGroups') {
+        const response = await configApi.getSimTypeOutputGroups(simTypeId);
+        setOutputGroupRels((response.data || []) as SimTypeOutputGroupRel[]);
       } else if (activeTab === 'solvers') {
         const response = await configApi.getSimTypeSolvers(simTypeId);
         setSolverRels((response.data || []) as SimTypeSolverRel[]);
@@ -128,38 +128,38 @@ export const ConfigRelationsManagement: React.FC = () => {
     }
   };
 
-  // 添加工况输出组合关联
-  const handleAddCondOutGroup = async (condOutGroupId: number, isDefault: number) => {
+  // 添加输出组合关联
+  const handleAddOutputGroup = async (outputGroupId: number, isDefault: number) => {
     if (!selectedSimType) return;
     try {
-      await configApi.addCondOutGroupToSimType(selectedSimType.id, { condOutGroupId, isDefault });
+      await configApi.addOutputGroupToSimType(selectedSimType.id, { outputGroupId, isDefault });
       loadSimTypeRelations(selectedSimType.id);
-      setShowAddCondOutGroupModal(false);
+      setShowAddOutputGroupModal(false);
     } catch (error) {
-      console.error('添加工况输出组合关联失败:', error);
+      console.error('添加输出组合关联失败:', error);
     }
   };
 
-  // 设置默认工况输出组合
-  const handleSetDefaultCondOutGroup = async (condOutGroupId: number) => {
+  // 设置默认输出组合
+  const handleSetDefaultOutputGroup = async (outputGroupId: number) => {
     if (!selectedSimType) return;
     try {
-      await configApi.setDefaultCondOutGroup(selectedSimType.id, condOutGroupId);
+      await configApi.setDefaultOutputGroup(selectedSimType.id, outputGroupId);
       loadSimTypeRelations(selectedSimType.id);
     } catch (error) {
-      console.error('设置默认工况输出组合失败:', error);
+      console.error('设置默认输出组合失败:', error);
     }
   };
 
-  // 移除工况输出组合关联
-  const handleRemoveCondOutGroup = async (condOutGroupId: number) => {
+  // 移除输出组合关联
+  const handleRemoveOutputGroup = async (outputGroupId: number) => {
     if (!selectedSimType) return;
-    if (!confirm('确定要移除这个工况输出组合关联吗？')) return;
+    if (!confirm('确定要移除这个输出组合关联吗？')) return;
     try {
-      await configApi.removeCondOutGroupFromSimType(selectedSimType.id, condOutGroupId);
+      await configApi.removeOutputGroupFromSimType(selectedSimType.id, outputGroupId);
       loadSimTypeRelations(selectedSimType.id);
     } catch (error) {
-      console.error('移除工况输出组合关联失败:', error);
+      console.error('移除输出组合关联失败:', error);
     }
   };
 
@@ -254,14 +254,14 @@ export const ConfigRelationsManagement: React.FC = () => {
                 参数组合
               </button>
               <button
-                onClick={() => setActiveTab('condOutGroups')}
+                onClick={() => setActiveTab('outputGroups')}
                 className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeTab === 'condOutGroups'
+                  activeTab === 'outputGroups'
                     ? 'bg-blue-600 text-white'
                     : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                 }`}
               >
-                工况输出组合
+                输出组合
               </button>
               <button
                 onClick={() => setActiveTab('solvers')}
@@ -345,15 +345,13 @@ export const ConfigRelationsManagement: React.FC = () => {
               </Card>
             )}
 
-            {/* 工况输出组合关联 */}
-            {activeTab === 'condOutGroups' && (
+            {/* 输出组合关联 */}
+            {activeTab === 'outputGroups' && (
               <Card>
                 <div className="p-4 border-b dark:border-slate-700 flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">
-                    {selectedSimType.name} - 工况输出组合关联
-                  </h3>
+                  <h3 className="text-lg font-semibold">{selectedSimType.name} - 输出组合关联</h3>
                   <button
-                    onClick={() => setShowAddCondOutGroupModal(true)}
+                    onClick={() => setShowAddOutputGroupModal(true)}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                   >
                     <PlusIcon className="w-4 h-4" />
@@ -361,33 +359,33 @@ export const ConfigRelationsManagement: React.FC = () => {
                   </button>
                 </div>
                 <div className="p-4">
-                  {condOutGroupRels.length === 0 ? (
-                    <div className="text-center py-12 text-slate-500">暂无关联的工况输出组合</div>
+                  {outputGroupRels.length === 0 ? (
+                    <div className="text-center py-12 text-slate-500">暂无关联的输出组合</div>
                   ) : (
                     <div className="space-y-2">
-                      {condOutGroupRels.map(rel => (
+                      {outputGroupRels.map(rel => (
                         <div
                           key={rel.id}
                           className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg flex justify-between items-center"
                         >
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-medium">{rel.condOutGroupName}</span>
+                              <span className="font-medium">{rel.outputGroupName}</span>
                               {rel.isDefault === 1 && (
                                 <span className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs rounded">
                                   默认
                                 </span>
                               )}
                             </div>
-                            {rel.condOutGroupDescription && (
+                            {rel.outputGroupDescription && (
                               <div className="text-sm text-slate-500 mt-1">
-                                {rel.condOutGroupDescription}
+                                {rel.outputGroupDescription}
                               </div>
                             )}
                           </div>
                           <div className="flex gap-2">
                             <button
-                              onClick={() => handleSetDefaultCondOutGroup(rel.condOutGroupId)}
+                              onClick={() => handleSetDefaultOutputGroup(rel.outputGroupId)}
                               disabled={rel.isDefault === 1}
                               className={`p-2 rounded transition-colors ${
                                 rel.isDefault === 1
@@ -403,7 +401,7 @@ export const ConfigRelationsManagement: React.FC = () => {
                               )}
                             </button>
                             <button
-                              onClick={() => handleRemoveCondOutGroup(rel.condOutGroupId)}
+                              onClick={() => handleRemoveOutputGroup(rel.outputGroupId)}
                               className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
                             >
                               <TrashIcon className="w-5 h-5" />
@@ -501,14 +499,14 @@ export const ConfigRelationsManagement: React.FC = () => {
         />
       )}
 
-      {/* 添加工况输出组合关联模态框 */}
-      {showAddCondOutGroupModal && selectedSimType && (
+      {/* 添加输出组合关联模态框 */}
+      {showAddOutputGroupModal && selectedSimType && (
         <AddRelationModal
-          title="添加工况输出组合关联"
-          items={allCondOutGroups}
-          existingIds={new Set(condOutGroupRels.map(r => r.condOutGroupId))}
-          onAdd={handleAddCondOutGroup}
-          onClose={() => setShowAddCondOutGroupModal(false)}
+          title="添加输出组合关联"
+          items={allOutputGroups}
+          existingIds={new Set(outputGroupRels.map(r => r.outputGroupId))}
+          onAdd={handleAddOutputGroup}
+          onClose={() => setShowAddOutputGroupModal(false)}
           getItemLabel={item => item.name}
           getItemSubLabel={item => item.description}
         />

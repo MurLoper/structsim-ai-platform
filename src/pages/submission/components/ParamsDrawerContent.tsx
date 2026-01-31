@@ -1,12 +1,13 @@
 import React, { useMemo } from 'react';
 import type { SimTypeConfig } from '../types';
-import type { ParamDef, ParamTplSet, ConditionConfig } from '@/types/config';
+import type { ParamDef, ConditionConfig } from '@/types/config';
+import type { ParamGroup } from '@/types/configGroups';
 
 interface ParamsDrawerContentProps {
   config: SimTypeConfig;
   simTypeId: number;
   paramDefs: ParamDef[];
-  paramTplSets: ParamTplSet[];
+  paramGroups: ParamGroup[];
   conditionConfig?: ConditionConfig;
   onUpdate: (updates: Partial<SimTypeConfig>) => void;
 }
@@ -15,17 +16,18 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
   config,
   simTypeId,
   paramDefs,
-  paramTplSets,
+  paramGroups,
   conditionConfig,
   onUpdate,
 }) => {
-  // 根据工况配置筛选参数组，如果没有工况配置则按 simTypeId 筛选
-  const filteredTplSets = useMemo(() => {
+  // 根据工况配置筛选参数组
+  const filteredParamGroups = useMemo(() => {
     if (conditionConfig?.paramGroupIds?.length) {
-      return paramTplSets.filter(s => conditionConfig.paramGroupIds.includes(s.id));
+      return paramGroups.filter(g => conditionConfig.paramGroupIds.includes(g.id));
     }
-    return paramTplSets.filter(s => s.simTypeId === simTypeId);
-  }, [paramTplSets, conditionConfig, simTypeId]);
+    // 如果没有工况配置，返回所有参数组
+    return paramGroups;
+  }, [paramGroups, conditionConfig]);
 
   return (
     <div className="space-y-5">
@@ -73,10 +75,10 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
               })
             }
           >
-            <option value="">-- 选择参数模板集 --</option>
-            {filteredTplSets.map(s => (
-              <option key={s.id} value={s.id}>
-                {s.name}
+            <option value="">-- 选择参数组 --</option>
+            {filteredParamGroups.map(g => (
+              <option key={g.id} value={g.id}>
+                {g.name}
               </option>
             ))}
           </select>

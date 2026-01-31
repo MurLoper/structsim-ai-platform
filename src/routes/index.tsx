@@ -9,12 +9,18 @@ const Login = React.lazy(() => import('@/pages/auth/Login'));
 const Dashboard = React.lazy(() => import('@/pages/dashboard/Dashboard'));
 const Results = React.lazy(() => import('@/pages/dashboard/Results'));
 const Submission = React.lazy(() => import('@/pages/submission'));
-const Configuration = React.lazy(() => import('@/pages/configuration/Configuration'));
 const NoPermission = React.lazy(() => import('@/pages/auth/NoPermission'));
 const VirtualTableTest = React.lazy(() => import('@/pages/performance-test/VirtualTableTest'));
 const EChartsPerformanceTest = React.lazy(
   () => import('@/pages/performance-test/EChartsPerformanceTest')
 );
+
+// 配置管理子页面
+const BasicConfig = React.lazy(() => import('@/pages/configuration/BasicConfig'));
+const GroupsConfig = React.lazy(() => import('@/pages/configuration/GroupsConfig'));
+const RelationsConfig = React.lazy(() => import('@/pages/configuration/RelationsConfig'));
+const SystemConfig = React.lazy(() => import('@/pages/configuration/SystemConfig'));
+const PermissionsConfig = React.lazy(() => import('@/pages/configuration/PermissionsConfig'));
 
 // Protected route wrapper
 interface ProtectedRouteProps {
@@ -100,11 +106,63 @@ export const routes: RouteObject[] = [
   },
   {
     path: '/config',
+    element: <Navigate to="/config/basic" replace />,
+  },
+  {
+    path: '/config/basic',
     element: (
       <ProtectedRoute perm="MANAGE_CONFIG">
         <SuspenseWrapper>
           <Layout>
-            <Configuration />
+            <BasicConfig />
+          </Layout>
+        </SuspenseWrapper>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/config/groups',
+    element: (
+      <ProtectedRoute perm="MANAGE_CONFIG">
+        <SuspenseWrapper>
+          <Layout>
+            <GroupsConfig />
+          </Layout>
+        </SuspenseWrapper>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/config/relations',
+    element: (
+      <ProtectedRoute perm="MANAGE_CONFIG">
+        <SuspenseWrapper>
+          <Layout>
+            <RelationsConfig />
+          </Layout>
+        </SuspenseWrapper>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/config/system',
+    element: (
+      <ProtectedRoute perm="MANAGE_CONFIG">
+        <SuspenseWrapper>
+          <Layout>
+            <SystemConfig />
+          </Layout>
+        </SuspenseWrapper>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/config/permissions',
+    element: (
+      <ProtectedRoute perm="MANAGE_CONFIG">
+        <SuspenseWrapper>
+          <Layout>
+            <PermissionsConfig />
           </Layout>
         </SuspenseWrapper>
       </ProtectedRoute>

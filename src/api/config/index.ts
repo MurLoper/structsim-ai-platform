@@ -4,16 +4,16 @@ export * from '@/types/configGroups';
 
 // 导入各个子模块
 import { baseConfigApi } from './base';
-import { paramGroupsApi, condOutGroupsApi, configRelationsApi, orderInitApi } from './groups';
+import { paramGroupsApi, outputGroupsApi, configRelationsApi, orderInitApi } from './groups';
 
 // 统一导出 configApi（推荐使用方式）
 export const configApi = {
   ...baseConfigApi,
   ...paramGroupsApi,
-  ...condOutGroupsApi,
+  ...outputGroupsApi,
   ...configRelationsApi,
   ...orderInitApi,
 };
 
 // 也可以按模块导出（如果需要单独使用某个模块）
-export { baseConfigApi, paramGroupsApi, condOutGroupsApi, configRelationsApi, orderInitApi };
+export { baseConfigApi, paramGroupsApi, outputGroupsApi, configRelationsApi, orderInitApi };

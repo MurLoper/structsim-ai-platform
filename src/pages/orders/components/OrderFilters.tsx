@@ -73,9 +73,9 @@ const OrderFilters: React.FC<OrderFiltersProps> = memo(
               状态
             </label>
             <select
-              value={filters.status || ''}
+              value={filters.status !== undefined ? filters.status.toString() : ''}
               onChange={e =>
-                handleChange('status', e.target.value ? Number(e.target.value) : undefined)
+                handleChange('status', e.target.value !== '' ? Number(e.target.value) : undefined)
               }
               disabled={statusOptions.length === 0}
               className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg
@@ -85,7 +85,7 @@ const OrderFilters: React.FC<OrderFiltersProps> = memo(
             >
               <option value="">全部状态</option>
               {statusOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>
+                <option key={opt.value} value={opt.value.toString()}>
                   {opt.label}
                 </option>
               ))}
