@@ -1,13 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui';
-import { PlusIcon, TrashIcon, StarIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, TrashIcon, StarIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { baseConfigApi } from '@/api/config/base';
 import type { FoldType, SimType, FoldTypeSimTypeRel } from '@/types/config';
-
-interface FoldTypeWithSimTypes extends FoldType {
-  simTypes: SimTypeRelItem[];
-}
 
 interface SimTypeRelItem {
   relId: number;

@@ -11,7 +11,7 @@ vi.mock('@/features/config/queries', () => ({
   useOutputDefs: vi.fn(),
   useConditionDefs: vi.fn(),
   useParamGroups: vi.fn(),
-  useCondOutSets: vi.fn(),
+  useOutputSets: vi.fn(),
   useConditionConfigs: vi.fn(),
 }));
 
@@ -39,7 +39,7 @@ describe('useSubmissionState', () => {
     vi.mocked(queries.useOutputDefs).mockReturnValue(createQueryResult());
     vi.mocked(queries.useConditionDefs).mockReturnValue(createQueryResult());
     vi.mocked(queries.useParamGroups).mockReturnValue(createQueryResult());
-    vi.mocked(queries.useCondOutSets).mockReturnValue(createQueryResult());
+    vi.mocked(queries.useOutputSets).mockReturnValue(createQueryResult());
     vi.mocked(queries.useConditionConfigs).mockReturnValue(createQueryResult());
 
     const { result } = renderHook(() => useSubmissionState(null));
@@ -59,7 +59,7 @@ describe('useSubmissionState', () => {
     const outputDefs = createQueryResult();
     const conditionDefs = createQueryResult();
     const paramGroups = createQueryResult();
-    const condOutSets = createQueryResult();
+    const outputSets = createQueryResult();
     const conditionConfigs = createQueryResult();
 
     vi.mocked(queries.useProjects).mockReturnValue(projects);
@@ -70,7 +70,7 @@ describe('useSubmissionState', () => {
     vi.mocked(queries.useOutputDefs).mockReturnValue(outputDefs);
     vi.mocked(queries.useConditionDefs).mockReturnValue(conditionDefs);
     vi.mocked(queries.useParamGroups).mockReturnValue(paramGroups);
-    vi.mocked(queries.useCondOutSets).mockReturnValue(condOutSets);
+    vi.mocked(queries.useOutputSets).mockReturnValue(outputSets);
     vi.mocked(queries.useConditionConfigs).mockReturnValue(conditionConfigs);
 
     const { result } = renderHook(() => useSubmissionState(null));
@@ -87,7 +87,7 @@ describe('useSubmissionState', () => {
     expect(outputDefs.refetch).toHaveBeenCalled();
     expect(conditionDefs.refetch).toHaveBeenCalled();
     expect(paramGroups.refetch).toHaveBeenCalled();
-    expect(condOutSets.refetch).toHaveBeenCalled();
+    expect(outputSets.refetch).toHaveBeenCalled();
     expect(conditionConfigs.refetch).toHaveBeenCalled();
   });
 });

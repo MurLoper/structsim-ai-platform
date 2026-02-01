@@ -27,10 +27,13 @@ export interface OrderOriginFile {
 
 export interface OrderDetail extends OrderListItem {
   originFile: OrderOriginFile;
-  foldTypeId?: number | null;
-  participantUids?: number[];
+  originFoldTypeId?: number | null;
+  foldTypeIds?: number[];
+  modelLevelId?: number;
+  participantIds?: number[];
   remark?: string | null;
   optParam?: Record<string, unknown>;
+  inputJson?: Record<string, unknown>;
   workflowId?: number | null;
   curNodeId?: number | null;
   submitCheck?: Record<string, unknown> | null;
@@ -39,12 +42,15 @@ export interface OrderDetail extends OrderListItem {
 
 export interface OrderCreatePayload {
   projectId: number;
+  modelLevelId?: number;
   originFile: OrderOriginFile;
-  foldTypeId?: number | null;
-  participantUids?: number[];
+  originFoldTypeId?: number | null;
+  foldTypeIds?: number[];
+  participantIds?: number[];
   remark?: string;
   simTypeIds: number[];
   optParam?: Record<string, unknown>;
+  inputJson?: Record<string, unknown>;
   workflowId?: number | null;
   submitCheck?: Record<string, unknown> | null;
   clientMeta?: Record<string, unknown> | null;

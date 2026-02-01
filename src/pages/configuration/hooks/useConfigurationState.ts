@@ -28,6 +28,14 @@ import {
   useCreateFoldType,
   useUpdateFoldType,
   useDeleteFoldType,
+  useCareDevices,
+  useCreateCareDevice,
+  useUpdateCareDevice,
+  useDeleteCareDevice,
+  useSolverResources,
+  useCreateSolverResource,
+  useUpdateSolverResource,
+  useDeleteSolverResource,
   useWorkflows,
 } from '@/features/config/queries';
 import { useToast, useConfirmDialog } from '@/components/ui';
@@ -39,9 +47,11 @@ type ModalType =
   | 'simType'
   | 'paramDef'
   | 'solver'
+  | 'solverResource'
   | 'conditionDef'
   | 'outputDef'
-  | 'foldType';
+  | 'foldType'
+  | 'careDevice';
 
 const getDefaultFormData = (type: ModalType) => {
   switch (type) {
@@ -80,6 +90,10 @@ const getDefaultFormData = (type: ModalType) => {
       return { name: '', code: '', unit: '', dataType: 'float', sort: 100, remark: '' };
     case 'foldType':
       return { name: '', code: '', angle: 0, sort: 100, remark: '' };
+    case 'careDevice':
+      return { name: '', code: '', category: '', sort: 100, remark: '' };
+    case 'solverResource':
+      return { name: '', code: '', description: '', cpuCores: null, memoryGb: null, sort: 100 };
     default:
       return {};
   }
@@ -94,6 +108,8 @@ export const useConfigurationState = () => {
   const { data: conditionDefs = [] } = useConditionDefs();
   const { data: outputDefs = [] } = useOutputDefs();
   const { data: foldTypes = [] } = useFoldTypes();
+  const { data: careDevices = [] } = useCareDevices();
+  const { data: solverResources = [] } = useSolverResources();
 
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
@@ -122,6 +138,14 @@ export const useConfigurationState = () => {
   const createFoldType = useCreateFoldType();
   const updateFoldType = useUpdateFoldType();
   const deleteFoldType = useDeleteFoldType();
+
+  const createCareDevice = useCreateCareDevice();
+  const updateCareDevice = useUpdateCareDevice();
+  const deleteCareDevice = useDeleteCareDevice();
+
+  const createSolverResource = useCreateSolverResource();
+  const updateSolverResource = useUpdateSolverResource();
+  const deleteSolverResource = useDeleteSolverResource();
 
   const { showToast } = useToast();
   const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
@@ -195,6 +219,22 @@ export const useConfigurationState = () => {
         await createFoldType.mutateAsync(data);
         showToast('success', '姿态类型创建成功');
       }
+    } else if (modalType === 'careDevice') {
+      if (editingItem) {
+        await updateCareDevice.mutateAsync({ id: editingItem.id as number, data });
+        showToast('success', '关注器件更新成功');
+      } else {
+        await createCareDevice.mutateAsync(data);
+        showToast('success', '关注器件创建成功');
+      }
+    } else if (modalType === 'solverResource') {
+      if (editingItem) {
+        await updateSolverResource.mutateAsync({ id: editingItem.id as number, data });
+        showToast('success', '资源池更新成功');
+      } else {
+        await createSolverResource.mutateAsync(data);
+        showToast('success', '资源池创建成功');
+      }
     }
   });
 
@@ -245,6 +285,10 @@ export const useConfigurationState = () => {
               await deleteOutputDef.mutateAsync(id);
             } else if (type === 'foldType') {
               await deleteFoldType.mutateAsync(id);
+            } else if (type === 'careDevice') {
+              await deleteCareDevice.mutateAsync(id);
+            } else if (type === 'solverResource') {
+              await deleteSolverResource.mutateAsync(id);
             }
 
             showToast('success', '删除成功');
@@ -267,6 +311,8 @@ export const useConfigurationState = () => {
       deleteConditionDef,
       deleteOutputDef,
       deleteFoldType,
+      deleteCareDevice,
+      deleteSolverResource,
     ]
   );
 
@@ -284,6 +330,8 @@ export const useConfigurationState = () => {
     conditionDefs: conditionDefs || [],
     outputDefs: outputDefs || [],
     foldTypes: foldTypes || [],
+    careDevices: careDevices || [],
+    solverResources: solverResources || [],
     // 状态
     activeTab,
     setActiveTab,

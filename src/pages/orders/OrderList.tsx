@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
 import { Button, Card, Badge, StatusBadge } from '@/components/ui';
-import { ArrowRight, Beaker } from 'lucide-react';
+import { ArrowRight, Beaker, Pencil } from 'lucide-react';
 import { useStatusDefs } from '@/features/config/queries/useCompositeConfigs';
 import { useProjects, useSimTypes } from '@/features/config/queries';
 import { useOrders } from '@/features/orders/queries';
@@ -187,7 +187,13 @@ const OrderList: React.FC = () => {
         header: t('orders.col.action'),
         accessorKey: 'id',
         cell: ({ row }) => (
-          <div className="flex justify-end">
+          <div className="flex justify-end gap-2">
+            <button
+              onClick={() => navigate(`/create?orderId=${row.original.id}`)}
+              className="text-slate-600 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 font-medium text-sm flex items-center gap-1"
+            >
+              {t('common.edit')} <Pencil className="w-4 h-4" />
+            </button>
             <button
               onClick={() => navigate(`/results/${row.original.id}`)}
               className="text-brand-600 hover:text-brand-700 font-medium text-sm flex items-center gap-1"

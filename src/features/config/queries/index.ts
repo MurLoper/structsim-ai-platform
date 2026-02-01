@@ -10,6 +10,8 @@ export * from './useSolvers';
 export * from './useConditionDefs';
 export * from './useOutputDefs';
 export * from './useFoldTypes';
+export * from './useCareDevices';
+export * from './useSolverResources';
 export * from './useWorkflows';
 export * from './useWorkingConditions';
 

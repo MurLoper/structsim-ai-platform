@@ -8,8 +8,10 @@ import type {
   SimTypeParamGroupRel,
   SimTypeOutputGroupRel,
   SimTypeSolverRel,
+  ParamGroup,
+  OutputGroup,
 } from '@/types/configGroups';
-import type { SimType, ParamGroup, OutputGroup, Solver } from '@/types/configGroups';
+import type { SimType, Solver } from '@/types/config';
 
 export const ConfigRelationsManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'paramGroups' | 'outputGroups' | 'solvers'>(

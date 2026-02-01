@@ -36,6 +36,8 @@ export const ordersApi = {
   },
   getOrder: (orderId: number) => api.get<OrderDetail>(`/orders/${orderId}`),
   createOrder: (payload: OrderCreatePayload) => api.post<OrderDetail>('/orders', payload),
+  updateOrder: (orderId: number, payload: Partial<OrderCreatePayload>) =>
+    api.put<OrderDetail>(`/orders/${orderId}`, payload),
 
   // 统计相关接口（开发环境使用 mock 数据）
   getStatistics: async () => {

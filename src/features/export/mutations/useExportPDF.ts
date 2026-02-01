@@ -8,7 +8,7 @@ export const useExportPDF = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `order_${request.order_id}_report.pdf`;
+      link.download = `order_${request.orderId}_report.pdf`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

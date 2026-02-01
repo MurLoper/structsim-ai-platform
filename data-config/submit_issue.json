@@ -11,6 +11,7 @@
     "upload_id": null,
     "task_id": null
   },
+  "model_level_id": 1, // 1: 整机, 2: 单件
   "fold_type": 0, // 0: 展开态, 1: 折叠态 （来自数据库配置）
   "invole_users": [1001, 1002, 1003],
   "issue_title": "Simulation Issue Title",
@@ -19,7 +20,6 @@
   "conditions": [
     {
       "condition_type": 1, // 1
-      "model_level_id": 1, // 1: 整机, 2: 单件
       "target_fold_type": 0, // 0: 展开态，1：折叠态
       "sim_type_id": 1, // 1:跌落，2:落球
       "care_device_ids": [1, 2, 3] // 关注器件ID列表
@@ -108,7 +108,7 @@
       }
     },
     "2": {
-      // condition_type 1 的参数
+      // condition_type 2 的参数
       "opt_params": {
         "alg_type": 1, // 参数类型，1: 贝叶斯，2: DOE遍历, 5: DOE文件导入
         "domain": [
@@ -137,8 +137,8 @@
             "range_list": [] // 离散取值范围，仅当alg_type为2时有效
           }
         ],
-        "doe_param_csv_path": "", // DOE参数文件路径，仅当alg_type为5时有效(需要解析csv数据，按照alg_type为2的格式进行解析，用户进行核验后),存储参数表头doe_param_height: ["drop_height"]，和参数doe_param_data：[{"drop_height": 100},{"drop_height":200}, ...]
-        "doe_param_json_path": "", // DOE参数文件路径，仅当alg_type为2时有效(需要用户进行参数自定义和核验后生效),存储参数表头doe_param_height: ["drop_height"]，和参数doe_param_data：[{"drop_height": 100},{"drop_height":200}, ...]
+        "doe_param_csv_path": "", // DOE参数文件路径，仅当alg_type为5时有效(需要解析csv数据，按照alg_type为2的格式进行解析，用户进行核验后),存储参数表头doe_param_heads: ["x_deg", "y_deg", "z_deg", "drop_height"]，和参数doe_param_data：[{"drop_height": 100},{"drop_height":200}, ...]
+        "doe_param_json_path": "", // DOE参数文件路径，仅当alg_type为2时有效(需要用户进行参数自定义和核验后生效),存储参数表头doe_param_heads: ["x_deg", "y_deg", "z_deg", "drop_height"]，和参数doe_param_data：[{"drop_height": 100},{"drop_height":200}, ...]
         "batch_size_type": 1, // batch_size类型，1: 固定batch_size，2: 自定义batch_size
         "custom_batch_size": [
           {
@@ -164,16 +164,19 @@
       },
       "resp_details": [
         {
-          "set": "push",
+          "set": "push", // set集（单元级或者节点集）
           "output_type": "LEP2", // 输出类型：LEP2, RF3, LEP1, LEP2, S33等
-          "component": "35", // 35: other抓取output_type的默认值
+          "component": "35", // 35: other抓取output_type的默认值,其他输出以及特殊输出，需要特殊设定
+          "special_output_set": null, // 特殊输出，仅当component特殊输出是需要的set，默认null
+          "step_name": null, // 分析步名称，仅用户指定的场景需要，默认null
           "description": "Displacement in Y direction at push location",
-          "lower_limit": 0.0, // 下限
-          "upper_limit": 50.0, // 上限
+          "section_point": null, // 积分点，仅几个特殊的场景需要,数据可能是字符串，或者字符串的数字
           "weight": 1.0, // 权重
           "multiple": 1.0, // 数量级
-          "target_value": 25.0, // 目标值
-          "target_type": 3 // 1: 最大化，2: 最小化，3: 靠近目标值
+          "lower_limit": 0.0, // 下限
+          "upper_limit": 50.0, // 上限
+          "target_type": 3, // 1: 最大化，2: 最小化，3: 靠近目标值
+          "target_value": 25.0 // 目标值(target_type为3时需要)
         }
       ],
       "solver_config": {
@@ -184,7 +187,8 @@
         "apply_global": null, // 是否应用全局设置： 1: 应用，0： 不应用
         "use_global_config": 1, // 是否使用全局参数： 1: 使用，0： 不使用
         "resource_id": 3, // 计算资源池ID，solver_id不为0时必填
-        "other_params": {} // 其他求解器参数
+        "other_params": {}, // 其他求解器参数
+        "cwis_source_id": 39 // CWIS资源池ID，仅当solver_id不为0时需要选择，所以在求解器版本选择后出现
       }
     }
   }

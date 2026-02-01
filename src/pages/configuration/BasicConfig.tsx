@@ -6,10 +6,20 @@ import {
   AdjustmentsHorizontalIcon,
   ChartBarIcon,
   BeakerIcon,
+  CpuChipIcon,
+  ServerIcon,
 } from '@heroicons/react/24/outline';
 
 import { ConfigTabs, TabItem } from './components';
-import { SimTypesTab, ParamDefsTab, OutputDefsTab, SolversTab, FoldTypesTab } from './tabs';
+import {
+  SimTypesTab,
+  ParamDefsTab,
+  OutputDefsTab,
+  SolversTab,
+  SolverResourcesTab,
+  FoldTypesTab,
+  CareDevicesTab,
+} from './tabs';
 
 const TABS: TabItem[] = [
   { key: 'foldTypes', label: '姿态类型', icon: <BeakerIcon className="w-4 h-4" /> },
@@ -17,6 +27,8 @@ const TABS: TabItem[] = [
   { key: 'params', label: '参数定义', icon: <AdjustmentsHorizontalIcon className="w-4 h-4" /> },
   { key: 'outputs', label: '输出定义', icon: <ChartBarIcon className="w-4 h-4" /> },
   { key: 'solvers', label: '求解器', icon: <AdjustmentsHorizontalIcon className="w-4 h-4" /> },
+  { key: 'solverResources', label: '资源池', icon: <ServerIcon className="w-4 h-4" /> },
+  { key: 'careDevices', label: '关注器件', icon: <CpuChipIcon className="w-4 h-4" /> },
 ];
 
 const BasicConfig: React.FC = () => {
@@ -38,7 +50,9 @@ const BasicConfig: React.FC = () => {
       {activeTab === 'params' && <ParamDefsTab />}
       {activeTab === 'outputs' && <OutputDefsTab />}
       {activeTab === 'solvers' && <SolversTab />}
+      {activeTab === 'solverResources' && <SolverResourcesTab />}
       {activeTab === 'foldTypes' && <FoldTypesTab />}
+      {activeTab === 'careDevices' && <CareDevicesTab />}
     </div>
   );
 };

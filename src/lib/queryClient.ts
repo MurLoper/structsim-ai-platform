@@ -125,4 +125,16 @@ export const queryKeys = {
     all: ['foldTypeSimTypeRels'] as const,
     list: () => [...queryKeys.foldTypeSimTypeRels.all, 'list'] as const,
   },
+  // 关注器件
+  careDevices: {
+    all: ['careDevices'] as const,
+    list: () => [...queryKeys.careDevices.all, 'list'] as const,
+    detail: (id: number) => [...queryKeys.careDevices.all, 'detail', id] as const,
+  },
+  // 资源池
+  solverResources: {
+    all: ['solverResources'] as const,
+    list: () => [...queryKeys.solverResources.all, 'list'] as const,
+    detail: (id: number) => [...queryKeys.solverResources.all, 'detail', id] as const,
+  },
 } as const;

@@ -160,7 +160,8 @@ export interface ParamConfig {
   required: number;
 }
 
-export interface ConditionConfig {
+/** 提单初始化工况配置（区别于 config.ts 中的 ConditionConfig） */
+export interface InitConditionConfig {
   conditionDefId: number;
   conditionName: string;
   conditionCode: string;

@@ -6,8 +6,9 @@ import type {
   ConditionDef,
   OutputDef,
   Solver,
+  SolverResource,
   FoldType,
-  CondOutSet,
+  OutputSet,
   StatusDef,
   AutomationModule,
   Workflow,
@@ -16,6 +17,7 @@ import type {
   FoldTypeSimTypeRel,
   SimTypeWithDefault,
   ConditionConfig,
+  CareDevice,
 } from '@/types';
 
 // ============ 基础配置 CRUD API ============
@@ -91,9 +93,25 @@ export const baseConfigApi = {
     api.put<FoldType>(`/config/fold-types/${id}`, data),
   deleteFoldType: (id: number) => api.delete(`/config/fold-types/${id}`),
 
+  // 关注器件
+  getCareDevices: () => api.get<CareDevice[]>('/config/care-devices'),
+  createCareDevice: (data: Partial<CareDevice>) =>
+    api.post<CareDevice>('/config/care-devices', data),
+  updateCareDevice: (id: number, data: Partial<CareDevice>) =>
+    api.put<CareDevice>(`/config/care-devices/${id}`, data),
+  deleteCareDevice: (id: number) => api.delete(`/config/care-devices/${id}`),
+
+  // 资源池
+  getSolverResources: () => api.get<SolverResource[]>('/config/solver-resources'),
+  createSolverResource: (data: Partial<SolverResource>) =>
+    api.post<SolverResource>('/config/solver-resources', data),
+  updateSolverResource: (id: number, data: Partial<SolverResource>) =>
+    api.put<SolverResource>(`/config/solver-resources/${id}`, data),
+  deleteSolverResource: (id: number) => api.delete(`/config/solver-resources/${id}`),
+
   // 输出组合（旧版兼容，推荐使用 outputGroupsApi）
   getOutputGroups: (simTypeId?: number) =>
-    api.get<CondOutSet[]>('/config/output-groups', { params: { simTypeId } }),
+    api.get<OutputSet[]>('/config/output-groups', { params: { simTypeId } }),
   getStatusDefs: () => api.get<StatusDef[]>('/config/status-defs'),
   updateStatusDef: (id: number, data: Partial<StatusDef>) =>
     api.put<StatusDef>(`/config/status-defs/${id}`, data),

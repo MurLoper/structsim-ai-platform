@@ -31,9 +31,9 @@ import type {
   FoldType,
   AutomationModule,
   Workflow,
-  ParamTplSet,
-  CondOutSet,
+  OutputSet,
 } from '@/types';
+import type { ParamGroup } from '@/types/configGroups';
 
 interface ConfigState {
   // ============ 服务端数据 (迁移到 TanStack Query) ============
@@ -57,10 +57,10 @@ interface ConfigState {
   automationModules: AutomationModule[];
   /** @deprecated 使用 useWorkflows() 替代 */
   workflows: Workflow[];
-  /** @deprecated 使用 useParamTplSets() 替代 */
-  paramTplSets: ParamTplSet[];
-  /** @deprecated 使用 useCondOutSets() 替代 */
-  condOutSets: CondOutSet[];
+  /** @deprecated 使用 useParamGroups() 替代 */
+  paramTplSets: ParamGroup[];
+  /** @deprecated 使用 useOutputSets() 替代 */
+  outputSets: OutputSet[];
 
   // ============ UI 状态 (保留在 Zustand) ============
   /** 全局配置加载状态 */
@@ -105,7 +105,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
   automationModules: [],
   workflows: [],
   paramTplSets: [],
-  condOutSets: [],
+  outputSets: [],
   isLoading: false,
   error: null,
 
@@ -117,10 +117,10 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
       const baseData = baseDataResponse?.data || baseDataResponse;
 
       // 并行获取其他数据
-      const [projectsRes, workflowsRes, paramTplSetsRes, condOutSetsRes] = await Promise.all([
+      const [projectsRes, workflowsRes, paramTplSetsRes, outputSetsRes] = await Promise.all([
         configApi.getProjects().catch(() => ({ data: [] })),
         configApi.getWorkflows().catch(() => ({ data: [] })),
-        configApi.getParamTplSets().catch(() => ({ data: [] })),
+        configApi.getParamGroups().catch(() => ({ data: [] })),
         configApi.getOutputGroups().catch(() => ({ data: [] })),
       ]);
 
@@ -128,7 +128,7 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
         projects: Array.isArray(projectsRes?.data) ? projectsRes.data : [],
         workflows: Array.isArray(workflowsRes?.data) ? workflowsRes.data : [],
         paramTplSets: Array.isArray(paramTplSetsRes?.data) ? paramTplSetsRes.data : [],
-        condOutSets: Array.isArray(condOutSetsRes?.data) ? condOutSetsRes.data : [],
+        outputSets: Array.isArray(outputSetsRes?.data) ? outputSetsRes.data : [],
         simTypes: Array.isArray(baseData?.simTypes) ? baseData.simTypes : [],
         paramDefs: Array.isArray(baseData?.paramDefs) ? baseData.paramDefs : [],
         conditionDefs: Array.isArray(baseData?.conditionDefs) ? baseData.conditionDefs : [],

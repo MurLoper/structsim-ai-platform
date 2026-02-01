@@ -18,17 +18,18 @@ export interface FlowData {
     id: number | null;
     name: string;
   };
-  foldType: {
-    id: number | null;
+  foldTypes: Array<{
+    id: number;
     name: string;
-  };
+  }>;
   simTypes: Array<{
     id: number;
+    foldTypeId: number;
     name: string;
     isDefault: boolean;
     config?: {
       params: unknown;
-      condOut: unknown;
+      output: unknown;
       solver: unknown;
     };
   }>;

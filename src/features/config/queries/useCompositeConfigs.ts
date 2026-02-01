@@ -7,16 +7,17 @@ import { baseConfigApi } from '@/api/config/base';
 import { paramGroupsApi } from '@/api/config/groups';
 import { queryKeys } from '@/lib/queryClient';
 import type { StatusDef } from '@/types/config';
+import type { ParamGroup } from '@/types/configGroups';
 
 /**
  * 获取参数组合列表
  */
 export function useParamGroups() {
-  return useQuery({
+  return useQuery<ParamGroup[]>({
     queryKey: queryKeys.paramGroups.all,
     queryFn: async () => {
       const response = await paramGroupsApi.getParamGroups();
-      return response.data || [];
+      return (response.data || []) as ParamGroup[];
     },
     staleTime: 5 * 60 * 1000,
   });
@@ -58,8 +59,10 @@ export function useOutputGroups(simTypeId?: number) {
 
 /**
  * 获取输出组合列表（别名，兼容旧代码）
+ * @deprecated Use useOutputGroups instead
  */
 export const useCondOutSets = useOutputGroups;
+export const useOutputSets = useOutputGroups;
 
 /**
  * 获取状态定义列表

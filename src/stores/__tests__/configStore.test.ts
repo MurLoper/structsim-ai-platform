@@ -11,7 +11,7 @@ vi.mock('@/api', () => ({
     getProjects: vi.fn(),
     getWorkflows: vi.fn(),
     getParamTplSets: vi.fn(),
-    getCondOutSets: vi.fn(),
+    getOutputGroups: vi.fn(),
   },
 }));
 
@@ -30,7 +30,7 @@ describe('configStore', () => {
       automationModules: [],
       workflows: [],
       paramTplSets: [],
-      condOutSets: [],
+      outputSets: [],
       isLoading: false,
       error: null,
     });
@@ -84,8 +84,8 @@ describe('configStore', () => {
     vi.mocked(configApi.getParamTplSets).mockResolvedValue({
       data: [{ id: 1, name: '模板A', simTypeId: 1, valid: 1, sort: 1 }],
     });
-    vi.mocked(configApi.getCondOutSets).mockResolvedValue({
-      data: [{ id: 1, name: '条件A', simTypeId: 1, valid: 1, sort: 1 }],
+    vi.mocked(configApi.getOutputGroups).mockResolvedValue({
+      data: [{ id: 1, name: '输出组A', simTypeId: 1, valid: 1, sort: 1 }],
     });
 
     await useConfigStore.getState().fetchAllConfig();
@@ -102,7 +102,7 @@ describe('configStore', () => {
     expect(state.automationModules).toHaveLength(1);
     expect(state.workflows).toHaveLength(1);
     expect(state.paramTplSets).toHaveLength(1);
-    expect(state.condOutSets).toHaveLength(1);
+    expect(state.outputSets).toHaveLength(1);
     expect(state.isLoading).toBe(false);
   });
 

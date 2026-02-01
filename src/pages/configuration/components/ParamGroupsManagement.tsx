@@ -660,9 +660,11 @@ const AddParamsModal: React.FC<{
       } else if (res?.data?.reason) {
         showToast('warning', res.data.reason);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('创建参数失败:', error);
-      showToast('error', error?.response?.data?.message || '创建失败');
+      const errMsg = (error as { response?: { data?: { message?: string } } })?.response?.data
+        ?.message;
+      showToast('error', errMsg || '创建失败');
     } finally {
       setCreating(false);
     }
@@ -904,7 +906,7 @@ const UploadExcelModal: React.FC<{
           const res = await configApi.createParamDef({
             key: param.key,
             name: param.name || param.key,
-            defaultValue: param.defaultValue || undefined,
+            defaultVal: param.defaultValue || undefined,
             unit: param.unit || undefined,
           });
           param.paramDefId = res.data?.id;

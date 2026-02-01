@@ -1,4 +1,5 @@
 import { api } from '../client';
+import type { SearchParamsResponse, CreateAndAddParamResult } from '@/types/configGroups';
 
 // ============ 参数组合管理 API ============
 export const paramGroupsApi = {
@@ -42,7 +43,9 @@ export const paramGroupsApi = {
 
   // 搜索参数
   searchParams: (keyword: string, groupId?: number) =>
-    api.get('/config/param-groups/search-params', { params: { keyword, groupId } }),
+    api.get<SearchParamsResponse>('/config/param-groups/search-params', {
+      params: { keyword, groupId },
+    }),
 
   // 检查参数是否存在
   checkParamExists: (key?: string, name?: string) =>
@@ -58,7 +61,11 @@ export const paramGroupsApi = {
       valType?: number;
       defaultValue?: string;
     }
-  ) => api.post(`/config/param-groups/${groupId}/params/create-and-add`, data),
+  ) =>
+    api.post<CreateAndAddParamResult>(
+      `/config/param-groups/${groupId}/params/create-and-add`,
+      data
+    ),
 };
 
 // ============ 输出组合管理 API ============

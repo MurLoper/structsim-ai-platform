@@ -4,8 +4,8 @@ import { LinkIcon, PlusIcon, PencilIcon, TrashIcon, XMarkIcon } from '@heroicons
 import { Card, CardHeader, Button } from '@/components/ui';
 import { configApi } from '@/api';
 import { useToast, useConfirmDialog } from '@/hooks';
-import type { ConditionConfig, Solver } from '@/types';
-import type { ParamGroup } from '@/types/configGroups';
+import type { ConditionConfig } from '@/types';
+import type { ParamGroup, OutputGroup } from '@/types/configGroups';
 
 interface ConditionFormData {
   name: string;
@@ -59,14 +59,20 @@ export const ConditionConfigManagement: React.FC = () => {
     queryFn: () => configApi.getConditionConfigs().then(r => r.data),
   });
 
-  const { data: paramGroups = [] } = useQuery({
+  const { data: paramGroups = [] } = useQuery<ParamGroup[]>({
     queryKey: ['paramGroups'],
-    queryFn: () => configApi.getParamGroups().then(r => r.data),
+    queryFn: async () => {
+      const r = await configApi.getParamGroups();
+      return (r.data || []) as ParamGroup[];
+    },
   });
 
-  const { data: outputGroups = [] } = useQuery({
+  const { data: outputGroups = [] } = useQuery<OutputGroup[]>({
     queryKey: ['outputGroups'],
-    queryFn: () => configApi.getOutputGroups().then(r => r.data),
+    queryFn: async () => {
+      const r = await configApi.getOutputGroups();
+      return (r.data || []) as OutputGroup[];
+    },
   });
 
   const { data: solvers = [] } = useQuery({
@@ -85,9 +91,10 @@ export const ConditionConfigManagement: React.FC = () => {
 
   // 获取名称的辅助函数
   const getSimTypeName = (id: number) => simTypes.find(s => s.id === id)?.name || '-';
-  const getParamGroupName = (id: number) => paramGroups.find(p => p.id === id)?.name || '-';
-  const getOutputGroupName = (id: number) => outputGroups.find(o => o.id === id)?.name || '-';
-  const getSolverName = (id: number) => solvers.find(s => s.id === id)?.name || '-';
+  const getParamGroupName = (id: number) =>
+    paramGroups.find((p: ParamGroup) => p.id === id)?.name || '-';
+  const getOutputGroupName = (id: number) =>
+    outputGroups.find((o: OutputGroup) => o.id === id)?.name || '-';
 
   // Mutations
   const createMutation = useMutation({
@@ -226,7 +233,7 @@ export const ConditionConfigManagement: React.FC = () => {
       <CardHeader
         title="工况组合配置"
         icon={<LinkIcon className="w-5 h-5" />}
-        description="配置姿态+仿真类型+参数组+输出组的关联关系"
+        subtitle="配置姿态+仿真类型+参数组+输出组的关联关系"
         action={
           <Button size="sm" onClick={handleAdd}>
             <PlusIcon className="w-4 h-4 mr-1" />

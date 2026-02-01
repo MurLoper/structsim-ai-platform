@@ -4,8 +4,6 @@ import {
   MagnifyingGlassIcon,
   ArrowUpTrayIcon,
   ArrowDownTrayIcon,
-  XMarkIcon,
-  CheckIcon,
   PlusIcon,
 } from '@heroicons/react/24/outline';
 import { Card, useToast, useConfirmDialog } from '@/components/ui';
@@ -62,6 +60,7 @@ export const ParamDefsTab: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, keyword]);
 
   const handleSearch = () => {
@@ -93,7 +92,7 @@ export const ParamDefsTab: React.FC = () => {
       }
       setShowEditModal(false);
       loadData();
-    } catch (error) {
+    } catch {
       showToast('error', '保存失败');
     } finally {
       setSaving(false);
@@ -109,7 +108,7 @@ export const ParamDefsTab: React.FC = () => {
           await baseConfigApi.deleteParamDef(item.id);
           showToast('success', '删除成功');
           loadData();
-        } catch (error) {
+        } catch {
           showToast('error', '删除失败');
         }
       },
@@ -394,7 +393,7 @@ const UploadModal: React.FC<{
         `导入完成：创建 ${res.data?.created?.length || 0} 个，跳过 ${res.data?.skipped?.length || 0} 个`
       );
       onSuccess();
-    } catch (error) {
+    } catch {
       showToast('error', '导入失败');
     } finally {
       setUploading(false);

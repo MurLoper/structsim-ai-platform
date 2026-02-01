@@ -70,6 +70,19 @@ export interface Solver {
   updatedAt?: number;
 }
 
+export interface SolverResource {
+  id: number;
+  name: string;
+  code?: string;
+  description?: string;
+  cpuCores?: number;
+  memoryGb?: number;
+  valid: number;
+  sort: number;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
 export interface ConditionDef {
   id: number;
   name: string;
@@ -97,6 +110,18 @@ export interface OutputDef {
   updatedAt?: number;
 }
 
+export interface CareDevice {
+  id: number;
+  name: string;
+  code?: string;
+  category?: string;
+  valid: number;
+  sort: number;
+  remark?: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
 export interface FoldType {
   id: number;
   name: string;
@@ -112,7 +137,7 @@ export interface FoldType {
 // ParamTplSet 和 ParamTplItem 已废弃，使用 ParamGroup 和 ParamInGroup 替代
 // 类型定义在 @/types/configGroups.ts
 
-export interface CondOutSet {
+export interface OutputSet {
   id: number;
   name: string;
   simTypeId?: number;
@@ -122,6 +147,9 @@ export interface CondOutSet {
   createdAt?: number;
   updatedAt?: number;
 }
+
+/** @deprecated Use OutputSet instead */
+export type CondOutSet = OutputSet;
 
 export interface StatusDef {
   id: number;

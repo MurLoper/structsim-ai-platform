@@ -18,7 +18,7 @@ export const CANVAS_LAYOUT = {
 
   // 配置模块位置
   CONFIG_BOX_X: 1180,
-  CONFIG_BOX_WIDTH: 620,
+  CONFIG_BOX_WIDTH: 825,
   CONFIG_BOX_HEIGHT: 200,
 
   // 间距 - 仿真类型间距 = 配置卡片高度 + 间隙
