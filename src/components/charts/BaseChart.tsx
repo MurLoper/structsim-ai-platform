@@ -61,9 +61,9 @@ const THEME_COLORS = {
     backgroundColor: 'transparent',
   },
   eyecare: {
-    textColor: '#5c534b',
-    axisLineColor: '#d4c4a8',
-    splitLineColor: '#eee8d5',
+    textColor: '#002b36',
+    axisLineColor: '#93a1a1',
+    splitLineColor: 'hsl(44 50% 80%)',
     backgroundColor: 'transparent',
   },
 };

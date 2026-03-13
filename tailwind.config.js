@@ -111,5 +111,9 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    function ({ addVariant }) {
+      addVariant('eyecare', '.eyecare &')
+    }
+  ],
 };

@@ -111,15 +111,15 @@
 }
 
 /* ========== 护眼主题 (Solarized Light) ========== */
-[data-theme='eyecare'] {
+.eyecare {
   /* Solarized 色系 */
   --background: 45 29% 97%; /* #fdf6e3 */
   --foreground: 192 100% 11%; /* #002b36 - base03 */
 
-  --card: 45 29% 97%;
+  --card: 44 87% 94%; /* 卡片背景（更深） */
   --card-foreground: 192 100% 11%;
 
-  --popover: 45 29% 97%;
+  --popover: 44 87% 94%;
   --popover-foreground: 192 100% 11%;
 
   /* 青色主色调 */
@@ -129,11 +129,11 @@
   --secondary: 46 42% 88%; /* #eee8d5 - base2 */
   --secondary-foreground: 192 100% 11%;
 
-  --muted: 46 42% 88%;
-  --muted-foreground: 196 13% 45%; /* #657b83 - base00 */
+  --muted: 46 30% 90%; /* 柔和背景 */
+  --muted-foreground: 192 81% 25%; /* #073642 */
 
-  --accent: 45 100% 72%; /* #b58900 - yellow */
-  --accent-foreground: 192 100% 11%;
+  --accent: 175 59% 40%;
+  --accent-foreground: 45 29% 97%;
 
   /* 洋红危险色 */
   --destructive: 331 64% 52%; /* #d33682 - magenta */
@@ -147,9 +147,14 @@
   --warning: 18 89% 55%; /* #cb4b16 - orange */
   --warning-foreground: 45 29% 97%;
 
-  --border: 44 87% 94%; /* 略深的边框 */
-  --input: 44 87% 94%;
+  --info: 175 59% 40%;
+
+  --border: 44 60% 85%; /* 边框（加深） */
+  --input: 44 60% 85%; /* 输入框边框 */
   --ring: 175 59% 40%;
+
+  /* 新增：表格网格线 */
+  --grid-line: 44 50% 80%; /* 网格线专用色 */
 
   /* 护眼色板 */
   --chart-1: 175 59% 40%;

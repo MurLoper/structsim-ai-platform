@@ -25,12 +25,11 @@ export const useUIStore = create<UIState>()(
       setTheme: theme => {
         const root = window.document.documentElement;
         root.classList.remove('dark', 'eyecare');
-        root.removeAttribute('data-theme');
 
         if (theme === 'dark') {
           root.classList.add('dark');
         } else if (theme === 'eyecare') {
-          root.setAttribute('data-theme', 'eyecare');
+          root.classList.add('eyecare');
         }
 
         set({ theme });

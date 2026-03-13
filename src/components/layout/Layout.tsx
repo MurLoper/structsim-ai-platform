@@ -54,27 +54,6 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
     return false;
   };
 
-  const getThemeClasses = () => {
-    if (theme === 'eyecare') return 'bg-background text-foreground';
-    return 'bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100';
-  };
-
-  const getSidebarClasses = () => {
-    if (theme === 'eyecare') {
-      return 'bg-card text-card-foreground border-border';
-    }
-    return 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700';
-  };
-
-  const getNavItemClasses = (isActive: boolean) => {
-    if (theme === 'eyecare') {
-      return isActive ? 'bg-secondary text-primary' : 'text-muted-foreground hover:bg-secondary/50';
-    }
-    return isActive
-      ? 'bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400'
-      : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 dark:text-slate-400';
-  };
-
   const toggleLanguage = () => {
     setLanguage(language === 'en' ? 'zh' : 'en');
   };
@@ -85,21 +64,22 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
   };
 
   return (
-    <div className={clsx('min-h-screen flex transition-colors duration-300', getThemeClasses())}>
+    <div className="min-h-screen flex transition-colors duration-300 bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 eyecare:bg-background eyecare:text-foreground">
       {/* Sidebar */}
       <aside
         className={clsx(
           'fixed h-full z-40 border-r flex flex-col shadow-lg transition-all duration-300',
-          sidebarCollapsed ? 'w-16' : 'w-64',
-          getSidebarClasses()
+          'bg-white dark:bg-slate-800 eyecare:bg-card',
+          'border-slate-200 dark:border-slate-700 eyecare:border-border',
+          sidebarCollapsed ? 'w-16' : 'w-64'
         )}
       >
         {/* Brand */}
         <div
           className={clsx(
             'h-16 flex items-center border-b transition-all duration-300',
-            sidebarCollapsed ? 'px-3 justify-center' : 'px-6',
-            theme === 'eyecare' ? 'border-border' : 'border-slate-200 dark:border-slate-700'
+            'border-slate-200 dark:border-slate-700 eyecare:border-border',
+            sidebarCollapsed ? 'px-3 justify-center' : 'px-6'
           )}
         >
           <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
@@ -128,7 +108,9 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
                     className={clsx(
                       'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
                       sidebarCollapsed && 'justify-center',
-                      getNavItemClasses(isActive)
+                      isActive
+                        ? 'bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 eyecare:bg-secondary eyecare:text-primary'
+                        : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 dark:text-slate-400 eyecare:text-muted-foreground eyecare:hover:bg-secondary/50'
                     )}
                   >
                     <Icon className="w-5 h-5 flex-shrink-0" />
@@ -159,7 +141,9 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
                               to={child.path}
                               className={clsx(
                                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all',
-                                getNavItemClasses(location.pathname === child.path)
+                                location.pathname === child.path
+                                  ? 'bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 eyecare:bg-secondary eyecare:text-primary'
+                                  : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 dark:text-slate-400 eyecare:text-muted-foreground eyecare:hover:bg-secondary/50'
                               )}
                             >
                               <ChildIcon className="w-4 h-4 flex-shrink-0" />
@@ -181,7 +165,9 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
                 className={clsx(
                   'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
                   sidebarCollapsed && 'justify-center',
-                  getNavItemClasses(location.pathname === menu.path)
+                  location.pathname === menu.path
+                    ? 'bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 eyecare:bg-secondary eyecare:text-primary'
+                    : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 dark:text-slate-400 eyecare:text-muted-foreground eyecare:hover:bg-secondary/50'
                 )}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
