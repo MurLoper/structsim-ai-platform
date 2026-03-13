@@ -120,15 +120,30 @@ export const ParamGroupsManagement: React.FC = () => {
   }, [groups, groupParamsMap, searchTerm]);
 
   // 创建/更新参数组合
-  const handleSaveGroup = async (data: Partial<ParamGroup>) => {
+  const handleSaveGroup = async (data: Partial<ParamGroup>, selectedParamIds: number[]) => {
     try {
+      let groupId: number;
       if (editingGroup?.id) {
         await configApi.updateParamGroup(editingGroup.id, data);
+        groupId = editingGroup.id;
       } else {
-        await configApi.createParamGroup(
+        const res = await configApi.createParamGroup(
           data as { name: string; description?: string; sort?: number }
         );
+        groupId = res?.data?.id;
       }
+
+      // 如果有选中的参数，批量添加
+      if (selectedParamIds.length > 0 && groupId) {
+        for (const paramDefId of selectedParamIds) {
+          try {
+            await configApi.addParamToGroup(groupId, { paramDefId });
+          } catch (error) {
+            console.error(`添加参数 ${paramDefId} 失败:`, error);
+          }
+        }
+      }
+
       setShowGroupModal(false);
       setEditingGroup(null);
       await loadAllData();
@@ -431,6 +446,12 @@ export const ParamGroupsManagement: React.FC = () => {
       {showGroupModal && (
         <GroupModal
           group={editingGroup}
+          paramDefs={allParamDefs}
+          existingParamIds={
+            editingGroup?.id
+              ? new Set((groupParamsMap.get(editingGroup.id) || []).map(p => p.paramDefId))
+              : new Set()
+          }
           onSave={handleSaveGroup}
           onClose={() => {
             setShowGroupModal(false);
@@ -468,12 +489,14 @@ export const ParamGroupsManagement: React.FC = () => {
   );
 };
 
-// 组合编辑模态框组件
+// 组合编辑模态框组件（整合参数选择）
 const GroupModal: React.FC<{
   group: Partial<ParamGroup> | null;
-  onSave: (data: Partial<ParamGroup>) => void;
+  paramDefs: ParamDef[];
+  existingParamIds?: Set<number>;
+  onSave: (data: Partial<ParamGroup>, selectedParamIds: number[]) => void;
   onClose: () => void;
-}> = ({ group, onSave, onClose }) => {
+}> = ({ group, paramDefs, existingParamIds = new Set(), onSave, onClose }) => {
   const initialData = useMemo(
     () => ({
       name: group?.name || '',
@@ -484,12 +507,41 @@ const GroupModal: React.FC<{
   );
 
   const { formData, updateField } = useFormState(initialData);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(existingParamIds);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // 过滤参数：已选中的排在前面
+  const filteredParams = useMemo(() => {
+    const filtered = paramDefs.filter(
+      p =>
+        !searchTerm ||
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.key.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    return filtered.sort((a, b) => {
+      const aSelected = selectedIds.has(a.id);
+      const bSelected = selectedIds.has(b.id);
+      if (aSelected && !bSelected) return -1;
+      if (!aSelected && bSelected) return 1;
+      return 0;
+    });
+  }, [paramDefs, searchTerm, selectedIds]);
+
+  const toggleParam = (id: number) => {
+    const newSet = new Set(selectedIds);
+    if (newSet.has(id)) {
+      newSet.delete(id);
+    } else {
+      newSet.add(id);
+    }
+    setSelectedIds(newSet);
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 rounded-lg p-6 w-full max-w-md">
+      <div className="bg-white dark:bg-slate-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
         <h3 className="text-lg font-semibold mb-4">{group?.id ? '编辑' : '创建'}参数组合</h3>
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto flex-1">
           <div>
             <label className="block text-sm font-medium mb-1">名称</label>
             <input
@@ -505,20 +557,46 @@ const GroupModal: React.FC<{
               value={formData.description || ''}
               onChange={e => updateField('description', e.target.value)}
               className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-              rows={3}
+              rows={2}
             />
           </div>
+
+          {/* 参数选择区域 */}
           <div>
-            <label className="block text-sm font-medium mb-1">排序</label>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-sm font-medium">选择参数</label>
+              <span className="text-xs text-slate-500">已选 {selectedIds.size} 个</span>
+            </div>
             <input
-              type="number"
-              value={formData.sort ?? 100}
-              onChange={e => updateField('sort', Number(e.target.value))}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+              type="text"
+              placeholder="搜索参数..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 mb-2"
             />
+            <div className="border rounded-lg dark:border-slate-600 max-h-[300px] overflow-y-auto">
+              {filteredParams.map(param => (
+                <label
+                  key={param.id}
+                  className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer border-b last:border-b-0 dark:border-slate-600"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(param.id)}
+                    onChange={() => toggleParam(param.id)}
+                    className="w-4 h-4"
+                  />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium">{param.name}</div>
+                    <div className="text-xs text-slate-500">{param.key}</div>
+                  </div>
+                  {param.unit && <span className="text-xs text-slate-400">{param.unit}</span>}
+                </label>
+              ))}
+            </div>
           </div>
         </div>
-        <div className="flex justify-end gap-2 mt-6">
+        <div className="flex justify-end gap-2 mt-6 pt-4 border-t dark:border-slate-700">
           <button
             onClick={onClose}
             className="px-4 py-2 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
@@ -526,8 +604,9 @@ const GroupModal: React.FC<{
             取消
           </button>
           <button
-            onClick={() => onSave(formData)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            onClick={() => onSave(formData, Array.from(selectedIds))}
+            disabled={!formData.name?.trim()}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             保存
           </button>

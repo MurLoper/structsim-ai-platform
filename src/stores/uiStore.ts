@@ -19,7 +19,7 @@ export const useUIStore = create<UIState>()(
   persist(
     set => ({
       theme: 'light',
-      language: 'en',
+      language: 'zh',
       sidebarCollapsed: false,
 
       setTheme: theme => {
