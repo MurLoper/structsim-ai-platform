@@ -44,7 +44,7 @@ const Login: React.FC = () => {
             S
           </div>
           <h1 className="text-2xl font-bold text-slate-800 dark:text-white">
-            StructSim AI Platform
+            力学多场景仿真&优化平台
           </h1>
           <p className="text-slate-500 mt-2">登录您的账号</p>
         </div>

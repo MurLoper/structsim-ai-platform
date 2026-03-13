@@ -1,6 +1,6 @@
 // Common translations - shared across all modules
 export const commonEn = {
-  'app.title': 'StructSim AI',
+  'app.title': 'MSO Platform',
   'theme.light': 'Light Mode',
   'theme.dark': 'Dark Mode',
   'theme.eyecare': 'Eye Care Mode',
@@ -37,7 +37,7 @@ export const commonEn = {
 };
 
 export const commonZh = {
-  'app.title': '结构仿真智能平台',
+  'app.title': '力学多场景仿真&优化',
   'theme.light': '明亮模式',
   'theme.dark': '暗黑模式',
   'theme.eyecare': '护眼模式',
