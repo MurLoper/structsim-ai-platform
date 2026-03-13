@@ -113,7 +113,9 @@ export default {
   },
   plugins: [
     function ({ addVariant }) {
-      addVariant('eyecare', '.eyecare &')
+      addVariant('eyecare-green', '.eyecare-green &')
+      addVariant('eyecare-warm', '.eyecare-warm &')
+      addVariant('eyecare', ['.eyecare-green &', '.eyecare-warm &'])
     }
   ],
 };

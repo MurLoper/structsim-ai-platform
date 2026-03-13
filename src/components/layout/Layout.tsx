@@ -15,6 +15,7 @@ import {
   ChevronRightIcon,
   ChevronDownIcon,
 } from '@heroicons/react/24/outline';
+import { Leaf } from 'lucide-react';
 import clsx from 'clsx';
 
 interface LayoutProps {
@@ -181,7 +182,9 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
         <div
           className={clsx(
             'p-4 border-t space-y-4',
-            theme === 'eyecare' ? 'border-border' : 'border-slate-200 dark:border-slate-700'
+            theme === 'eyecare-green' || theme === 'eyecare-warm'
+              ? 'border-border'
+              : 'border-slate-200 dark:border-slate-700'
           )}
         >
           {/* User Profile */}
@@ -190,7 +193,7 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
               <div
                 className={clsx(
                   'w-10 h-10 rounded-full flex items-center justify-center',
-                  theme === 'eyecare'
+                  theme === 'eyecare-green' || theme === 'eyecare-warm'
                     ? 'bg-secondary text-muted-foreground'
                     : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
                 )}
@@ -201,7 +204,9 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
                 <div
                   className={clsx(
                     'text-sm font-medium truncate',
-                    theme === 'eyecare' ? 'text-foreground' : 'text-slate-900 dark:text-white'
+                    theme === 'eyecare-green' || theme === 'eyecare-warm'
+                      ? 'text-foreground'
+                      : 'text-slate-900 dark:text-white'
                   )}
                 >
                   {user?.name}
@@ -230,7 +235,7 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
                 onClick={toggleLanguage}
                 className={clsx(
                   'flex items-center gap-1.5 text-xs font-semibold hover:text-primary',
-                  theme === 'eyecare'
+                  theme === 'eyecare-green' || theme === 'eyecare-warm'
                     ? 'text-muted-foreground'
                     : 'text-slate-600 dark:text-slate-300'
                 )}
@@ -243,7 +248,7 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
             <div
               className={clsx(
                 'flex items-center gap-1 p-1 rounded-full',
-                theme === 'eyecare' ? 'bg-secondary' : 'bg-slate-100 dark:bg-slate-700'
+                'bg-slate-100 dark:bg-slate-700'
               )}
             >
               <button
@@ -252,7 +257,7 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
                   'p-1 rounded-full',
                   theme === 'light' ? 'bg-white shadow text-amber-500' : 'text-muted-foreground'
                 )}
-                title="Light"
+                title="白天"
               >
                 <SunIcon className="w-3 h-3" />
               </button>
@@ -262,19 +267,31 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
                   'p-1 rounded-full',
                   theme === 'dark' ? 'bg-slate-600 shadow text-indigo-400' : 'text-muted-foreground'
                 )}
-                title="Dark"
+                title="黑夜"
               >
                 <MoonIcon className="w-3 h-3" />
               </button>
               <button
-                onClick={() => setTheme('eyecare')}
+                onClick={() => setTheme('eyecare-green')}
                 className={clsx(
                   'p-1 rounded-full',
-                  theme === 'eyecare'
-                    ? 'bg-background shadow text-primary'
+                  theme === 'eyecare-green'
+                    ? 'bg-green-100 shadow text-green-600'
                     : 'text-muted-foreground'
                 )}
-                title="Eye Care"
+                title="绿豆沙"
+              >
+                <Leaf className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => setTheme('eyecare-warm')}
+                className={clsx(
+                  'p-1 rounded-full',
+                  theme === 'eyecare-warm'
+                    ? 'bg-amber-100 shadow text-amber-600'
+                    : 'text-muted-foreground'
+                )}
+                title="米黄纸"
               >
                 <EyeIcon className="w-3 h-3" />
               </button>
@@ -291,7 +308,7 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
           'rounded-r-lg shadow-md border border-l-0 transition-all duration-300',
           'hover:w-8 group',
           sidebarCollapsed ? 'left-16' : 'left-64',
-          theme === 'eyecare'
+          theme === 'eyecare-green' || theme === 'eyecare-warm'
             ? 'bg-card border-border text-muted-foreground hover:text-primary'
             : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400'
         )}

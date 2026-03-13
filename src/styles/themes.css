@@ -110,58 +110,88 @@
   --chart-5: 0 84.2% 70.2%;
 }
 
-/* ========== 护眼主题 (Solarized Light) ========== */
-.eyecare {
-  /* Solarized 色系 */
-  --background: 45 29% 97%; /* #fdf6e3 */
-  --foreground: 192 100% 11%; /* #002b36 - base03 */
+/* ========== 护眼模式 - 绿豆沙 (Eye Green) ========== */
+.eyecare-green {
+  --background: 142 35% 84%; /* #CDE8D5 背景色 */
+  --foreground: 150 40% 15%; /* #1F3D2B 主文本 */
 
-  --card: 44 87% 94%; /* 卡片背景（更深） */
-  --card-foreground: 192 100% 11%;
+  --card: 135 40% 90%; /* #DDF2E3 卡片背景 */
+  --card-foreground: 150 40% 15%;
 
-  --popover: 44 87% 94%;
-  --popover-foreground: 192 100% 11%;
+  --popover: 135 40% 90%;
+  --popover-foreground: 150 40% 15%;
 
-  /* 青色主色调 */
-  --primary: 175 59% 40%; /* #2aa198 - cyan */
-  --primary-foreground: 45 29% 97%;
+  --primary: 145 25% 42%; /* #4A7C59 主色调 */
+  --primary-foreground: 135 40% 90%;
 
-  --secondary: 46 42% 88%; /* #eee8d5 - base2 */
-  --secondary-foreground: 192 100% 11%;
+  --secondary: 140 30% 80%;
+  --secondary-foreground: 150 40% 15%;
 
-  --muted: 46 30% 90%; /* 柔和背景 */
-  --muted-foreground: 192 81% 25%; /* #073642 */
+  --muted: 138 28% 82%; /* #C1DEC9 表单色 */
+  --muted-foreground: 150 30% 25%;
 
-  --accent: 175 59% 40%;
-  --accent-foreground: 45 29% 97%;
+  --accent: 145 25% 42%;
+  --accent-foreground: 135 40% 90%;
 
-  /* 洋红危险色 */
-  --destructive: 331 64% 52%; /* #d33682 - magenta */
-  --destructive-foreground: 45 29% 97%;
+  --border: 140 25% 75%;
+  --input: 138 28% 82%;
+  --ring: 145 25% 42%;
 
-  /* 绿色成功 */
-  --success: 68 100% 30%; /* #859900 - green */
-  --success-foreground: 45 29% 97%;
+  --destructive: 0 64% 52%;
+  --destructive-foreground: 135 40% 90%;
+  --success: 145 50% 35%;
+  --success-foreground: 135 40% 90%;
+  --warning: 35 89% 55%;
+  --warning-foreground: 135 40% 90%;
+  --info: 145 25% 42%;
 
-  /* 橙色警告 */
-  --warning: 18 89% 55%; /* #cb4b16 - orange */
-  --warning-foreground: 45 29% 97%;
+  --chart-1: 145 25% 42%;
+  --chart-2: 145 50% 35%;
+  --chart-3: 35 89% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 0 64% 52%;
+}
 
-  --info: 175 59% 40%;
+/* ========== 护眼模式 - 米黄纸 (Eye Warm) ========== */
+.eyecare-warm {
+  --background: 35 30% 92%; /* #F4EFE6 背景色 */
+  --foreground: 25 20% 25%; /* #4A3B32 主文本 */
 
-  --border: 44 60% 85%; /* 边框（加深） */
-  --input: 44 60% 85%; /* 输入框边框 */
-  --ring: 175 59% 40%;
+  --card: 40 40% 97%; /* #FAF7F2 卡片背景 */
+  --card-foreground: 25 20% 25%;
 
-  /* 新增：表格网格线 */
-  --grid-line: 44 50% 80%; /* 网格线专用色 */
+  --popover: 40 40% 97%;
+  --popover-foreground: 25 20% 25%;
 
-  /* 护眼色板 */
-  --chart-1: 175 59% 40%;
-  --chart-2: 68 100% 30%;
-  --chart-3: 45 100% 50%;
-  --chart-4: 331 64% 52%;
-  --chart-5: 205 69% 49%;
+  --primary: 25 35% 52%; /* #B07D54 主色调 */
+  --primary-foreground: 40 40% 97%;
+
+  --secondary: 35 25% 88%;
+  --secondary-foreground: 25 20% 25%;
+
+  --muted: 35 28% 87%; /* #EBE3D5 表单色 */
+  --muted-foreground: 25 20% 35%;
+
+  --accent: 25 35% 52%;
+  --accent-foreground: 40 40% 97%;
+
+  --border: 35 20% 82%;
+  --input: 35 28% 87%;
+  --ring: 25 35% 52%;
+
+  --destructive: 0 64% 52%;
+  --destructive-foreground: 40 40% 97%;
+  --success: 145 50% 35%;
+  --success-foreground: 40 40% 97%;
+  --warning: 35 89% 55%;
+  --warning-foreground: 40 40% 97%;
+  --info: 25 35% 52%;
+
+  --chart-1: 25 35% 52%;
+  --chart-2: 145 50% 35%;
+  --chart-3: 35 89% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 0 64% 52%;
 }
 
 /* ========== 基础层样式 ========== */
@@ -175,4 +205,26 @@ body {
   font-feature-settings:
     'rlig' 1,
     'calt' 1;
+}
+
+/* ========== 护眼模式通用类（兼容旧代码） ========== */
+.eyecare-green,
+.eyecare-warm {
+  /* 这些类会自动应用对应的CSS变量 */
+}
+
+/* ========== 护眼模式全局样式覆盖 ========== */
+.eyecare-green .bg-white,
+.eyecare-warm .bg-white {
+  background-color: hsl(var(--card)) !important;
+}
+
+.eyecare-green .text-slate-900,
+.eyecare-warm .text-slate-900 {
+  color: hsl(var(--foreground)) !important;
+}
+
+.eyecare-green .border-slate-200,
+.eyecare-warm .border-slate-200 {
+  border-color: hsl(var(--border)) !important;
 }

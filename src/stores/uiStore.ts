@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type Theme = 'light' | 'dark' | 'eyecare';
+export type Theme = 'light' | 'dark' | 'eyecare-green' | 'eyecare-warm';
 export type Language = 'en' | 'zh';
 
 interface UIState {
@@ -24,12 +24,14 @@ export const useUIStore = create<UIState>()(
 
       setTheme: theme => {
         const root = window.document.documentElement;
-        root.classList.remove('dark', 'eyecare');
+        root.classList.remove('dark', 'eyecare-green', 'eyecare-warm');
 
         if (theme === 'dark') {
           root.classList.add('dark');
-        } else if (theme === 'eyecare') {
-          root.classList.add('eyecare');
+        } else if (theme === 'eyecare-green') {
+          root.classList.add('eyecare-green');
+        } else if (theme === 'eyecare-warm') {
+          root.classList.add('eyecare-warm');
         }
 
         set({ theme });

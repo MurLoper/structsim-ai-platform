@@ -60,10 +60,16 @@ const THEME_COLORS = {
     splitLineColor: '#1f2937',
     backgroundColor: 'transparent',
   },
-  eyecare: {
-    textColor: '#002b36',
-    axisLineColor: '#93a1a1',
-    splitLineColor: 'hsl(44 50% 80%)',
+  'eyecare-green': {
+    textColor: '#1F3D2B',
+    axisLineColor: '#C1DEC9',
+    splitLineColor: '#DDF2E3',
+    backgroundColor: 'transparent',
+  },
+  'eyecare-warm': {
+    textColor: '#4A3B32',
+    axisLineColor: '#EBE3D5',
+    splitLineColor: '#FAF7F2',
     backgroundColor: 'transparent',
   },
 };
@@ -95,7 +101,7 @@ export function BaseChart({
 }: BaseChartProps) {
   const chartRef = useRef<ReactECharts>(null);
   const { theme } = useTheme();
-  const themeColors = THEME_COLORS[theme];
+  const themeColors = THEME_COLORS[theme] || THEME_COLORS.light;
 
   // 合并主题配置
   const mergedOption = useMemo<EChartsOption>(() => {

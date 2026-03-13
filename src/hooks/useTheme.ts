@@ -1,7 +1,7 @@
 import { useUIStore } from '@/stores/uiStore';
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 
-export type Theme = 'light' | 'dark' | 'eyecare';
+export type Theme = 'light' | 'dark' | 'eyecare-green' | 'eyecare-warm';
 
 const THEME_STORAGE_KEY = 'structsim-theme';
 
@@ -28,25 +28,6 @@ const THEME_STORAGE_KEY = 'structsim-theme';
 export function useTheme() {
   const { theme, setTheme: setStoreTheme } = useUIStore();
 
-  // 应用主题到 DOM
-  useEffect(() => {
-    const root = document.documentElement;
-
-    // 清除所有主题类
-    root.classList.remove('dark');
-    root.removeAttribute('data-theme');
-
-    // 应用当前主题
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else if (theme === 'eyecare') {
-      root.setAttribute('data-theme', 'eyecare');
-    }
-
-    // 持久化到 localStorage
-    localStorage.setItem(THEME_STORAGE_KEY, theme);
-  }, [theme]);
-
   // 设置主题
   const setTheme = useCallback(
     (newTheme: Theme) => {
@@ -57,7 +38,7 @@ export function useTheme() {
 
   // 循环切换主题
   const toggleTheme = useCallback(() => {
-    const themes: Theme[] = ['light', 'dark', 'eyecare'];
+    const themes: Theme[] = ['light', 'dark', 'eyecare-green', 'eyecare-warm'];
     const currentIndex = themes.indexOf(theme);
     const nextIndex = (currentIndex + 1) % themes.length;
     setTheme(themes[nextIndex]);
@@ -67,9 +48,10 @@ export function useTheme() {
   const getThemeName = useCallback(
     (t: Theme = theme): string => {
       const names: Record<Theme, string> = {
-        light: '亮色模式',
-        dark: '暗色模式',
-        eyecare: '护眼模式',
+        light: '白天模式',
+        dark: '黑夜模式',
+        'eyecare-green': '护眼模式 - 绿豆沙',
+        'eyecare-warm': '护眼模式 - 米黄纸',
       };
       return names[t];
     },
@@ -83,7 +65,7 @@ export function useTheme() {
     getThemeName,
     isLight: theme === 'light',
     isDark: theme === 'dark',
-    isEyecare: theme === 'eyecare',
+    isEyecare: theme === 'eyecare-green' || theme === 'eyecare-warm',
   };
 }
 
@@ -94,7 +76,7 @@ export function useTheme() {
 export function initializeTheme(): Theme {
   // 尝试从 localStorage 读取
   const savedTheme = localStorage.getItem(THEME_STORAGE_KEY) as Theme | null;
-  if (savedTheme && ['light', 'dark', 'eyecare'].includes(savedTheme)) {
+  if (savedTheme && ['light', 'dark', 'eyecare-green', 'eyecare-warm'].includes(savedTheme)) {
     return savedTheme;
   }
 

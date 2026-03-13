@@ -1,5 +1,5 @@
 import { useTheme, type Theme } from '@/hooks/useTheme';
-import { Sun, Moon, Eye } from 'lucide-react';
+import { Sun, Moon, Eye, Leaf } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -13,18 +13,23 @@ const themeConfig: Record<
 > = {
   light: {
     icon: Sun,
-    label: '亮色',
+    label: '白天',
     description: '亮色模式',
   },
   dark: {
     icon: Moon,
-    label: '暗色',
+    label: '黑夜',
     description: '暗色模式',
   },
-  eyecare: {
+  'eyecare-green': {
+    icon: Leaf,
+    label: '绿豆沙',
+    description: '护眼模式 - 清新绿',
+  },
+  'eyecare-warm': {
     icon: Eye,
-    label: '护眼',
-    description: '护眼模式',
+    label: '米黄纸',
+    description: '护眼模式 - 温暖黄',
   },
 };
 
