@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useWatch, type Control, type UseFormSetValue, type FieldValues } from 'react-hook-form';
 import {
-  ArrowUpTrayIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
   XMarkIcon,
@@ -9,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { FormField } from '@/components/forms/FormField';
 import { Button } from '@/components/ui';
+import { ChunkedUpload } from '@/components/FileUpload/ChunkedUpload';
 import type { Project, User } from '@/types';
 import type { FoldType } from '@/api/config';
 import type { SubmissionFormValues, InpSetInfo } from '../types';
@@ -172,10 +172,24 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
               </div>
             ) : (
               /* 上传区域 */
-              <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-8 text-center cursor-pointer hover:border-brand-400 transition-colors">
-                <ArrowUpTrayIcon className="w-10 h-10 mx-auto mb-2 text-slate-400" />
-                <p className="text-slate-500 text-sm">{t('sub.file_upload_hint')}</p>
-              </div>
+              <ChunkedUpload
+                onSuccess={(fileId, storagePath) => {
+                  setValue('originFile.fileId', fileId, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  });
+                  setValue('originFile.path', storagePath, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  });
+                  setValue('originFile.name', storagePath.split('/').pop() || '', {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                  });
+                }}
+                accept=".zip,.rar,.7z,.step,.stp,.iges,.igs"
+                maxSize={2147483648}
+              />
             )}
           </div>
         ) : (

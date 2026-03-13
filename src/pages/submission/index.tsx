@@ -362,7 +362,7 @@ const Submission: React.FC = () => {
         }
 
         queryClient.invalidateQueries({ queryKey: queryKeys.orders.list() });
-        navigate(`/results/${response.data.id}`);
+        navigate('/orders');
       } catch (error) {
         console.error('提交订单失败:', error);
         const message = (error as { message?: string })?.message || '提交失败，请稍后重试';

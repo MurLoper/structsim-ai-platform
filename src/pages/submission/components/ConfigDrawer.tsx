@@ -20,19 +20,17 @@ export const ConfigDrawer: React.FC<ConfigDrawerProps> = ({
   width = 'normal',
   resizable = false,
   minWidth = 400,
-  maxWidth = 900,
+  maxWidth = 1200,
 }) => {
   const defaultWidth = width === 'wide' ? 640 : 480;
   const [drawerWidth, setDrawerWidth] = useState(defaultWidth);
   const [isResizing, setIsResizing] = useState(false);
   const drawerRef = useRef<HTMLDivElement>(null);
 
-  // 重置宽度当抽屉关闭时
+  // 当 width prop 改变时更新宽度
   useEffect(() => {
-    if (!isOpen) {
-      setDrawerWidth(defaultWidth);
-    }
-  }, [isOpen, defaultWidth]);
+    setDrawerWidth(defaultWidth);
+  }, [defaultWidth]);
 
   // 处理拖拽开始
   const handleMouseDown = useCallback(
