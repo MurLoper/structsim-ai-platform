@@ -1,4 +1,4 @@
-# StructSim AI Platform - 前端应用
+# 力学多场景仿真&优化平台 - 前端应用
 
 基于 React + TypeScript + Tailwind CSS 的现代化前端应用。
 
