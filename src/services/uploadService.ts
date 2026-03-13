@@ -8,7 +8,7 @@ import type {
 } from '@/types/upload';
 
 const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
-const MAX_CONCURRENT = 3;
+const MAX_CONCURRENT = 3; // 分表设计支持并发上传
 const MAX_RETRIES = 3;
 
 export class ChunkedUploadService {
