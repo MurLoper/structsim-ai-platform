@@ -65,10 +65,20 @@ const OrderList: React.FC = () => {
     () => simTypes.map(s => ({ value: s.id, label: s.name })),
     [simTypes]
   );
-  const statusOptions = useMemo(
-    () => (statusDefs || []).map(s => ({ value: s.id, label: s.name })),
-    [statusDefs]
-  );
+  const statusOptions = useMemo(() => {
+    if (!statusDefs || statusDefs.length === 0) {
+      return [
+        { value: 0, label: '未开始' },
+        { value: 1, label: '运行中' },
+        { value: 2, label: '已完成' },
+        { value: 3, label: '失败' },
+      ];
+    }
+    return statusDefs.map(s => ({
+      value: s.id,
+      label: s.name,
+    }));
+  }, [statusDefs]);
 
   const getStatusBadge = useCallback(
     (statusId: number) => {

@@ -20,7 +20,7 @@ const OrderFilters: React.FC<OrderFiltersProps> = memo(
   ({ filters, onFilterChange, projects, simTypes, statusOptions }) => {
     const handleChange = useCallback(
       (key: keyof OrdersQueryParams, value: string | number | undefined) => {
-        const newFilters = { ...filters, [key]: value || undefined, page: 1 };
+        const newFilters = { ...filters, [key]: value === '' ? undefined : value, page: 1 };
         onFilterChange(newFilters);
       },
       [filters, onFilterChange]
@@ -32,7 +32,7 @@ const OrderFilters: React.FC<OrderFiltersProps> = memo(
 
     const hasFilters = !!(
       filters.orderNo ||
-      filters.status ||
+      filters.status !== undefined ||
       filters.projectId ||
       filters.simTypeId
     );

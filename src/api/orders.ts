@@ -25,7 +25,7 @@ export interface OrdersQueryParams {
 const isDev = import.meta.env.DEV;
 
 // Mock 数据开关（可通过环境变量控制）
-const useMockData = isDev && import.meta.env.VITE_USE_MOCK !== 'false';
+const useMockData = false; // 改为使用真实API
 
 export const ordersApi = {
   getOrders: async (params?: OrdersQueryParams) => {
