@@ -551,11 +551,11 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
 
               {/* DOE 参数组合表格 - 内联显示 */}
               {config.params.optParams?.doeParamData &&
-                config.params.optParams.doeParamData.length > 0 && (
+                config.params.optParams?.doeParamData.length > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="text-sm text-green-600 dark:text-green-400">
-                        {t('sub.params.doe_total')}: {config.params.optParams.doeParamData.length}{' '}
+                        {t('sub.params.doe_total')}: {config.params.optParams?.doeParamData.length}{' '}
                         {t('sub.params.doe_rounds')}
                       </div>
                       <button
@@ -571,7 +571,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                         <div
                           className="grid gap-px bg-slate-200 dark:bg-slate-600 eyecare:bg-border"
                           style={{
-                            gridTemplateColumns: `50px repeat(${config.params.optParams.doeParamHeads?.length || 0}, minmax(80px, 1fr)) 40px`,
+                            gridTemplateColumns: `50px repeat(${config.params.optParams?.doeParamHeads?.length || 0}, minmax(80px, 1fr)) 40px`,
                           }}
                         >
                           {/* 表头 */}
@@ -589,7 +589,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                           <div className="bg-slate-100 dark:bg-slate-700 eyecare:bg-muted"></div>
 
                           {/* 数据行 */}
-                          {config.params.optParams.doeParamData.map((row, rowIdx) => (
+                          {config.params.optParams?.doeParamData.map((row, rowIdx) => (
                             <React.Fragment key={rowIdx}>
                               <div className="bg-white dark:bg-slate-800 eyecare:bg-card px-2 py-1 text-xs text-center text-slate-500">
                                 {rowIdx + 1}
@@ -642,10 +642,10 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
 
           {/* DOE 文件解析表格 - 只读显示 */}
           {config.params.optParams?.doeParamData &&
-            config.params.optParams.doeParamData.length > 0 && (
+            config.params.optParams?.doeParamData.length > 0 && (
               <div className="mt-3 space-y-2">
                 <div className="text-sm text-green-600 dark:text-green-400">
-                  {t('sub.params.doe_total')}: {config.params.optParams.doeParamData.length}{' '}
+                  {t('sub.params.doe_total')}: {config.params.optParams?.doeParamData.length}{' '}
                   {t('sub.params.doe_rounds')}
                 </div>
                 <div className="border rounded-lg dark:border-slate-600 overflow-hidden">
@@ -653,14 +653,14 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                     <div
                       className="grid gap-px bg-slate-200 dark:bg-slate-600 eyecare:bg-border"
                       style={{
-                        gridTemplateColumns: `50px repeat(${config.params.optParams.doeParamHeads?.length || 0}, minmax(80px, 1fr))`,
+                        gridTemplateColumns: `50px repeat(${config.params.optParams?.doeParamHeads?.length || 0}, minmax(80px, 1fr))`,
                       }}
                     >
                       {/* 表头 */}
                       <div className="bg-slate-100 dark:bg-slate-700 eyecare:bg-muted px-2 py-2 text-xs font-medium text-center">
                         #
                       </div>
-                      {(config.params.optParams.doeParamHeads || []).map(h => (
+                      {(config.params.optParams?.doeParamHeads || []).map(h => (
                         <div
                           key={h}
                           className="bg-slate-100 dark:bg-slate-700 eyecare:bg-muted px-2 py-2 text-xs font-medium text-center"
@@ -670,7 +670,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                       ))}
 
                       {/* 数据行 - 只读 */}
-                      {config.params.optParams.doeParamData.map((row, rowIdx) => (
+                      {config.params.optParams?.doeParamData.map((row, rowIdx) => (
                         <React.Fragment key={rowIdx}>
                           <div className="bg-white dark:bg-slate-800 eyecare:bg-card px-2 py-1 text-xs text-center text-slate-500">
                             {rowIdx + 1}
