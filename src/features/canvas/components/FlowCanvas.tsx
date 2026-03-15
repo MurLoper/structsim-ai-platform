@@ -158,7 +158,7 @@ export function FlowCanvas({
         miniMapNode: '#475569',
       };
     }
-    if (theme === 'eyecare') {
+    if (theme === 'eyecare-green' || theme === 'eyecare-warm') {
       return {
         background: '#fdf6e3',
         nodeBackground: '#eee8d5',

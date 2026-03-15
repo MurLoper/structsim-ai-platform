@@ -1,9 +1,9 @@
 import { useState, useRef } from 'react';
 import { Upload, X, FileIcon, CheckCircle2 } from 'lucide-react';
 import { uploadService } from '@/services/uploadService';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { Progress } from '@/components/ui/progress';
-import { useToast } from '@/components/ui/toast';
+import { useToast } from '@/components/ui/Toast';
 import { cn } from '@/lib/utils';
 
 interface ChunkedUploadProps {
@@ -171,7 +171,7 @@ export function ChunkedUpload({
             </div>
             <Button
               variant="ghost"
-              size="icon"
+              size="sm"
               onClick={handleCancel}
               disabled={uploading}
               className="flex-shrink-0"

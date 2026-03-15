@@ -570,7 +570,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                           <div className="bg-slate-100 dark:bg-slate-700 eyecare:bg-muted px-2 py-2 text-xs font-medium text-center">
                             #
                           </div>
-                          {(config.params.optParams.doeParamHeads || []).map(h => (
+                          {(config.params?.optParams?.doeParamHeads || []).map(h => (
                             <div
                               key={h}
                               className="bg-slate-100 dark:bg-slate-700 eyecare:bg-muted px-2 py-2 text-xs font-medium text-center"
@@ -586,7 +586,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                               <div className="bg-white dark:bg-slate-800 eyecare:bg-card px-2 py-1 text-xs text-center text-slate-500">
                                 {rowIdx + 1}
                               </div>
-                              {(config.params.optParams.doeParamHeads || []).map(h => (
+                              {(config.params?.optParams?.doeParamHeads || []).map(h => (
                                 <div
                                   key={h}
                                   className="bg-white dark:bg-slate-800 eyecare:bg-card p-0.5"
@@ -667,7 +667,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                           <div className="bg-white dark:bg-slate-800 eyecare:bg-card px-2 py-1 text-xs text-center text-slate-500">
                             {rowIdx + 1}
                           </div>
-                          {(config.params.optParams.doeParamHeads || []).map(h => (
+                          {(config.params?.optParams?.doeParamHeads || []).map(h => (
                             <div
                               key={h}
                               className="bg-white dark:bg-slate-800 eyecare:bg-card px-2 py-1 text-xs text-center"

@@ -75,7 +75,7 @@ export const ConfigDrawer: React.FC<ConfigDrawerProps> = ({
       <div
         ref={drawerRef}
         style={{ width: resizable ? `${drawerWidth}px` : undefined }}
-        className={`fixed top-0 right-0 h-full bg-white dark:bg-slate-800 shadow-2xl z-50
+        className={`fixed top-0 right-0 h-full bg-white dark:bg-slate-800 eyecare:bg-card shadow-2xl z-50
           ${!resizable ? (width === 'wide' ? 'w-[640px]' : 'w-[480px]') : ''}
           transform ${isResizing ? '' : 'transition-transform duration-300'}
           ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}
@@ -97,11 +97,13 @@ export const ConfigDrawer: React.FC<ConfigDrawerProps> = ({
           </div>
         )}
 
-        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700">
-          <h2 className="text-lg font-bold text-slate-800 dark:text-white">{title}</h2>
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-700 eyecare:border-border">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-white eyecare:text-foreground">
+            {title}
+          </h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 eyecare:hover:bg-muted rounded-lg"
           >
             <XMarkIcon className="w-5 h-5" />
           </button>

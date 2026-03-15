@@ -22,7 +22,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     // 应用当前主题
     if (theme === 'dark') {
       root.classList.add('dark');
-    } else if (theme === 'eyecare') {
+    } else if (theme === 'eyecare-green' || theme === 'eyecare-warm') {
       root.setAttribute('data-theme', 'eyecare');
     }
     // light 主题为默认状态，无需添加类
