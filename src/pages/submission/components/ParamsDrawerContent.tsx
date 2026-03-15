@@ -355,7 +355,9 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
               </button>
             ))}
           </div>
-          <p className="text-xs text-slate-400 mt-1">{t('sub.params.apply_group_hint')}</p>
+          <p className="text-xs text-slate-400 eyecare:text-muted-foreground mt-1">
+            {t('sub.params.apply_group_hint')}
+          </p>
         </div>
       )}
 
@@ -370,33 +372,39 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
             className={`p-3 rounded-lg border-2 transition-all ${
               currentAlgType === AlgType.BAYESIAN
                 ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                : 'border-slate-200 dark:border-slate-600 eyecare:border-border'
+                : 'border-slate-200 dark:border-slate-600 eyecare:border-border eyecare:border-border'
             }`}
           >
             <div className="text-sm font-bold text-purple-600">{t('sub.params.bayesian')}</div>
-            <div className="text-xs text-slate-500 mt-1">{t('sub.params.bayesian_desc')}</div>
+            <div className="text-xs text-slate-500 eyecare:text-muted-foreground mt-1">
+              {t('sub.params.bayesian_desc')}
+            </div>
           </button>
           <button
             onClick={() => updateOptParams({ algType: AlgType.DOE })}
             className={`p-3 rounded-lg border-2 transition-all ${
               currentAlgType === AlgType.DOE
                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'border-slate-200 dark:border-slate-600 eyecare:border-border'
+                : 'border-slate-200 dark:border-slate-600 eyecare:border-border eyecare:border-border'
             }`}
           >
             <div className="text-sm font-bold text-blue-600">{t('sub.params.doe')}</div>
-            <div className="text-xs text-slate-500 mt-1">{t('sub.params.doe_desc')}</div>
+            <div className="text-xs text-slate-500 eyecare:text-muted-foreground mt-1">
+              {t('sub.params.doe_desc')}
+            </div>
           </button>
           <button
             onClick={() => updateOptParams({ algType: AlgType.DOE_FILE })}
             className={`p-3 rounded-lg border-2 transition-all ${
               currentAlgType === AlgType.DOE_FILE
                 ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                : 'border-slate-200 dark:border-slate-600 eyecare:border-border'
+                : 'border-slate-200 dark:border-slate-600 eyecare:border-border eyecare:border-border'
             }`}
           >
             <div className="text-sm font-bold text-green-600">{t('sub.params.doe_file')}</div>
-            <div className="text-xs text-slate-500 mt-1">{t('sub.params.doe_file_desc')}</div>
+            <div className="text-xs text-slate-500 eyecare:text-muted-foreground mt-1">
+              {t('sub.params.doe_file_desc')}
+            </div>
           </button>
         </div>
       </div>
@@ -454,7 +462,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                 (config.params.optParams?.domain || []).map((domain, idx) => (
                   <div
                     key={idx}
-                    className={`grid ${currentAlgType === AlgType.DOE ? 'grid-cols-[100px_1fr_40px]' : 'grid-cols-[100px_1fr_1fr_1fr_40px]'} border-t dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700/50`}
+                    className={`grid ${currentAlgType === AlgType.DOE ? 'grid-cols-[100px_1fr_40px]' : 'grid-cols-[100px_1fr_1fr_1fr_40px]'} border-t dark:border-slate-600 eyecare:border-border hover:bg-slate-50 dark:hover:bg-slate-700/50 eyecare:hover:bg-muted/50`}
                   >
                     <div className="px-1 py-1 border-r dark:border-slate-600">
                       <input
@@ -530,7 +538,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
               <button
                 onClick={generateDoeCombinations}
                 disabled={(config.params.optParams?.domain || []).length === 0}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 disabled:cursor-not-allowed rounded-lg transition-colors"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-slate-400 eyecare:disabled:bg-muted disabled:cursor-not-allowed rounded-lg transition-colors"
               >
                 <CheckCircleIcon className="w-4 h-4" />
                 {t('sub.params.doe_verify_btn')}
@@ -625,7 +633,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
           <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
             {t('sub.params.doe_file_upload')}
           </label>
-          <label className="block border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-4 text-center cursor-pointer hover:border-brand-400 transition-colors">
+          <label className="block border-2 border-dashed border-slate-300 dark:border-slate-600 eyecare:border-border rounded-lg p-4 text-center cursor-pointer hover:border-brand-400 transition-colors">
             <input type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
             <DocumentArrowUpIcon className="w-8 h-8 mx-auto mb-2 text-slate-400" />
             <p className="text-sm text-slate-500">{t('sub.params.doe_file_hint')}</p>
