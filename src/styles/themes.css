@@ -1,10 +1,11 @@
 /**
  * 主题系统 CSS 变量
  *
- * 支持三种主题模式:
- * - :root - 亮色模式 (默认)
- * - .dark - 暗色模式
- * - [data-theme='eyecare'] - 护眼模式
+ * 支持四种主题模式 (通过 <html> 上的 CSS 类切换):
+ * - :root          — 亮色模式 (默认，无额外类)
+ * - .dark          — 暗色模式
+ * - .eyecare-green — 护眼模式 · 绿豆沙
+ * - .eyecare-warm  — 护眼模式 · 米黄纸
  *
  * 使用 HSL 格式便于动态调整
  */
@@ -207,16 +208,16 @@ body {
     'calt' 1;
 }
 
-/* ========== 护眼模式通用类（兼容旧代码） ========== */
-.eyecare-green,
-.eyecare-warm {
-  /* 这些类会自动应用对应的CSS变量 */
-}
-
 /* ========== 护眼模式全局样式覆盖 ========== */
+/* 覆盖硬编码的 Tailwind 工具类，使其在护眼模式下跟随主题变量 */
 .eyecare-green .bg-white,
 .eyecare-warm .bg-white {
   background-color: hsl(var(--card)) !important;
+}
+
+.eyecare-green .bg-slate-50,
+.eyecare-warm .bg-slate-50 {
+  background-color: hsl(var(--background)) !important;
 }
 
 .eyecare-green .text-slate-900,
@@ -224,7 +225,122 @@ body {
   color: hsl(var(--foreground)) !important;
 }
 
+.eyecare-green .text-slate-100,
+.eyecare-warm .text-slate-100 {
+  color: hsl(var(--foreground)) !important;
+}
+
 .eyecare-green .border-slate-200,
 .eyecare-warm .border-slate-200 {
+  border-color: hsl(var(--border)) !important;
+}
+
+.eyecare-green .border-slate-700,
+.eyecare-warm .border-slate-700 {
+  border-color: hsl(var(--border)) !important;
+}
+
+.eyecare-green .bg-slate-100,
+.eyecare-warm .bg-slate-100 {
+  background-color: hsl(var(--secondary)) !important;
+}
+
+.eyecare-green .bg-slate-200,
+.eyecare-warm .bg-slate-200 {
+  background-color: hsl(var(--secondary)) !important;
+}
+
+.eyecare-green .bg-slate-700,
+.eyecare-warm .bg-slate-700 {
+  background-color: hsl(var(--secondary)) !important;
+}
+
+.eyecare-green .bg-slate-800,
+.eyecare-warm .bg-slate-800 {
+  background-color: hsl(var(--card)) !important;
+}
+
+.eyecare-green .text-slate-500,
+.eyecare-warm .text-slate-500 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.eyecare-green .text-slate-400,
+.eyecare-warm .text-slate-400 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+.eyecare-green .text-slate-600,
+.eyecare-warm .text-slate-600 {
+  color: hsl(var(--foreground)) !important;
+}
+
+.eyecare-green .text-slate-300,
+.eyecare-warm .text-slate-300 {
+  color: hsl(var(--muted-foreground)) !important;
+}
+
+/* ========== 护眼模式 - 原生表单元素全局覆盖 ========== */
+/* select / input / textarea 在护眼模式下跟随主题 */
+.eyecare-green select,
+.eyecare-warm select,
+.eyecare-green textarea,
+.eyecare-warm textarea {
+  background-color: hsl(var(--card));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+
+.eyecare-green select option,
+.eyecare-warm select option {
+  background-color: hsl(var(--card));
+  color: hsl(var(--foreground));
+}
+
+/* 护眼模式 - 硬编码 hover 状态覆盖 */
+.eyecare-green .hover\:bg-slate-50:hover,
+.eyecare-warm .hover\:bg-slate-50:hover {
+  background-color: hsl(var(--muted)) !important;
+}
+
+.eyecare-green .hover\:bg-slate-100:hover,
+.eyecare-warm .hover\:bg-slate-100:hover {
+  background-color: hsl(var(--muted)) !important;
+}
+
+.eyecare-green .hover\:bg-slate-200:hover,
+.eyecare-warm .hover\:bg-slate-200:hover {
+  background-color: hsl(var(--muted)) !important;
+}
+
+/* 护眼模式 - 选中状态覆盖 */
+.eyecare-green .bg-brand-50,
+.eyecare-warm .bg-brand-50 {
+  background-color: hsl(var(--primary) / 0.1) !important;
+}
+
+.eyecare-green .bg-blue-50,
+.eyecare-warm .bg-blue-50 {
+  background-color: hsl(var(--primary) / 0.1) !important;
+}
+
+.eyecare-green .bg-purple-50,
+.eyecare-warm .bg-purple-50 {
+  background-color: hsl(var(--primary) / 0.1) !important;
+}
+
+.eyecare-green .bg-green-50,
+.eyecare-warm .bg-green-50 {
+  background-color: hsl(var(--primary) / 0.1) !important;
+}
+
+/* 护眼模式 - 边框覆盖 */
+.eyecare-green .border-slate-300,
+.eyecare-warm .border-slate-300 {
+  border-color: hsl(var(--border)) !important;
+}
+
+.eyecare-green .border-slate-600,
+.eyecare-warm .border-slate-600 {
   border-color: hsl(var(--border)) !important;
 }

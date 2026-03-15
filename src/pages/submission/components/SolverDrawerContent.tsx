@@ -69,7 +69,7 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
           {t('sub.solver.select')}
         </label>
         <select
-          className="w-full p-3 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
+          className="w-full p-3 border rounded-lg bg-background text-foreground border-input"
           value={config.solver.solverId}
           onChange={e => {
             const solver = solvers.find(s => s.id === Number(e.target.value));
@@ -195,7 +195,7 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
             {t('sub.solver.resource')}
           </label>
           <select
-            className="w-full p-3 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
+            className="w-full p-3 border rounded-lg bg-background text-foreground border-input"
             value={config.solver.resourceId ?? ''}
             onChange={e =>
               handleChange({ resourceId: e.target.value ? Number(e.target.value) : null })

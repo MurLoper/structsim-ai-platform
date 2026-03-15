@@ -22,20 +22,8 @@ export const useUIStore = create<UIState>()(
       language: 'zh',
       sidebarCollapsed: false,
 
-      setTheme: theme => {
-        const root = window.document.documentElement;
-        root.classList.remove('dark', 'eyecare-green', 'eyecare-warm');
-
-        if (theme === 'dark') {
-          root.classList.add('dark');
-        } else if (theme === 'eyecare-green') {
-          root.classList.add('eyecare-green');
-        } else if (theme === 'eyecare-warm') {
-          root.classList.add('eyecare-warm');
-        }
-
-        set({ theme });
-      },
+      // 只更新状态，DOM 同步由 ThemeProvider 统一处理
+      setTheme: theme => set({ theme }),
 
       setLanguage: language => set({ language }),
 

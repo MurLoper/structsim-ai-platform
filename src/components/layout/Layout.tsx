@@ -248,7 +248,8 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
             <div
               className={clsx(
                 'flex items-center gap-1 p-1 rounded-full',
-                'bg-slate-100 dark:bg-slate-700'
+                'bg-slate-100 dark:bg-slate-700',
+                'eyecare:bg-secondary'
               )}
             >
               <button

@@ -23,18 +23,15 @@ export const EditModal: React.FC<EditModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4">
-        <div className="flex items-center justify-between p-4 border-b dark:border-slate-700">
-          <h3 className="text-lg font-bold">{title}</h3>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
-          >
+      <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4">
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h3 className="text-lg font-bold text-foreground">{title}</h3>
+          <button onClick={onClose} className="p-1 hover:bg-muted rounded">
             <XMarkIcon className="w-5 h-5" />
           </button>
         </div>
         <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">{children}</div>
-        <div className="flex justify-end gap-3 p-4 border-t dark:border-slate-700">
+        <div className="flex justify-end gap-3 p-4 border-t border-border">
           <Button variant="secondary" onClick={onClose}>
             取消
           </Button>
@@ -68,15 +65,13 @@ export const FormInput: React.FC<FormInputProps> = ({
 
   return (
     <div>
-      <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
-        {label}
-      </label>
+      <label className="block text-sm font-medium mb-1 text-foreground">{label}</label>
       <input
         type={type}
         value={displayValue}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full p-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
+        className="w-full p-2 border rounded-lg bg-background text-foreground border-input focus:outline-none focus:ring-2 focus:ring-ring"
       />
     </div>
   );
@@ -96,13 +91,11 @@ export const FormSelect: React.FC<FormSelectProps> = ({ label, value, onChange, 
 
   return (
     <div>
-      <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
-        {label}
-      </label>
+      <label className="block text-sm font-medium mb-1 text-foreground">{label}</label>
       <select
         value={displayValue}
         onChange={e => onChange(e.target.value)}
-        className="w-full p-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
+        className="w-full p-2 border rounded-lg bg-background text-foreground border-input focus:outline-none focus:ring-2 focus:ring-ring"
       >
         {options.map(opt => (
           <option key={opt.value} value={opt.value}>

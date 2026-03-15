@@ -10,10 +10,10 @@ interface ActionButtonsProps {
 
 export const ActionButtons: React.FC<ActionButtonsProps> = ({ onEdit, onDelete }) => (
   <div className="flex gap-1">
-    <button onClick={onEdit} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600 rounded">
-      <PencilIcon className="w-4 h-4 text-slate-500" />
+    <button onClick={onEdit} className="p-1.5 hover:bg-muted rounded">
+      <PencilIcon className="w-4 h-4 text-muted-foreground" />
     </button>
-    <button onClick={onDelete} className="p-1.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded">
+    <button onClick={onDelete} className="p-1.5 hover:bg-destructive/10 rounded">
       <TrashIcon className="w-4 h-4 text-red-500" />
     </button>
   </div>
@@ -57,12 +57,12 @@ export const ListItem: React.FC<ListItemProps> = ({
   onEdit,
   onDelete,
 }) => (
-  <div className="p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg flex justify-between items-center">
+  <div className="p-3 bg-muted/50 rounded-lg flex justify-between items-center">
     <div className="flex items-center gap-3">
       {colorDot && <span className={`w-3 h-3 rounded-full ${colorDot}`} />}
       <div>
-        <div className="font-medium">{title}</div>
-        <div className="text-xs text-slate-500">{subtitle}</div>
+        <div className="font-medium text-foreground">{title}</div>
+        <div className="text-xs text-muted-foreground">{subtitle}</div>
       </div>
     </div>
     <div className="flex items-center gap-2">

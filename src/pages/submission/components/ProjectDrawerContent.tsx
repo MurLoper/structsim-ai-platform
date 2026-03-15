@@ -107,7 +107,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
         required
         render={({ field }) => (
           <select
-            className="w-full p-3 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+            className="w-full p-3 border rounded-lg bg-background text-foreground border-input"
             value={field.value ?? ''}
             onChange={e => field.onChange(Number(e.target.value) || null)}
           >
@@ -203,7 +203,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
                 <div className="flex gap-2">
                   <input
                     type="text"
-                    className="flex-1 p-3 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+                    className="flex-1 p-3 border rounded-lg bg-background text-foreground border-input"
                     placeholder={
                       originType === 1 ? t('sub.input_file_path') : t('sub.input_file_id')
                     }
@@ -275,7 +275,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
         label={t('sub.origin_fold_type')}
         render={({ field }) => (
           <select
-            className="w-full p-3 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+            className="w-full p-3 border rounded-lg bg-background text-foreground border-input"
             value={field.value ?? ''}
             onChange={e => field.onChange(e.target.value ? Number(e.target.value) : null)}
           >
@@ -331,7 +331,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
               return 0;
             });
             return (
-              <div className="space-y-1 max-h-48 overflow-y-auto border rounded-lg p-2 dark:border-slate-600">
+              <div className="space-y-1 max-h-48 overflow-y-auto border border-input rounded-lg p-2">
                 {sortedUsers.map(user => {
                   const isSelected = selectedIds.includes(user.id);
                   return (
@@ -371,7 +371,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
         label={t('sub.remarks')}
         render={({ field }) => (
           <textarea
-            className="w-full p-3 border rounded-lg dark:bg-slate-700 dark:border-slate-600 h-24 resize-none"
+            className="w-full p-3 border rounded-lg bg-background text-foreground border-input h-24 resize-none"
             placeholder={t('sub.input_remark')}
             value={field.value || ''}
             onChange={field.onChange}

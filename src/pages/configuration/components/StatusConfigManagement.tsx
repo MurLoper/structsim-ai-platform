@@ -114,7 +114,7 @@ export const StatusConfigManagement: React.FC = () => {
       header: t('cfg.status.col.id'),
       accessorKey: 'id',
       cell: ({ row }) => (
-        <span className="font-mono text-sm text-slate-600">{row.original.id}</span>
+        <span className="font-mono text-sm text-muted-foreground">{row.original.id}</span>
       ),
     },
     {
@@ -171,7 +171,7 @@ export const StatusConfigManagement: React.FC = () => {
         const iconName = row.original.icon;
         const IconComponent = iconName ? getLucideIconByName(iconName) : null;
         return (
-          <span className="text-sm text-slate-600 flex items-center gap-1">
+          <span className="text-sm text-muted-foreground flex items-center gap-1">
             {IconComponent ? (
               <>
                 <IconComponent className="w-4 h-4" />
@@ -187,7 +187,7 @@ export const StatusConfigManagement: React.FC = () => {
     {
       header: t('cfg.status.col.sort'),
       accessorKey: 'sort',
-      cell: ({ row }) => <span className="text-sm text-slate-600">{row.original.sort}</span>,
+      cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.sort}</span>,
     },
     {
       header: t('cfg.status.col.action'),
@@ -496,8 +496,8 @@ export const StatusConfigManagement: React.FC = () => {
             • <strong>{t('cfg.status.col.icon')}</strong>: {t('cfg.status.help.icon')}
           </p>
         </div>
-        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-          <p className="text-sm text-blue-700 dark:text-blue-300">
+        <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 eyecare:bg-primary/10 rounded-lg">
+          <p className="text-sm text-blue-700 dark:text-blue-300 eyecare:text-primary">
             <strong>{t('common.tip')}:</strong> {t('cfg.status.help.tip')}
           </p>
         </div>

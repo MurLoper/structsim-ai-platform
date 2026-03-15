@@ -82,9 +82,9 @@ export function DataTable<TData extends object>({
   const hasToolbar = searchable || toolbar || title;
 
   return (
-    <div className={cn('flex flex-col gap-4', wrapperClassName)}>
+    <div className={cn('flex flex-col', wrapperClassName)}>
       {hasToolbar && (
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4 px-6 py-4">
           <div className="flex items-center gap-4">
             {title && <h3 className="text-lg font-semibold text-foreground">{title}</h3>}
             {showCount && (
@@ -106,7 +106,7 @@ export function DataTable<TData extends object>({
                   onChange={e => setSearchValue(e.target.value)}
                   placeholder={searchPlaceholder}
                   className={cn(
-                    'h-9 w-64 rounded-lg border border-input bg-background',
+                    'h-9 w-64 rounded-lg border border-input bg-background text-foreground',
                     'pl-9 pr-9 text-sm',
                     'placeholder:text-muted-foreground',
                     'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1'

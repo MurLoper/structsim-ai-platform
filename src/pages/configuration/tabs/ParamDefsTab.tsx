@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   AdjustmentsHorizontalIcon,
-  MagnifyingGlassIcon,
   ArrowUpTrayIcon,
   ArrowDownTrayIcon,
   PlusIcon,
 } from '@heroicons/react/24/outline';
-import { Card, useToast, useConfirmDialog } from '@/components/ui';
+import { Card, useToast, useConfirmDialog, SearchBar } from '@/components/ui';
 import { ActionButtons, EditModal, FormInput, FormSelect } from '../components';
 import { baseConfigApi } from '@/api';
 import type { ParamDef } from '@/types';
@@ -133,31 +132,31 @@ export const ParamDefsTab: React.FC = () => {
     <>
       <Card>
         {/* 头部 */}
-        <div className="p-4 border-b dark:border-slate-700">
+        <div className="p-4 border-b border-border">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-2">
-              <AdjustmentsHorizontalIcon className="w-5 h-5 text-blue-600" />
-              <h3 className="text-lg font-semibold">参数定义管理</h3>
-              <span className="text-sm text-slate-500">共 {total} 条</span>
+              <AdjustmentsHorizontalIcon className="w-5 h-5 text-primary" />
+              <h3 className="text-lg font-semibold text-foreground">参数定义管理</h3>
+              <span className="text-sm text-muted-foreground">共 {total} 条</span>
             </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={handleDownloadTemplate}
-                className="px-3 py-2 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm flex items-center gap-1"
+                className="px-3 py-2 text-muted-foreground hover:bg-muted rounded-lg text-sm flex items-center gap-1"
               >
                 <ArrowDownTrayIcon className="w-4 h-4" />
                 模板
               </button>
               <button
                 onClick={() => setShowUploadModal(true)}
-                className="px-3 py-2 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-sm flex items-center gap-1"
+                className="px-3 py-2 text-muted-foreground hover:bg-muted rounded-lg text-sm flex items-center gap-1"
               >
                 <ArrowUpTrayIcon className="w-4 h-4" />
                 导入
               </button>
               <button
                 onClick={() => openEditModal()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center gap-2"
               >
                 <PlusIcon className="w-4 h-4" />
                 新建参数
@@ -165,60 +164,46 @@ export const ParamDefsTab: React.FC = () => {
             </div>
           </div>
           {/* 搜索框 */}
-          <div className="mt-4 flex gap-2">
-            <div className="relative flex-1">
-              <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                placeholder="搜索参数名称或Key..."
-                value={searchInput}
-                onChange={e => setSearchInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleSearch()}
-                className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
-              />
-            </div>
-            <button
-              onClick={handleSearch}
-              className="px-4 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg hover:bg-slate-200"
-            >
-              搜索
-            </button>
+          <div className="mt-4">
+            <SearchBar
+              value={searchInput}
+              onChange={setSearchInput}
+              onSearch={handleSearch}
+              placeholder="搜索参数名称或Key..."
+            />
           </div>
         </div>
 
         {/* 表格 */}
         <div className="overflow-x-auto">
           {loading ? (
-            <div className="p-12 text-center text-slate-500">加载中...</div>
+            <div className="p-12 text-center text-muted-foreground">加载中...</div>
           ) : paramDefs.length === 0 ? (
-            <div className="p-12 text-center text-slate-500">
+            <div className="p-12 text-center text-muted-foreground">
               {keyword ? '未找到匹配的参数' : '暂无参数定义'}
             </div>
           ) : (
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-100 dark:bg-slate-700">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="p-3">名称</th>
-                  <th className="p-3">Key</th>
-                  <th className="p-3">单位</th>
-                  <th className="p-3">范围</th>
-                  <th className="p-3">默认值</th>
-                  <th className="p-3 w-24">操作</th>
+                  <th className="p-3 text-foreground">名称</th>
+                  <th className="p-3 text-foreground">Key</th>
+                  <th className="p-3 text-foreground">单位</th>
+                  <th className="p-3 text-foreground">范围</th>
+                  <th className="p-3 text-foreground">默认值</th>
+                  <th className="p-3 w-24 text-foreground">操作</th>
                 </tr>
               </thead>
               <tbody>
                 {paramDefs.map(p => (
-                  <tr
-                    key={p.id}
-                    className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 eyecare:hover:bg-muted/30"
-                  >
-                    <td className="p-3 font-medium">{p.name}</td>
-                    <td className="p-3 text-slate-500 font-mono text-xs">{p.key}</td>
-                    <td className="p-3 text-slate-500">{p.unit || '-'}</td>
-                    <td className="p-3 text-slate-500">
+                  <tr key={p.id} className="border-b border-border hover:bg-muted/30">
+                    <td className="p-3 font-medium text-foreground">{p.name}</td>
+                    <td className="p-3 text-muted-foreground font-mono text-xs">{p.key}</td>
+                    <td className="p-3 text-muted-foreground">{p.unit || '-'}</td>
+                    <td className="p-3 text-muted-foreground">
                       {p.minVal} - {p.maxVal}
                     </td>
-                    <td className="p-3 text-slate-500">{p.defaultVal || '-'}</td>
+                    <td className="p-3 text-muted-foreground">{p.defaultVal || '-'}</td>
                     <td className="p-3">
                       <ActionButtons
                         onEdit={() => openEditModal(p)}
@@ -234,8 +219,8 @@ export const ParamDefsTab: React.FC = () => {
 
         {/* 分页 */}
         {totalPages > 1 && (
-          <div className="p-4 border-t dark:border-slate-700 flex justify-between items-center">
-            <span className="text-sm text-slate-500">
+          <div className="p-4 border-t border-border flex justify-between items-center">
+            <span className="text-sm text-muted-foreground">
               第 {page} / {totalPages} 页
             </span>
             <div className="flex gap-2">
