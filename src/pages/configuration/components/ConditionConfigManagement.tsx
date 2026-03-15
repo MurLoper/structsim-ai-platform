@@ -389,7 +389,7 @@ export const ConditionConfigManagement: React.FC = () => {
                     type="text"
                     value={formData.name}
                     onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
                     placeholder="如：展开态-静力分析"
                   />
                 </div>
@@ -401,7 +401,7 @@ export const ConditionConfigManagement: React.FC = () => {
                     type="text"
                     value={formData.code}
                     onChange={e => setFormData(prev => ({ ...prev, code: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
                     placeholder="如：DEPLOY_STATIC"
                   />
                 </div>
@@ -421,7 +421,7 @@ export const ConditionConfigManagement: React.FC = () => {
                         foldTypeId: e.target.value ? Number(e.target.value) : null,
                       }))
                     }
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
                     disabled={!!editingConfig}
                   >
                     <option value="">请选择姿态</option>
@@ -444,7 +444,7 @@ export const ConditionConfigManagement: React.FC = () => {
                         simTypeId: e.target.value ? Number(e.target.value) : null,
                       }))
                     }
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
                     disabled={!!editingConfig}
                   >
                     <option value="">请选择仿真类型</option>
@@ -555,7 +555,7 @@ export const ConditionConfigManagement: React.FC = () => {
                         defaultParamGroupId: Number(e.target.value) || null,
                       }))
                     }
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 text-sm"
+                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border text-sm"
                   >
                     <option value="">不设置</option>
                     {formData.paramGroupIds.map(id => {
@@ -580,7 +580,7 @@ export const ConditionConfigManagement: React.FC = () => {
                         defaultOutputGroupId: Number(e.target.value) || null,
                       }))
                     }
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 text-sm"
+                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border text-sm"
                   >
                     <option value="">不设置</option>
                     {formData.outputGroupIds.map(id => {
@@ -605,7 +605,7 @@ export const ConditionConfigManagement: React.FC = () => {
                         defaultSolverId: Number(e.target.value) || null,
                       }))
                     }
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 text-sm"
+                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border text-sm"
                   >
                     <option value="">不设置</option>
                     {solvers.map(s => (

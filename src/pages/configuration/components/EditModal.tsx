@@ -76,7 +76,7 @@ export const FormInput: React.FC<FormInputProps> = ({
         value={displayValue}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+        className="w-full p-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
       />
     </div>
   );
@@ -102,7 +102,7 @@ export const FormSelect: React.FC<FormSelectProps> = ({ label, value, onChange, 
       <select
         value={displayValue}
         onChange={e => onChange(e.target.value)}
-        className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+        className="w-full p-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
       >
         {options.map(opt => (
           <option key={opt.value} value={opt.value}>

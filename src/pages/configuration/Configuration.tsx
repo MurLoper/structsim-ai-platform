@@ -651,7 +651,7 @@ const Configuration: React.FC = () => {
                     onChange={e => state.updateFormData('remark', e.target.value)}
                     placeholder="请输入备注信息（可选）"
                     rows={2}
-                    className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+                    className="w-full p-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
                   />
                 </div>
               </>
@@ -701,7 +701,7 @@ const Configuration: React.FC = () => {
                     onChange={e => state.updateFormData('remark', e.target.value)}
                     placeholder="请输入备注信息（可选）"
                     rows={2}
-                    className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+                    className="w-full p-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
                   />
                 </div>
               </>
@@ -742,7 +742,7 @@ const Configuration: React.FC = () => {
                     onChange={e => state.updateFormData('remark', e.target.value)}
                     placeholder="请输入备注信息（可选）"
                     rows={2}
-                    className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+                    className="w-full p-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
                   />
                 </div>
               </>
@@ -776,7 +776,7 @@ const Configuration: React.FC = () => {
                     onChange={e => state.updateFormData('remark', e.target.value)}
                     placeholder="请输入备注信息（可选）"
                     rows={3}
-                    className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+                    className="w-full p-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
                   />
                 </div>
               </>

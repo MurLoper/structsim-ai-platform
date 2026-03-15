@@ -266,7 +266,7 @@ const AddSimTypeModal: React.FC<AddSimTypeModalProps> = ({
                   e.target.value ? Number(e.target.value) : (null as number | null)
                 )
               }
-              className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+              className="w-full p-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
             >
               <option value="">请选择...</option>
               {availableSimTypes.map(st => (

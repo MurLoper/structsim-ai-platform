@@ -220,7 +220,7 @@ export const OutputGroupsManagement: React.FC = () => {
             placeholder="搜索组合名称或输出..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+            className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
           />
           {searchTerm && (
             <button
@@ -409,7 +409,7 @@ const GroupModal: React.FC<{
               type="text"
               value={formData.name || ''}
               onChange={e => updateField('name', e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
             />
           </div>
           <div>
@@ -417,7 +417,7 @@ const GroupModal: React.FC<{
             <textarea
               value={formData.description || ''}
               onChange={e => updateField('description', e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
               rows={2}
             />
           </div>
@@ -433,7 +433,7 @@ const GroupModal: React.FC<{
               placeholder="搜索输出..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 mb-2"
+              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border mb-2"
             />
             <div className="border rounded-lg dark:border-slate-600 max-h-[300px] overflow-y-auto">
               {filteredOutputs.map(output => (

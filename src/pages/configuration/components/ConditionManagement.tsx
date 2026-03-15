@@ -336,7 +336,7 @@ const AddSimTypeModal: React.FC<AddSimTypeModalProps> = ({
               <select
                 value={selectedId ?? ''}
                 onChange={e => setSelectedId(e.target.value ? Number(e.target.value) : null)}
-                className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+                className="w-full p-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
               >
                 <option value="">请选择...</option>
                 {availableSimTypes.map(st => (

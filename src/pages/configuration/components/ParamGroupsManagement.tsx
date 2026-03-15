@@ -296,7 +296,7 @@ export const ParamGroupsManagement: React.FC = () => {
             placeholder="搜索组合名称或参数..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+            className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
           />
           {searchTerm && (
             <button
@@ -550,7 +550,7 @@ const GroupModal: React.FC<{
               type="text"
               value={formData.name || ''}
               onChange={e => updateField('name', e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
             />
           </div>
           <div>
@@ -558,7 +558,7 @@ const GroupModal: React.FC<{
             <textarea
               value={formData.description || ''}
               onChange={e => updateField('description', e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
               rows={2}
             />
           </div>
@@ -574,7 +574,7 @@ const GroupModal: React.FC<{
               placeholder="搜索参数..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600 mb-2"
+              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border mb-2"
             />
             <div className="border rounded-lg dark:border-slate-600 max-h-[300px] overflow-y-auto">
               {filteredParams.map(param => (
@@ -774,7 +774,7 @@ const AddParamsModal: React.FC<{
               placeholder="搜索参数名称或 Key（输入2个字符开始搜索）..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+              className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
             />
             {isSearching && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -814,21 +814,21 @@ const AddParamsModal: React.FC<{
                 placeholder="参数Key *"
                 value={newParamData.key}
                 onChange={e => setNewParamData(prev => ({ ...prev, key: e.target.value }))}
-                className="px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                className="px-2 py-1.5 text-sm border rounded dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
               />
               <input
                 type="text"
                 placeholder="参数名称"
                 value={newParamData.name}
                 onChange={e => setNewParamData(prev => ({ ...prev, name: e.target.value }))}
-                className="px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                className="px-2 py-1.5 text-sm border rounded dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
               />
               <input
                 type="text"
                 placeholder="单位"
                 value={newParamData.unit}
                 onChange={e => setNewParamData(prev => ({ ...prev, unit: e.target.value }))}
-                className="px-2 py-1.5 text-sm border rounded dark:bg-slate-700 dark:border-slate-600"
+                className="px-2 py-1.5 text-sm border rounded dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
               />
             </div>
             <div className="flex justify-end mt-2">
@@ -1025,7 +1025,7 @@ const UploadExcelModal: React.FC<{
             <select
               value={selectedGroupId ?? ''}
               onChange={e => setSelectedGroupId(e.target.value ? Number(e.target.value) : null)}
-              className="w-full p-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+              className="w-full p-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
             >
               <option value="">请选择...</option>
               {groups.map(g => (

@@ -252,7 +252,7 @@ export const ConfigRelationsManagement: React.FC = () => {
                 className={`px-4 py-2 rounded-lg transition-colors ${
                   activeTab === 'paramGroups'
                     ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                    : 'bg-slate-100 dark:bg-slate-700 eyecare:bg-muted text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                 }`}
               >
                 参数组合
@@ -262,7 +262,7 @@ export const ConfigRelationsManagement: React.FC = () => {
                 className={`px-4 py-2 rounded-lg transition-colors ${
                   activeTab === 'outputGroups'
                     ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                    : 'bg-slate-100 dark:bg-slate-700 eyecare:bg-muted text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                 }`}
               >
                 输出组合
@@ -272,7 +272,7 @@ export const ConfigRelationsManagement: React.FC = () => {
                 className={`px-4 py-2 rounded-lg transition-colors ${
                   activeTab === 'solvers'
                     ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                    : 'bg-slate-100 dark:bg-slate-700 eyecare:bg-muted text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
                 }`}
               >
                 求解器
@@ -578,7 +578,7 @@ const AddRelationModal: React.FC<{
                   e.target.value ? Number(e.target.value) : (null as number | null)
                 )
               }
-              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
             >
               <option value="">请选择</option>
               {availableItems.map(item => (
