@@ -440,7 +440,7 @@ const Submission: React.FC = () => {
           {t('sub.title')}
         </h1>
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 eyecare:bg-muted rounded-lg p-1">
             <button
               onClick={canvas.zoomOut}
               className="p-2 hover:bg-white dark:hover:bg-slate-600 eyecare:hover:bg-card rounded"
@@ -467,7 +467,7 @@ const Submission: React.FC = () => {
             </button>
           </div>
           {/* 导出按钮组 */}
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 eyecare:bg-muted rounded-lg p-1">
             <button
               onClick={() => exportAsImage(canvasContainerRef.current, { scale: 3 })}
               className="p-2 hover:bg-white dark:hover:bg-slate-600 eyecare:hover:bg-card rounded"
@@ -568,7 +568,7 @@ const Submission: React.FC = () => {
             onClick={openProjectDrawer}
           >
             {state.selectedProject ? (
-              <div className="text-xs text-slate-500 space-y-1 bg-slate-50 dark:bg-slate-900/50 p-2 rounded">
+              <div className="text-xs text-slate-500 eyecare:text-muted-foreground space-y-1 bg-slate-50 dark:bg-slate-900/50 eyecare:bg-muted/50 p-2 rounded">
                 <div className="flex justify-between">
                   <span>{t('sub.source_file_label')}:</span>
                   <span className="font-mono text-slate-700 dark:text-slate-300 eyecare:text-foreground truncate max-w-[180px]">
@@ -597,7 +597,9 @@ const Submission: React.FC = () => {
                 )}
               </div>
             ) : (
-              <div className="text-sm text-slate-400 text-center italic py-2">点击选择项目</div>
+              <div className="text-sm text-slate-400 eyecare:text-muted-foreground text-center italic py-2">
+                点击选择项目
+              </div>
             )}
           </CanvasNode>
 
@@ -652,12 +654,12 @@ const Submission: React.FC = () => {
                     }
                   }}
                 >
-                  <div className="text-xs text-slate-500 text-center">
+                  <div className="text-xs text-slate-500 eyecare:text-muted-foreground text-center">
                     <span
                       className={`px-2 py-1 rounded ${
                         isFoldTypeSelected
                           ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30'
-                          : 'bg-slate-100 dark:bg-slate-700'
+                          : 'bg-slate-100 dark:bg-slate-700 eyecare:bg-muted'
                       }`}
                     >
                       {isFoldTypeSelected ? '已选择' : '点击选择'}
@@ -719,7 +721,7 @@ const Submission: React.FC = () => {
                           }
                         }}
                       >
-                        <div className="text-xs text-slate-500 text-center">
+                        <div className="text-xs text-slate-500 eyecare:text-muted-foreground text-center">
                           {simType.isDefault && (
                             <span className="px-1.5 py-0.5 mr-1 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded">
                               默认
@@ -729,7 +731,7 @@ const Submission: React.FC = () => {
                             className={`px-2 py-1 rounded ${
                               isFoldTypeSelected && isSimTypeSelected
                                 ? 'bg-brand-100 text-brand-700 dark:bg-brand-900/30'
-                                : 'bg-slate-100 dark:bg-slate-700'
+                                : 'bg-slate-100 dark:bg-slate-700 eyecare:bg-muted'
                             }`}
                           >
                             {isSimTypeSelected ? '已选择' : '点击选择'}
@@ -748,7 +750,7 @@ const Submission: React.FC = () => {
                             isActive={true}
                           />
                           <div
-                            className="absolute border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl bg-slate-50/50 dark:bg-slate-900/30"
+                            className="absolute border-2 border-dashed border-slate-300 dark:border-slate-600 eyecare:border-border rounded-xl bg-slate-50/50 dark:bg-slate-900/30 eyecare:bg-muted/30"
                             style={{
                               left: CONFIG_BOX_X,
                               top: simTypeNodeY,
@@ -887,7 +889,9 @@ const Submission: React.FC = () => {
             t={t}
           />
         ) : (
-          <div className="text-center text-slate-500 py-8">请选择配置项</div>
+          <div className="text-center text-slate-500 eyecare:text-muted-foreground py-8">
+            请选择配置项
+          </div>
         )}
       </ConfigDrawer>
     </div>
