@@ -124,7 +124,9 @@ const Configuration: React.FC = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">{t('cfg.title')}</h1>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white eyecare:text-foreground">
+          {t('cfg.title')}
+        </h1>
       </div>
 
       {/* 分类导航 */}
@@ -133,13 +135,13 @@ const Configuration: React.FC = () => {
         <div className="lg:col-span-1">
           <Card>
             <div className="p-4">
-              <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white">
+              <h2 className="text-lg font-semibold mb-4 text-slate-900 dark:text-white eyecare:text-foreground">
                 配置分类
               </h2>
               <div className="space-y-2">
                 {configCategories.map(category => (
                   <div key={category.key} className="space-y-1">
-                    <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                    <div className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground bg-slate-100 dark:bg-slate-700 rounded-lg">
                       {category.icon}
                       <span>{category.label}</span>
                     </div>
@@ -151,7 +153,7 @@ const Configuration: React.FC = () => {
                           className={`w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg transition-colors ${
                             state.activeTab === item.key
                               ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-medium'
-                              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50'
+                              : 'text-slate-600 dark:text-slate-400 eyecare:text-muted-foreground hover:bg-slate-50 dark:hover:bg-slate-700 eyecare:hover:bg-muted/50'
                           }`}
                         >
                           {item.icon}
@@ -360,11 +362,11 @@ const Configuration: React.FC = () => {
                   {state.projects.map(project => (
                     <div
                       key={project.id}
-                      className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg flex justify-between items-start"
+                      className="p-4 bg-slate-50 dark:bg-slate-700/50 eyecare:bg-muted/50 rounded-lg flex justify-between items-start"
                     >
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <h4 className="font-medium text-slate-900 dark:text-white">
+                          <h4 className="font-medium text-slate-900 dark:text-white eyecare:text-foreground">
                             {project.name}
                           </h4>
                           <span
@@ -377,11 +379,11 @@ const Configuration: React.FC = () => {
                             {project.valid ? '启用' : '禁用'}
                           </span>
                         </div>
-                        <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        <div className="text-sm text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground mt-1">
                           编码: {project.code || '无'} | 排序: {project.sort}
                         </div>
                         {project.remark && (
-                          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                          <p className="text-sm text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground mt-1">
                             {project.remark}
                           </p>
                         )}
@@ -412,7 +414,10 @@ const Configuration: React.FC = () => {
               <CardHeader title="工作流配置" icon={<ArrowPathIcon className="w-5 h-5" />} />
               <div className="space-y-3">
                 {state.workflows.map(wf => (
-                  <div key={wf.id} className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg">
+                  <div
+                    key={wf.id}
+                    className="p-4 bg-slate-50 dark:bg-slate-700/50 eyecare:bg-muted/50 rounded-lg"
+                  >
                     <div className="font-medium">{wf.name}</div>
                     <div className="text-xs text-slate-500 mt-1">
                       类型: {wf.type} | 节点数: {wf.nodes?.length || 0}
@@ -548,7 +553,7 @@ const Configuration: React.FC = () => {
                   />
                 </div>
                 <div className="border-t pt-4 mt-2">
-                  <h4 className="text-sm font-medium mb-3 text-slate-700 dark:text-slate-300">
+                  <h4 className="text-sm font-medium mb-3 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
                     CPU 核数配置
                   </h4>
                   <div className="grid grid-cols-3 gap-4">
@@ -573,7 +578,7 @@ const Configuration: React.FC = () => {
                   </div>
                 </div>
                 <div className="border-t pt-4 mt-2">
-                  <h4 className="text-sm font-medium mb-3 text-slate-700 dark:text-slate-300">
+                  <h4 className="text-sm font-medium mb-3 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
                     内存配置 (GB)
                   </h4>
                   <div className="grid grid-cols-3 gap-4">
@@ -638,7 +643,7 @@ const Configuration: React.FC = () => {
                   type="number"
                 />
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
+                  <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
                     备注
                   </label>
                   <textarea
@@ -688,7 +693,7 @@ const Configuration: React.FC = () => {
                   type="number"
                 />
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
+                  <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
                     备注
                   </label>
                   <textarea
@@ -729,7 +734,7 @@ const Configuration: React.FC = () => {
                   type="number"
                 />
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
+                  <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
                     备注
                   </label>
                   <textarea
@@ -763,7 +768,7 @@ const Configuration: React.FC = () => {
                   type="number"
                 />
                 <div>
-                  <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
+                  <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
                     备注
                   </label>
                   <textarea

@@ -168,18 +168,24 @@ const Results: React.FC = () => {
         <div className="flex items-center gap-4">
           <Link
             to="/"
-            className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+            className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 eyecare:hover:bg-muted transition-colors"
           >
             <ArrowLeftIcon className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">订单不存在</h1>
-            <p className="text-slate-500 text-sm">无效的订单ID，请返回订单列表</p>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white eyecare:text-foreground">
+              订单不存在
+            </h1>
+            <p className="text-slate-500 eyecare:text-muted-foreground text-sm">
+              无效的订单ID，请返回订单列表
+            </p>
           </div>
         </div>
         <Card>
           <div className="flex items-center justify-between gap-4">
-            <div className="text-sm text-slate-600">无法加载结果数据。</div>
+            <div className="text-sm text-slate-600 eyecare:text-muted-foreground">
+              无法加载结果数据。
+            </div>
             <Button variant="secondary" onClick={() => navigate('/')}>
               返回列表
             </Button>
@@ -194,15 +200,15 @@ const Results: React.FC = () => {
       <div className="flex items-center gap-4">
         <Link
           to="/"
-          className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+          className="p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 eyecare:hover:bg-muted transition-colors"
         >
           <ArrowLeftIcon className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white eyecare:text-foreground">
             {t('res.title')}: {displayOrderId}
           </h1>
-          <p className="text-slate-500 text-sm">{t('res.report')}</p>
+          <p className="text-slate-500 eyecare:text-muted-foreground text-sm">{t('res.report')}</p>
         </div>
       </div>
 
@@ -229,7 +235,9 @@ const Results: React.FC = () => {
             <Card>
               <div className="text-center">
                 <div className="text-3xl font-bold text-brand-600">{simTypeResults.length}</div>
-                <div className="text-sm text-slate-500">{t('res.sim_types_count')}</div>
+                <div className="text-sm text-slate-500 eyecare:text-muted-foreground">
+                  {t('res.sim_types_count')}
+                </div>
               </div>
             </Card>
             <Card>
@@ -237,7 +245,9 @@ const Results: React.FC = () => {
                 <div className="text-3xl font-bold text-green-600">
                   {roundsBySimType.reduce((sum, g) => sum + g.rounds.length, 0)}
                 </div>
-                <div className="text-sm text-slate-500">{t('res.iterations')}</div>
+                <div className="text-sm text-slate-500 eyecare:text-muted-foreground">
+                  {t('res.iterations')}
+                </div>
               </div>
             </Card>
             <Card>
@@ -245,7 +255,9 @@ const Results: React.FC = () => {
                 <Badge variant="success" size="md">
                   {t('res.status.success')}
                 </Badge>
-                <div className="text-sm text-slate-500 mt-2">{t('res.status')}</div>
+                <div className="text-sm text-slate-500 eyecare:text-muted-foreground mt-2">
+                  {t('res.status')}
+                </div>
               </div>
             </Card>
           </div>
@@ -273,7 +285,7 @@ const Results: React.FC = () => {
 
           {roundsBySimType.length === 0 && !isResultsLoading && (
             <Card>
-              <div className="h-32 flex items-center justify-center text-slate-500">
+              <div className="h-32 flex items-center justify-center text-slate-500 eyecare:text-muted-foreground">
                 暂无仿真结果数据
               </div>
             </Card>
@@ -344,7 +356,9 @@ const Results: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-sm text-slate-500">{t('res.filters.sim_compare')}</span>
+                <span className="text-sm text-slate-500 eyecare:text-muted-foreground">
+                  {t('res.filters.sim_compare')}
+                </span>
                 {availableSimTypes.map(simType => {
                   const active = selectedSimTypes.includes(simType.id);
                   return (
@@ -355,7 +369,7 @@ const Results: React.FC = () => {
                       className={`px-3 py-1 rounded-full text-sm border transition-colors ${
                         active
                           ? 'bg-brand-500 text-white border-brand-500'
-                          : 'bg-white dark:bg-slate-800 text-slate-600 border-slate-200 dark:border-slate-600'
+                          : 'bg-white dark:bg-slate-800 eyecare:bg-card text-slate-600 eyecare:text-muted-foreground border-slate-200 dark:border-slate-600'
                       }`}
                     >
                       {simType.name}
@@ -409,7 +423,9 @@ const Results: React.FC = () => {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h3 className="text-base font-semibold">{t('res.table.title')}</h3>
-                <span className="text-sm text-slate-500">{tableCountLabel}</span>
+                <span className="text-sm text-slate-500 eyecare:text-muted-foreground">
+                  {tableCountLabel}
+                </span>
               </div>
               <VirtualTable
                 data={filteredResults}

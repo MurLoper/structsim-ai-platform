@@ -131,7 +131,7 @@ const OrderList: React.FC = () => {
         header: t('orders.col.id'),
         accessorKey: 'orderNo',
         cell: ({ row }) => (
-          <span className="font-mono text-xs text-slate-500">
+          <span className="font-mono text-xs text-slate-500 eyecare:text-muted-foreground">
             {row.original.orderNo || row.original.id}
           </span>
         ),
@@ -143,7 +143,7 @@ const OrderList: React.FC = () => {
           const project = projectMap.get(row.original.projectId);
           return (
             <div>
-              <div className="font-medium text-slate-900 dark:text-slate-100">
+              <div className="font-medium text-slate-900 dark:text-slate-100 eyecare:text-foreground">
                 {project?.name || `#${row.original.projectId}`}
               </div>
             </div>
@@ -175,13 +175,15 @@ const OrderList: React.FC = () => {
           const progress = calculateProgress(row.original);
           return (
             <div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-1.5 max-w-[100px]">
+              <div className="w-full bg-slate-200 dark:bg-slate-700 eyecare:bg-muted rounded-full h-1.5 max-w-[100px]">
                 <div
                   className="h-1.5 rounded-full bg-brand-500 transition-all duration-1000"
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <span className="text-xs text-slate-400 mt-1 block">{progress}%</span>
+              <span className="text-xs text-slate-400 eyecare:text-muted-foreground mt-1 block">
+                {progress}%
+              </span>
             </div>
           );
         },
@@ -190,7 +192,9 @@ const OrderList: React.FC = () => {
         header: t('orders.col.created_at'),
         accessorKey: 'createdAt',
         cell: ({ row }) => (
-          <span className="text-xs text-slate-500">{formatCreatedAt(row.original.createdAt)}</span>
+          <span className="text-xs text-slate-500 eyecare:text-muted-foreground">
+            {formatCreatedAt(row.original.createdAt)}
+          </span>
         ),
       },
       {
@@ -200,7 +204,7 @@ const OrderList: React.FC = () => {
           <div className="flex justify-end gap-2">
             <button
               onClick={() => navigate(`/create?orderId=${row.original.id}`)}
-              className="text-slate-600 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 font-medium text-sm flex items-center gap-1"
+              className="text-slate-600 hover:text-slate-700 dark:text-slate-400 eyecare:text-muted-foreground dark:hover:text-slate-300 font-medium text-sm flex items-center gap-1"
             >
               {t('common.edit')} <Pencil className="w-4 h-4" />
             </button>
@@ -222,10 +226,12 @@ const OrderList: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white eyecare:text-foreground mb-1">
             {t('orders.title')}
           </h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm">{t('orders.subtitle')}</p>
+          <p className="text-slate-500 eyecare:text-muted-foreground dark:text-slate-400 eyecare:text-muted-foreground eyecare:text-muted-foreground text-sm">
+            {t('orders.subtitle')}
+          </p>
         </div>
         <Button onClick={() => navigate('/create')} icon={<Beaker className="w-5 h-5" />}>
           {t('orders.new_order')}

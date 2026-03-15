@@ -174,7 +174,7 @@ export const SimTypeResultTable: React.FC<SimTypeResultTableProps> = ({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-white">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-white eyecare:text-foreground">
           {simTypeName}
           <span className="ml-2 text-sm font-normal text-slate-500">(共 {rounds.length} 轮)</span>
         </h3>

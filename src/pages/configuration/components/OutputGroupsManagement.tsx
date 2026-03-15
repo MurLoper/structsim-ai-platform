@@ -272,7 +272,7 @@ export const OutputGroupsManagement: React.FC = () => {
                   )}
                   <td className="px-4 py-3">
                     {row.output && (
-                      <span className="text-slate-900 dark:text-white">
+                      <span className="text-slate-900 dark:text-white eyecare:text-foreground">
                         {row.output.outputName}
                       </span>
                     )}
@@ -400,7 +400,7 @@ const GroupModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-lg p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
         <h3 className="text-lg font-semibold mb-4">{group?.id ? '编辑' : '创建'}工况输出组合</h3>
         <div className="space-y-4 overflow-y-auto flex-1">
           <div>
@@ -439,7 +439,7 @@ const GroupModal: React.FC<{
               {filteredOutputs.map(output => (
                 <label
                   key={output.id}
-                  className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer border-b last:border-b-0 dark:border-slate-600"
+                  className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 eyecare:hover:bg-muted cursor-pointer border-b last:border-b-0 dark:border-slate-600"
                 >
                   <input
                     type="checkbox"

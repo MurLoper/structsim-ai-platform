@@ -221,10 +221,12 @@ export const ConfigRelationsManagement: React.FC = () => {
                   className={`p-3 rounded-lg cursor-pointer transition-colors ${
                     selectedSimType?.id === simType.id
                       ? 'bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-500'
-                      : 'bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600'
+                      : 'bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 eyecare:hover:bg-muted'
                   }`}
                 >
-                  <div className="font-medium text-slate-900 dark:text-white">{simType.name}</div>
+                  <div className="font-medium text-slate-900 dark:text-white eyecare:text-foreground">
+                    {simType.name}
+                  </div>
                   <div className="text-sm text-slate-500 mt-1">
                     {simType.code} | {simType.category}
                   </div>
@@ -563,7 +565,7 @@ const AddRelationModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 rounded-lg p-6 w-full max-w-md">
+      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-lg p-6 w-full max-w-md">
         <h3 className="text-lg font-semibold mb-4">{title}</h3>
         <div className="space-y-4">
           <div>

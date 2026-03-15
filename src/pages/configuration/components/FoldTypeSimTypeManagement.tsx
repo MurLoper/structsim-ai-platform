@@ -224,7 +224,7 @@ const FoldTypeSimTypeRelList: React.FC<FoldTypeSimTypeRelListProps> = ({
                     className={`p-2 rounded-lg transition-colors ${
                       rel.isDefault === 1
                         ? 'text-yellow-500'
-                        : 'text-slate-400 hover:text-yellow-500 hover:bg-slate-100 dark:hover:bg-slate-600'
+                        : 'text-slate-400 hover:text-yellow-500 hover:bg-slate-100 dark:hover:bg-slate-600 eyecare:hover:bg-muted'
                     }`}
                     title={rel.isDefault === 1 ? '已是默认' : '设为默认'}
                   >
@@ -286,7 +286,7 @@ const AddSimTypeModal: React.FC<AddSimTypeModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md mx-4">
+      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-xl shadow-2xl w-full max-w-md mx-4">
         <div className="p-4 border-b dark:border-slate-700">
           <h3 className="text-lg font-bold">添加仿真类型关联</h3>
         </div>
@@ -327,7 +327,7 @@ const AddSimTypeModal: React.FC<AddSimTypeModalProps> = ({
         <div className="flex justify-end gap-3 p-4 border-t dark:border-slate-700">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            className="px-4 py-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
           >
             取消
           </button>

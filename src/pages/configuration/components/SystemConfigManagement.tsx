@@ -93,7 +93,7 @@ export const SystemConfigManagement: React.FC = () => {
           className={`px-4 py-2 font-medium transition-colors ${
             activeTab === 'status'
               ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              : 'text-slate-600 dark:text-slate-400 eyecare:text-muted-foreground hover:text-slate-900 dark:hover:text-slate-200'
           }`}
         >
           状态定义
@@ -103,7 +103,7 @@ export const SystemConfigManagement: React.FC = () => {
           className={`px-4 py-2 font-medium transition-colors ${
             activeTab === 'automation'
               ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+              : 'text-slate-600 dark:text-slate-400 eyecare:text-muted-foreground hover:text-slate-900 dark:hover:text-slate-200'
           }`}
         >
           自动化模块
@@ -116,7 +116,9 @@ export const SystemConfigManagement: React.FC = () => {
           <div className="p-4 border-b dark:border-slate-700 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="text-lg font-semibold">状态定义管理</h3>
             <div className="flex items-center gap-2 text-xs text-slate-500">
-              <Badge variant="info" size="sm">只读</Badge>
+              <Badge variant="info" size="sm">
+                只读
+              </Badge>
               <span>由系统同步，暂不支持编辑</span>
             </div>
           </div>
@@ -148,7 +150,9 @@ export const SystemConfigManagement: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                    <Badge variant="default" size="sm">只读</Badge>
+                    <Badge variant="default" size="sm">
+                      只读
+                    </Badge>
                   </div>
                 ))}
               </div>
@@ -163,7 +167,9 @@ export const SystemConfigManagement: React.FC = () => {
           <div className="p-4 border-b dark:border-slate-700 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="text-lg font-semibold">自动化模块管理</h3>
             <div className="flex items-center gap-2 text-xs text-slate-500">
-              <Badge variant="info" size="sm">只读</Badge>
+              <Badge variant="info" size="sm">
+                只读
+              </Badge>
               <span>由系统同步，暂不支持编辑</span>
             </div>
           </div>
@@ -193,7 +199,9 @@ export const SystemConfigManagement: React.FC = () => {
                         <div className="text-xs text-slate-400 mt-1">{module.remark}</div>
                       )}
                     </div>
-                    <Badge variant="default" size="sm">只读</Badge>
+                    <Badge variant="default" size="sm">
+                      只读
+                    </Badge>
                   </div>
                 ))}
               </div>

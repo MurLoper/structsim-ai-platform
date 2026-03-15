@@ -16,7 +16,7 @@ interface ConfigTabsProps {
 
 export const ConfigTabs: React.FC<ConfigTabsProps> = ({ tabs, activeTab, onChange }) => {
   return (
-    <div className="border-b border-slate-200 dark:border-slate-700 mb-6">
+    <div className="border-b border-slate-200 dark:border-slate-700 eyecare:border-border mb-6">
       <nav className="flex space-x-4 -mb-px">
         {tabs.map(tab => (
           <button

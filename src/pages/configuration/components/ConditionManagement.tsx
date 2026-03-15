@@ -174,16 +174,16 @@ export const ConditionManagement: React.FC = () => {
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-700/50">
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 w-48">
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground w-48">
                   目标姿态
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 w-48">
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground w-48">
                   仿真类型
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 w-32">
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground w-32">
                   默认
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 w-24">
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground w-24">
                   操作
                 </th>
               </tr>
@@ -192,7 +192,7 @@ export const ConditionManagement: React.FC = () => {
               {tableData.map((row, idx) => (
                 <tr
                   key={`${row.foldType.id}-${row.simType?.simTypeId || 'empty'}-${idx}`}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-700/30"
+                  className="hover:bg-slate-50 dark:hover:bg-slate-700 eyecare:hover:bg-muted/30"
                 >
                   {row.rowSpan > 0 && (
                     <td
@@ -201,7 +201,7 @@ export const ConditionManagement: React.FC = () => {
                     >
                       <div className="flex items-start justify-between">
                         <div>
-                          <div className="font-medium text-slate-900 dark:text-white">
+                          <div className="font-medium text-slate-900 dark:text-white eyecare:text-foreground">
                             {row.foldType.name}
                           </div>
                           <div className="text-xs text-slate-500 mt-1">
@@ -221,7 +221,7 @@ export const ConditionManagement: React.FC = () => {
                   <td className="px-4 py-3">
                     {row.simType ? (
                       <div>
-                        <div className="font-medium text-slate-900 dark:text-white">
+                        <div className="font-medium text-slate-900 dark:text-white eyecare:text-foreground">
                           {row.simType.simTypeName}
                         </div>
                         <div className="text-xs text-slate-500">{row.simType.simTypeCode}</div>
@@ -237,7 +237,7 @@ export const ConditionManagement: React.FC = () => {
                         className={`p-1.5 rounded-lg transition-colors ${
                           row.simType.isDefault === 1
                             ? 'text-yellow-500'
-                            : 'text-slate-400 hover:text-yellow-500 hover:bg-slate-100 dark:hover:bg-slate-600'
+                            : 'text-slate-400 hover:text-yellow-500 hover:bg-slate-100 dark:hover:bg-slate-600 eyecare:hover:bg-muted'
                         }`}
                         title={row.simType.isDefault === 1 ? '已是默认' : '设为默认'}
                       >
@@ -316,12 +316,14 @@ const AddSimTypeModal: React.FC<AddSimTypeModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md mx-4">
+      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-xl shadow-2xl w-full max-w-md mx-4">
         <div className="p-4 border-b dark:border-slate-700">
           <h3 className="text-lg font-bold">添加工况配置</h3>
           <p className="text-sm text-slate-500 mt-1">
             为{' '}
-            <span className="font-medium text-slate-700 dark:text-slate-300">{foldTypeName}</span>{' '}
+            <span className="font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground">
+              {foldTypeName}
+            </span>{' '}
             添加仿真类型
           </p>
         </div>
@@ -361,7 +363,7 @@ const AddSimTypeModal: React.FC<AddSimTypeModalProps> = ({
         <div className="flex justify-end gap-3 p-4 border-t dark:border-slate-700">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            className="px-4 py-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
           >
             取消
           </button>

@@ -23,7 +23,9 @@ export const ProjectsTab: React.FC = () => {
             >
               <div className="flex-1">
                 <div className="flex items-center gap-2">
-                  <h4 className="font-medium text-slate-900 dark:text-white">{project.name}</h4>
+                  <h4 className="font-medium text-slate-900 dark:text-white eyecare:text-foreground">
+                    {project.name}
+                  </h4>
                   <span
                     className={`px-2 py-0.5 text-xs rounded-full ${
                       project.valid
@@ -34,7 +36,7 @@ export const ProjectsTab: React.FC = () => {
                     {project.valid ? '启用' : '禁用'}
                   </span>
                 </div>
-                <div className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                <div className="text-sm text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground mt-1">
                   编码: {project.code || '无'} | 排序: {project.sort}
                 </div>
               </div>

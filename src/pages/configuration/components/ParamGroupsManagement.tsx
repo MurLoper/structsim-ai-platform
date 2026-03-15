@@ -321,22 +321,22 @@ export const ParamGroupsManagement: React.FC = () => {
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-700/50">
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 w-56">
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground w-56">
                   组合名称
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 w-40">
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground w-40">
                   参数 Key
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 w-40">
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground w-40">
                   参数名称
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 w-24">
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground w-24">
                   默认值
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 w-20">
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground w-20">
                   单位
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 w-24">
+                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground w-24">
                   操作
                 </th>
               </tr>
@@ -345,7 +345,7 @@ export const ParamGroupsManagement: React.FC = () => {
               {tableData.map((row, idx) => (
                 <tr
                   key={`${row.group.id}-${row.param?.paramDefId || 'empty'}-${idx}`}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-700/30"
+                  className="hover:bg-slate-50 dark:hover:bg-slate-700 eyecare:hover:bg-muted/30"
                 >
                   {row.rowSpan > 0 && (
                     <td
@@ -354,7 +354,7 @@ export const ParamGroupsManagement: React.FC = () => {
                     >
                       <div className="flex items-start justify-between">
                         <div>
-                          <div className="font-medium text-slate-900 dark:text-white">
+                          <div className="font-medium text-slate-900 dark:text-white eyecare:text-foreground">
                             {row.group.name}
                           </div>
                           {row.group.description && (
@@ -386,7 +386,7 @@ export const ParamGroupsManagement: React.FC = () => {
                               setEditingGroup(row.group);
                               setShowGroupModal(true);
                             }}
-                            className="p-1.5 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg"
+                            className="p-1.5 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 eyecare:hover:bg-muted rounded-lg"
                             title="编辑"
                           >
                             <PencilIcon className="w-4 h-4" />
@@ -404,7 +404,7 @@ export const ParamGroupsManagement: React.FC = () => {
                   )}
                   <td className="px-4 py-3">
                     {row.param ? (
-                      <span className="font-mono text-xs text-slate-600 dark:text-slate-400">
+                      <span className="font-mono text-xs text-slate-600 dark:text-slate-400 eyecare:text-muted-foreground">
                         {row.param.paramKey}
                       </span>
                     ) : (
@@ -413,7 +413,9 @@ export const ParamGroupsManagement: React.FC = () => {
                   </td>
                   <td className="px-4 py-3">
                     {row.param && (
-                      <span className="text-slate-900 dark:text-white">{row.param.paramName}</span>
+                      <span className="text-slate-900 dark:text-white eyecare:text-foreground">
+                        {row.param.paramName}
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -539,7 +541,7 @@ const GroupModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-lg p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
         <h3 className="text-lg font-semibold mb-4">{group?.id ? '编辑' : '创建'}参数组合</h3>
         <div className="space-y-4 overflow-y-auto flex-1">
           <div>
@@ -578,7 +580,7 @@ const GroupModal: React.FC<{
               {filteredParams.map(param => (
                 <label
                   key={param.id}
-                  className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer border-b last:border-b-0 dark:border-slate-600"
+                  className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 eyecare:hover:bg-muted cursor-pointer border-b last:border-b-0 dark:border-slate-600"
                 >
                   <input
                     type="checkbox"
@@ -757,7 +759,7 @@ const AddParamsModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
+      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] flex flex-col">
         <div className="p-4 border-b dark:border-slate-700">
           <h3 className="text-lg font-bold">添加参数到 {groupName}</h3>
           <p className="text-sm text-slate-500 mt-1">选择要添加的参数，或快速创建新参数</p>
@@ -874,7 +876,7 @@ const AddParamsModal: React.FC<{
                     className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${
                       selectedIds.has(paramId)
                         ? 'bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-500'
-                        : 'bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 border-2 border-transparent'
+                        : 'bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 eyecare:hover:bg-muted border-2 border-transparent'
                     }`}
                   >
                     <input
@@ -898,7 +900,7 @@ const AddParamsModal: React.FC<{
         <div className="flex justify-end gap-3 p-4 border-t dark:border-slate-700">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+            className="px-4 py-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
           >
             取消
           </button>
@@ -1011,7 +1013,7 @@ const UploadExcelModal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
+      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
         <div className="p-4 border-b dark:border-slate-700">
           <h3 className="text-lg font-bold">导入参数组合</h3>
           <p className="text-sm text-slate-500 mt-1">上传 CSV 文件，自动识别并创建参数</p>
@@ -1045,7 +1047,7 @@ const UploadExcelModal: React.FC<{
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="w-full p-4 border-2 border-dashed rounded-lg text-center hover:bg-slate-50 dark:hover:bg-slate-700"
+              className="w-full p-4 border-2 border-dashed rounded-lg text-center hover:bg-slate-50 dark:hover:bg-slate-700 eyecare:hover:bg-muted"
             >
               {file ? file.name : '点击选择文件 (CSV)'}
             </button>
@@ -1091,7 +1093,7 @@ const UploadExcelModal: React.FC<{
         <div className="flex justify-end gap-3 p-4 border-t dark:border-slate-700">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+            className="px-4 py-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
           >
             取消
           </button>

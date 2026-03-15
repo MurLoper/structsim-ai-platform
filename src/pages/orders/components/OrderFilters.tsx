@@ -38,11 +38,11 @@ const OrderFilters: React.FC<OrderFiltersProps> = memo(
     );
 
     return (
-      <div className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4 mb-4">
+      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-lg border border-slate-200 dark:border-slate-700 eyecare:border-border p-4 mb-4">
         <div className="flex flex-wrap gap-3 items-end">
           {/* 订单编号搜索 */}
           <div className="flex-1 min-w-[200px] max-w-[280px]">
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground mb-1">
               订单编号
             </label>
             <div className="relative">
@@ -52,14 +52,14 @@ const OrderFilters: React.FC<OrderFiltersProps> = memo(
                 placeholder="搜索订单编号..."
                 value={filters.orderNo || ''}
                 onChange={e => handleChange('orderNo', e.target.value)}
-                className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg
-                bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100
+                className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 dark:border-slate-600 eyecare:border-border rounded-lg
+                bg-white dark:bg-slate-700 eyecare:bg-background text-slate-900 dark:text-slate-100 eyecare:text-foreground
                 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
               />
               {filters.orderNo && (
                 <button
                   onClick={() => handleChange('orderNo', undefined)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 dark:hover:bg-slate-600 rounded"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 dark:hover:bg-slate-600 eyecare:hover:bg-muted rounded"
                 >
                   <X className="w-3 h-3 text-slate-400" />
                 </button>
@@ -69,7 +69,7 @@ const OrderFilters: React.FC<OrderFiltersProps> = memo(
 
           {/* 状态筛选 */}
           <div className="min-w-[140px]">
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground mb-1">
               状态
             </label>
             <select
@@ -78,8 +78,8 @@ const OrderFilters: React.FC<OrderFiltersProps> = memo(
                 handleChange('status', e.target.value !== '' ? Number(e.target.value) : undefined)
               }
               disabled={statusOptions.length === 0}
-              className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg
-              bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100
+              className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 eyecare:border-border rounded-lg
+              bg-white dark:bg-slate-700 eyecare:bg-background text-slate-900 dark:text-slate-100 eyecare:text-foreground
               focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
               disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -94,7 +94,7 @@ const OrderFilters: React.FC<OrderFiltersProps> = memo(
 
           {/* 项目筛选 */}
           <div className="min-w-[160px]">
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground mb-1">
               项目
             </label>
             <select
@@ -103,8 +103,8 @@ const OrderFilters: React.FC<OrderFiltersProps> = memo(
                 handleChange('projectId', e.target.value ? Number(e.target.value) : undefined)
               }
               disabled={projects.length === 0}
-              className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg
-              bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100
+              className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 eyecare:border-border rounded-lg
+              bg-white dark:bg-slate-700 eyecare:bg-background text-slate-900 dark:text-slate-100 eyecare:text-foreground
               focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
               disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -119,7 +119,7 @@ const OrderFilters: React.FC<OrderFiltersProps> = memo(
 
           {/* 仿真类型筛选 */}
           <div className="min-w-[160px]">
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
+            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground mb-1">
               仿真类型
             </label>
             <select
@@ -128,8 +128,8 @@ const OrderFilters: React.FC<OrderFiltersProps> = memo(
                 handleChange('simTypeId', e.target.value ? Number(e.target.value) : undefined)
               }
               disabled={simTypes.length === 0}
-              className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg
-              bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100
+              className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 eyecare:border-border rounded-lg
+              bg-white dark:bg-slate-700 eyecare:bg-background text-slate-900 dark:text-slate-100 eyecare:text-foreground
               focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
               disabled:opacity-50 disabled:cursor-not-allowed"
             >

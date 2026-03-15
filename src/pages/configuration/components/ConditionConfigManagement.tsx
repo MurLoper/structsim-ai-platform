@@ -365,9 +365,9 @@ export const ConditionConfigManagement: React.FC = () => {
       {/* 新增/编辑弹窗 */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+          <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b dark:border-slate-700">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white eyecare:text-foreground">
                 {editingConfig ? '编辑工况配置' : '新增工况配置'}
               </h3>
               <button
@@ -382,7 +382,7 @@ export const ConditionConfigManagement: React.FC = () => {
               {/* 基本信息 */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
                     工况名称 <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -394,7 +394,7 @@ export const ConditionConfigManagement: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
                     工况编码
                   </label>
                   <input
@@ -410,7 +410,7 @@ export const ConditionConfigManagement: React.FC = () => {
               {/* 姿态和仿真类型 */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
                     目标姿态 <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -433,7 +433,7 @@ export const ConditionConfigManagement: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
                     仿真类型 <span className="text-red-500">*</span>
                   </label>
                   <select
@@ -459,7 +459,7 @@ export const ConditionConfigManagement: React.FC = () => {
 
               {/* 参数组选择 */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
                   可用参数组
                 </label>
                 <div className="border rounded-lg p-3 dark:border-slate-600 max-h-32 overflow-y-auto">
@@ -501,7 +501,7 @@ export const ConditionConfigManagement: React.FC = () => {
 
               {/* 输出组选择 */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
                   可用输出组
                 </label>
                 <div className="border rounded-lg p-3 dark:border-slate-600 max-h-32 overflow-y-auto">
@@ -544,7 +544,7 @@ export const ConditionConfigManagement: React.FC = () => {
               {/* 默认配置 */}
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
                     默认参数组
                   </label>
                   <select
@@ -569,7 +569,7 @@ export const ConditionConfigManagement: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
                     默认输出组
                   </label>
                   <select
@@ -594,7 +594,7 @@ export const ConditionConfigManagement: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
                     默认求解器
                   </label>
                   <select
@@ -621,7 +621,7 @@ export const ConditionConfigManagement: React.FC = () => {
             <div className="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
               <button
                 onClick={handleCloseModal}
-                className="px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
+                className="px-4 py-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
               >
                 取消
               </button>

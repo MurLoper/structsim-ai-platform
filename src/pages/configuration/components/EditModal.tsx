@@ -23,7 +23,7 @@ export const EditModal: React.FC<EditModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-lg mx-4">
+      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4">
         <div className="flex items-center justify-between p-4 border-b dark:border-slate-700">
           <h3 className="text-lg font-bold">{title}</h3>
           <button
@@ -68,7 +68,7 @@ export const FormInput: React.FC<FormInputProps> = ({
 
   return (
     <div>
-      <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
+      <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
         {label}
       </label>
       <input
@@ -96,7 +96,7 @@ export const FormSelect: React.FC<FormSelectProps> = ({ label, value, onChange, 
 
   return (
     <div>
-      <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300">
+      <label className="block text-sm font-medium mb-1 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
         {label}
       </label>
       <select
