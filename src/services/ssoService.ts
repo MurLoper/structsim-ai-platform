@@ -54,7 +54,7 @@ export async function verifySSOToken(): Promise<SSOUser | null> {
       localStorage.setItem(SSO_USER_KEY, JSON.stringify(response.data.user));
       return response.data.user;
     }
-  } catch (error) {
+  } catch {
     clearSSOAuth();
   }
 
@@ -73,7 +73,7 @@ export async function ssoLogout(): Promise<void> {
           Authorization: `Bearer ${token}`,
         },
       });
-    } catch (error) {
+    } catch {
       // 忽略错误
     }
   }

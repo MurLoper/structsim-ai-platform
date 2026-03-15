@@ -173,11 +173,6 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     updateOptParams({ doeParamHeads: heads, doeParamData: data });
   };
 
-  // 处理 DOE 核验确认
-  const handleDoeConfirm = (heads: string[], data: Record<string, number | string>[]) => {
-    updateOptParams({ doeParamHeads: heads, doeParamData: data });
-  };
-
   // DOE 表格操作
   const updateDoeCell = (rowIdx: number, head: string, value: string) => {
     const data = [...(config.params.optParams?.doeParamData || [])];

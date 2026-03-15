@@ -8,6 +8,7 @@ import {
   type InputHTMLAttributes,
   type SelectHTMLAttributes,
   type TextareaHTMLAttributes,
+  type ReactNode,
 } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -28,22 +29,54 @@ const inputBaseStyles = cn(
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   /** 错误状态 */
   error?: boolean;
+  /** 标签文字 */
+  label?: string;
+  /** 提示文字 */
+  hint?: string;
+  /** 左侧图标 */
+  leftIcon?: ReactNode;
+  /** 右侧图标 */
+  rightIcon?: ReactNode;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ className, type = 'text', error, ...props }, ref) => {
+  ({ className, type = 'text', error, label, hint, leftIcon, rightIcon, id, ...props }, ref) => {
+    const inputId = id || (label ? `input-${Math.random().toString(36).slice(2)}` : undefined);
     return (
-      <input
-        type={type}
-        className={cn(
-          inputBaseStyles,
-          'h-9',
-          error && 'border-destructive focus:ring-destructive',
-          className
+      <div className="w-full">
+        {label && (
+          <label htmlFor={inputId} className="block text-sm font-medium text-foreground mb-1">
+            {label}
+          </label>
         )}
-        ref={ref}
-        {...props}
-      />
+        <div className="relative">
+          {leftIcon && (
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+              {leftIcon}
+            </div>
+          )}
+          <input
+            type={type}
+            id={inputId}
+            className={cn(
+              inputBaseStyles,
+              'h-9',
+              error && 'border-destructive focus:ring-destructive',
+              leftIcon && 'pl-10',
+              rightIcon && 'pr-10',
+              className
+            )}
+            ref={ref}
+            {...props}
+          />
+          {rightIcon && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+              {rightIcon}
+            </div>
+          )}
+        </div>
+        {hint && !error && <p className="mt-1 text-sm text-muted-foreground">{hint}</p>}
+      </div>
     );
   }
 );
@@ -90,6 +123,8 @@ NumberInput.displayName = 'NumberInput';
 export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
   /** 错误状态 */
   error?: boolean;
+  /** 标签文字 */
+  label?: string;
   /** 选项 */
   options: Array<{ value: string | number; label: string }>;
   /** 占位符选项 */
@@ -97,29 +132,38 @@ export interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
 }
 
 export const Select = forwardRef<HTMLSelectElement, SelectProps>(
-  ({ className, error, options, placeholder, ...props }, ref) => {
+  ({ className, error, options, placeholder, label, id, ...props }, ref) => {
+    const selectId = id || (label ? `select-${Math.random().toString(36).slice(2)}` : undefined);
     return (
-      <select
-        className={cn(
-          inputBaseStyles,
-          'h-9 cursor-pointer',
-          error && 'border-destructive focus:ring-destructive',
-          className
+      <div className="w-full">
+        {label && (
+          <label htmlFor={selectId} className="block text-sm font-medium text-foreground mb-1">
+            {label}
+          </label>
         )}
-        ref={ref}
-        {...props}
-      >
-        {placeholder && (
-          <option value="" disabled>
-            {placeholder}
-          </option>
-        )}
-        {options.map(opt => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
+        <select
+          id={selectId}
+          className={cn(
+            inputBaseStyles,
+            'h-9 cursor-pointer',
+            error && 'border-destructive focus:ring-destructive',
+            className
+          )}
+          ref={ref}
+          {...props}
+        >
+          {placeholder && (
+            <option value="" disabled>
+              {placeholder}
+            </option>
+          )}
+          {options.map(opt => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
     );
   }
 );

@@ -61,7 +61,7 @@ export const ConditionConfigManagement: React.FC = () => {
 
   const { data: paramGroups = [] } = useQuery<ParamGroup[]>({
     queryKey: ['paramGroups'],
-    queryFn: async () => {
+    queryFn: async (): Promise<ParamGroup[]> => {
       const r = await configApi.getParamGroups();
       return (r.data || []) as ParamGroup[];
     },
@@ -69,7 +69,7 @@ export const ConditionConfigManagement: React.FC = () => {
 
   const { data: outputGroups = [] } = useQuery<OutputGroup[]>({
     queryKey: ['outputGroups'],
-    queryFn: async () => {
+    queryFn: async (): Promise<OutputGroup[]> => {
       const r = await configApi.getOutputGroups();
       return (r.data || []) as OutputGroup[];
     },

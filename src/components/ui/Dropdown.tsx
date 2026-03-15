@@ -62,7 +62,7 @@ export const Dropdown: React.FC<DropdownProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // 点击外部关闭
   useEffect(() => {

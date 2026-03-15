@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Alert, FormItem, Tag, Button, Checkbox } from '@/components/ui';
+import { Alert, FormItem, Tag, Button } from '@/components/ui';
 import type { CareDevice } from '@/types/config';
 
 interface CareDevicesDrawerContentProps {

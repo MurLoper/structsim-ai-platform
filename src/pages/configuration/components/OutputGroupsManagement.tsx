@@ -123,7 +123,7 @@ export const OutputGroupsManagement: React.FC = () => {
         const res = await outputGroupsApi.createOutputGroup(
           data as { name: string; description?: string; sort?: number }
         );
-        groupId = (res?.data as any)?.id || 0;
+        groupId = (res?.data as { id: number })?.id || 0;
       }
 
       // 如果有选中的输出，批量添加
@@ -141,10 +141,7 @@ export const OutputGroupsManagement: React.FC = () => {
       setEditingGroup(null);
       loadAllData();
       if (groupId) {
-        const newGroup =
-          groups.find(g => g.id === groupId) ||
-          ({ id: groupId, name: data.name || '' } as OutputGroup);
-        // setSelectedGroup(newGroup);
+        // group 已保存成功，数据将在 loadAllData() 中刷新
       }
     } catch (error) {
       console.error('保存工况输出组合失败:', error);

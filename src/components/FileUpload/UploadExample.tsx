@@ -1,9 +1,8 @@
 import { ChunkedUpload } from '@/components/FileUpload/ChunkedUpload';
 
 export function UploadExample() {
-  const handleSuccess = (fileId: number, storagePath: string) => {
-    console.log('上传成功:', { fileId, storagePath });
-    // 更新表单或状态
+  const handleSuccess = (_fileId: number, _storagePath: string) => {
+    // 上传成功后更新表单或状态
   };
 
   const handleError = (error: Error) => {

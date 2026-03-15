@@ -42,7 +42,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   className,
 }) => {
   const [visible, setVisible] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const show = useCallback(() => {
     if (disabled) return;

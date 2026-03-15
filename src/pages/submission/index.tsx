@@ -348,14 +348,13 @@ const Submission: React.FC = () => {
           clientMeta: { lang: language },
         };
 
-        let response;
         if (isEditMode && orderId) {
           // 编辑模式：调用更新 API
-          response = await ordersApi.updateOrder(orderId, payload);
+          await ordersApi.updateOrder(orderId, payload);
           showToast('success', t('sub.update_success') || '更新成功');
         } else {
           // 新建模式：调用创建 API
-          response = await ordersApi.createOrder(payload);
+          await ordersApi.createOrder(payload);
           showToast('success', t('sub.submit_success') || '提交成功');
           // 提交成功后清除草稿
           clearDraft();

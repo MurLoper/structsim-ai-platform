@@ -130,7 +130,7 @@ export const ParamGroupsManagement: React.FC = () => {
         const res = await configApi.createParamGroup(
           data as { name: string; description?: string; sort?: number }
         );
-        groupId = (res?.data as any)?.id || 0;
+        groupId = (res?.data as { id: number })?.id || 0;
       }
 
       // 如果有选中的参数，批量添加

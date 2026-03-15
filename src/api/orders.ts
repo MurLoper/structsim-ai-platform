@@ -21,9 +21,6 @@ export interface OrdersQueryParams {
   endDate?: number;
 }
 
-// 开发环境标识
-const isDev = import.meta.env.DEV;
-
 // Mock 数据开关（可通过环境变量控制）
 const useMockData = false; // 改为使用真实API
 
