@@ -94,9 +94,9 @@ export const SimTypeConfigBox: React.FC<SimTypeConfigBoxProps> = ({
   // 获取算法类型颜色
   const getAlgTypeColor = useMemo(() => {
     const algType = config.params.optParams?.algType;
-    if (algType === AlgorithmType.BAYESIAN) return 'text-purple-600';
-    if (algType === AlgorithmType.DOE_FILE) return 'text-green-600';
-    return 'text-blue-600';
+    if (algType === AlgorithmType.BAYESIAN) return 'text-accent-foreground';
+    if (algType === AlgorithmType.DOE_FILE) return 'text-primary';
+    return 'text-primary';
   }, [config.params.optParams?.algType]);
 
   // 参数数量
@@ -122,33 +122,33 @@ export const SimTypeConfigBox: React.FC<SimTypeConfigBoxProps> = ({
     <div className="flex gap-3 p-3 pt-4">
       {/* 参数配置模块 */}
       <div
-        className={`flex-1 bg-white dark:bg-slate-800 rounded-lg border-2 p-4 cursor-pointer transition-all hover:shadow-md ${
+        className={`flex-1 bg-card rounded-lg border-2 p-4 cursor-pointer transition-all hover:shadow-md ${
           isParamsActive
-            ? 'border-brand-500 ring-2 ring-brand-200'
+            ? 'border-primary ring-2 ring-primary/20'
             : hasParams
-              ? 'border-green-400'
-              : 'border-slate-200 dark:border-slate-700'
+              ? 'border-primary/60'
+              : 'border-border'
         }`}
         onClick={onOpenParams}
       >
         <div className="flex items-center gap-2 mb-2">
-          <CogIcon className="w-4 h-4 text-brand-500" />
+          <CogIcon className="w-4 h-4 text-primary" />
           <span className="text-sm font-semibold">{t('sub.params_config')}</span>
-          {hasParams && <CheckCircleIcon className="w-4 h-4 text-green-500 ml-auto" />}
+          {hasParams && <CheckCircleIcon className="w-4 h-4 text-primary ml-auto" />}
         </div>
-        <div className="text-xs space-y-1 text-slate-500">
+        <div className="text-xs space-y-1 text-muted-foreground">
           <div className="flex justify-between">
             <span>{t('sub.algorithm')}:</span>
             <span className={`font-medium ${getAlgTypeColor}`}>{getAlgTypeText}</span>
           </div>
           <div className="flex justify-between">
             <span>{t('sub.params.param_count')}:</span>
-            <span className="font-medium text-brand-600">{paramCount}</span>
+            <span className="font-medium text-primary">{paramCount}</span>
           </div>
           <div className="flex justify-between">
             <span>{t('sub.params.rounds')}:</span>
             <span
-              className="font-medium text-blue-600 truncate max-w-[80px]"
+              className="font-medium text-primary truncate max-w-[80px]"
               title={formatBatchRounds}
             >
               {formatBatchRounds}
@@ -159,21 +159,21 @@ export const SimTypeConfigBox: React.FC<SimTypeConfigBoxProps> = ({
 
       {/* 输出配置模块 */}
       <div
-        className={`flex-1 bg-white dark:bg-slate-800 rounded-lg border-2 p-4 cursor-pointer transition-all hover:shadow-md ${
+        className={`flex-1 bg-card rounded-lg border-2 p-4 cursor-pointer transition-all hover:shadow-md ${
           isOutputActive
-            ? 'border-brand-500 ring-2 ring-brand-200'
+            ? 'border-primary ring-2 ring-primary/20'
             : hasOutput
-              ? 'border-green-400'
-              : 'border-slate-200 dark:border-slate-700'
+              ? 'border-primary/60'
+              : 'border-border'
         }`}
         onClick={onOpenOutput}
       >
         <div className="flex items-center gap-2 mb-2">
-          <CogIcon className="w-4 h-4 text-orange-500" />
+          <CogIcon className="w-4 h-4 text-primary" />
           <span className="text-sm font-semibold">{t('sub.output_config')}</span>
-          {hasOutput && <CheckCircleIcon className="w-4 h-4 text-green-500 ml-auto" />}
+          {hasOutput && <CheckCircleIcon className="w-4 h-4 text-primary ml-auto" />}
         </div>
-        <div className="text-xs space-y-1 text-slate-500">
+        <div className="text-xs space-y-1 text-muted-foreground">
           <div className="flex justify-between">
             <span>{t('sub.mode')}:</span>
             <span className="font-medium">
@@ -182,7 +182,7 @@ export const SimTypeConfigBox: React.FC<SimTypeConfigBoxProps> = ({
           </div>
           <div className="flex justify-between">
             <span>{t('sub.output_count')}:</span>
-            <span className="font-medium text-brand-600">
+            <span className="font-medium text-primary">
               {config.output.respDetails?.length || 0}
             </span>
           </div>
@@ -191,21 +191,21 @@ export const SimTypeConfigBox: React.FC<SimTypeConfigBoxProps> = ({
 
       {/* 求解器模块 */}
       <div
-        className={`flex-1 bg-white dark:bg-slate-800 rounded-lg border-2 p-4 cursor-pointer transition-all hover:shadow-md ${
+        className={`flex-1 bg-card rounded-lg border-2 p-4 cursor-pointer transition-all hover:shadow-md ${
           isSolverActive
-            ? 'border-brand-500 ring-2 ring-brand-200'
+            ? 'border-primary ring-2 ring-primary/20'
             : hasSolver
-              ? 'border-green-400'
-              : 'border-slate-200 dark:border-slate-700'
+              ? 'border-primary/60'
+              : 'border-border'
         }`}
         onClick={onOpenSolver}
       >
         <div className="flex items-center gap-2 mb-2">
-          <CogIcon className="w-4 h-4 text-green-500" />
+          <CogIcon className="w-4 h-4 text-primary" />
           <span className="text-sm font-semibold">{t('sub.solver_config')}</span>
-          {hasSolver && <CheckCircleIcon className="w-4 h-4 text-green-500 ml-auto" />}
+          {hasSolver && <CheckCircleIcon className="w-4 h-4 text-primary ml-auto" />}
         </div>
-        <div className="text-xs space-y-1 text-slate-500">
+        <div className="text-xs space-y-1 text-muted-foreground">
           <div className="flex justify-between">
             <span>{t('sub.solver')}:</span>
             <span className="font-medium truncate max-w-[80px]">
@@ -215,7 +215,7 @@ export const SimTypeConfigBox: React.FC<SimTypeConfigBoxProps> = ({
           <div className="flex justify-between">
             <span>{t('sub.mode')}:</span>
             <span
-              className={`font-medium ${config.solver.cpuType === 1 ? 'text-green-600' : 'text-slate-500'}`}
+              className={`font-medium ${config.solver.cpuType === 1 ? 'text-primary' : 'text-muted-foreground'}`}
             >
               {config.solver.cpuType === 1
                 ? `${config.solver.cpuCores}${t('sub.cores')}`
@@ -223,34 +223,34 @@ export const SimTypeConfigBox: React.FC<SimTypeConfigBoxProps> = ({
             </span>
           </div>
           {globalSolver.applyToAll && (
-            <div className="text-purple-500 text-[10px]">{t('sub.use_global_config')}</div>
+            <div className="text-accent-foreground text-[10px]">{t('sub.use_global_config')}</div>
           )}
         </div>
       </div>
 
       {/* 关注器件模块 - 始终显示，可为空或手动填写 */}
       <div
-        className={`flex-1 bg-white dark:bg-slate-800 rounded-lg border-2 p-4 cursor-pointer transition-all hover:shadow-md ${
+        className={`flex-1 bg-card rounded-lg border-2 p-4 cursor-pointer transition-all hover:shadow-md ${
           isCareDevicesActive
-            ? 'border-brand-500 ring-2 ring-brand-200'
+            ? 'border-primary ring-2 ring-primary/20'
             : hasCareDevices
-              ? 'border-green-400'
-              : 'border-slate-200 dark:border-slate-700'
+              ? 'border-primary/60'
+              : 'border-border'
         }`}
         onClick={onOpenCareDevices}
       >
         <div className="flex items-center gap-2 mb-2">
-          <DevicePhoneMobileIcon className="w-4 h-4 text-cyan-500" />
+          <DevicePhoneMobileIcon className="w-4 h-4 text-primary" />
           <span className="text-sm font-semibold">{t('sub.care_devices')}</span>
-          {hasCareDevices && <CheckCircleIcon className="w-4 h-4 text-green-500 ml-auto" />}
+          {hasCareDevices && <CheckCircleIcon className="w-4 h-4 text-primary ml-auto" />}
         </div>
-        <div className="text-xs space-y-1 text-slate-500">
+        <div className="text-xs space-y-1 text-muted-foreground">
           <div className="flex justify-between">
             <span>{t('sub.care_devices_selected')}:</span>
-            <span className="font-medium text-cyan-600">{config.careDeviceIds?.length || 0}</span>
+            <span className="font-medium text-primary">{config.careDeviceIds?.length || 0}</span>
           </div>
           {hasCareDevices && (
-            <div className="text-[10px] text-slate-400 truncate">
+            <div className="text-[10px] text-muted-foreground truncate">
               {config.careDeviceIds.slice(0, 2).join(', ')}
               {config.careDeviceIds.length > 2 && '...'}
             </div>

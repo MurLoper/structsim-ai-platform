@@ -85,7 +85,7 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
     <div className="space-y-5">
       {/* 输出组合选择 */}
       <div>
-        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
+        <label className="block text-sm font-bold mb-2 text-foreground">
           {t('sub.output.output_set')}
         </label>
         <select
@@ -132,18 +132,18 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
             </option>
           ))}
         </select>
-        {loadingGroup && <p className="text-xs text-slate-500 mt-1">{t('sub.loading')}</p>}
+        {loadingGroup && <p className="text-xs text-muted-foreground mt-1">{t('sub.loading')}</p>}
       </div>
 
       {/* 响应输出详情配置 - 表格形式 */}
       <div>
         <div className="flex justify-between items-center mb-2">
-          <label className="text-sm font-bold text-slate-700 dark:text-slate-300 eyecare:text-foreground">
+          <label className="text-sm font-bold text-foreground">
             {t('sub.output.resp_details')}
           </label>
           <button
             onClick={addRespDetail}
-            className="flex items-center gap-1 text-xs text-brand-600 hover:text-brand-700"
+            className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"
           >
             <PlusIcon className="w-4 h-4" />
             {t('sub.output.add_resp')}
@@ -153,35 +153,35 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
         {/* 表格形式展示 */}
         <div className="border rounded-lg border-border overflow-hidden">
           {/* 表头 */}
-          <div className="grid grid-cols-[80px_70px_80px_1fr_60px_60px_60px_60px_80px_60px_36px] bg-slate-100 dark:bg-slate-700 eyecare:bg-muted text-xs font-medium text-slate-600 dark:text-slate-300 eyecare:text-foreground">
-            <div className="px-1 py-2 border-r dark:border-slate-600 text-center">
+          <div className="grid grid-cols-[80px_70px_80px_1fr_60px_60px_60px_60px_80px_60px_36px] bg-muted text-xs font-medium text-muted-foreground">
+            <div className="px-1 py-2 border-r border-border text-center">
               {t('sub.output.set_name')}
             </div>
-            <div className="px-1 py-2 border-r dark:border-slate-600 text-center">
+            <div className="px-1 py-2 border-r border-border text-center">
               {t('sub.output.output_type')}
             </div>
-            <div className="px-1 py-2 border-r dark:border-slate-600 text-center">
+            <div className="px-1 py-2 border-r border-border text-center">
               {t('sub.output.component_id')}
             </div>
-            <div className="px-1 py-2 border-r dark:border-slate-600 text-center">
+            <div className="px-1 py-2 border-r border-border text-center">
               {t('sub.output.description')}
             </div>
-            <div className="px-1 py-2 border-r dark:border-slate-600 text-center">
+            <div className="px-1 py-2 border-r border-border text-center">
               {t('sub.output.lower_limit')}
             </div>
-            <div className="px-1 py-2 border-r dark:border-slate-600 text-center">
+            <div className="px-1 py-2 border-r border-border text-center">
               {t('sub.output.upper_limit')}
             </div>
-            <div className="px-1 py-2 border-r dark:border-slate-600 text-center">
+            <div className="px-1 py-2 border-r border-border text-center">
               {t('sub.output.weight')}
             </div>
-            <div className="px-1 py-2 border-r dark:border-slate-600 text-center">
+            <div className="px-1 py-2 border-r border-border text-center">
               {t('sub.output.multiple')}
             </div>
-            <div className="px-1 py-2 border-r dark:border-slate-600 text-center">
+            <div className="px-1 py-2 border-r border-border text-center">
               {t('sub.output.target_type')}
             </div>
-            <div className="px-1 py-2 border-r dark:border-slate-600 text-center">
+            <div className="px-1 py-2 border-r border-border text-center">
               {t('sub.output.target_value')}
             </div>
             <div className="px-1 py-2"></div>
@@ -190,20 +190,20 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
           {/* 表格内容 */}
           <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
             {(config.output.respDetails || []).length === 0 ? (
-              <div className="px-3 py-4 text-center text-sm text-slate-400">
+              <div className="px-3 py-4 text-center text-sm text-muted-foreground">
                 {t('sub.output.add_resp')}
               </div>
             ) : (
               (config.output.respDetails || []).map((resp, idx) => (
                 <div
                   key={idx}
-                  className="grid grid-cols-[80px_70px_80px_1fr_60px_60px_60px_60px_80px_60px_36px] border-t dark:border-slate-600 hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                  className="grid grid-cols-[80px_70px_80px_1fr_60px_60px_60px_60px_80px_60px_36px] border-t border-border hover:bg-muted/50"
                 >
-                  <div className="px-1 py-1 border-r dark:border-slate-600">
+                  <div className="px-1 py-1 border-r border-border">
                     <input
                       type="text"
                       list={`set-options-${idx}`}
-                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-brand-500 rounded"
+                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-ring rounded"
                       placeholder="set"
                       value={resp.set}
                       onChange={e => updateRespDetail(idx, { set: e.target.value })}
@@ -216,9 +216,9 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
                       </datalist>
                     )}
                   </div>
-                  <div className="px-1 py-1 border-r dark:border-slate-600">
+                  <div className="px-1 py-1 border-r border-border">
                     <select
-                      className="w-full px-0 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-brand-500 rounded"
+                      className="w-full px-0 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-ring rounded"
                       value={resp.outputType}
                       onChange={e => updateRespDetail(idx, { outputType: e.target.value })}
                     >
@@ -229,28 +229,28 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
                       ))}
                     </select>
                   </div>
-                  <div className="px-1 py-1 border-r dark:border-slate-600">
+                  <div className="px-1 py-1 border-r border-border">
                     <input
                       type="text"
-                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-brand-500 rounded"
+                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-ring rounded"
                       placeholder="comp"
                       value={resp.component}
                       onChange={e => updateRespDetail(idx, { component: e.target.value })}
                     />
                   </div>
-                  <div className="px-1 py-1 border-r dark:border-slate-600">
+                  <div className="px-1 py-1 border-r border-border">
                     <input
                       type="text"
-                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-brand-500 rounded"
+                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-ring rounded"
                       placeholder="desc"
                       value={resp.description || ''}
                       onChange={e => updateRespDetail(idx, { description: e.target.value })}
                     />
                   </div>
-                  <div className="px-1 py-1 border-r dark:border-slate-600">
+                  <div className="px-1 py-1 border-r border-border">
                     <input
                       type="number"
-                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-brand-500 rounded text-center"
+                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-ring rounded text-center"
                       value={resp.lowerLimit ?? ''}
                       onChange={e =>
                         updateRespDetail(idx, {
@@ -259,10 +259,10 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
                       }
                     />
                   </div>
-                  <div className="px-1 py-1 border-r dark:border-slate-600">
+                  <div className="px-1 py-1 border-r border-border">
                     <input
                       type="number"
-                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-brand-500 rounded text-center"
+                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-ring rounded text-center"
                       value={resp.upperLimit ?? ''}
                       onChange={e =>
                         updateRespDetail(idx, {
@@ -271,26 +271,26 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
                       }
                     />
                   </div>
-                  <div className="px-1 py-1 border-r dark:border-slate-600">
+                  <div className="px-1 py-1 border-r border-border">
                     <input
                       type="number"
                       step="0.1"
-                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-brand-500 rounded text-center"
+                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-ring rounded text-center"
                       value={resp.weight}
                       onChange={e => updateRespDetail(idx, { weight: Number(e.target.value) })}
                     />
                   </div>
-                  <div className="px-1 py-1 border-r dark:border-slate-600">
+                  <div className="px-1 py-1 border-r border-border">
                     <input
                       type="number"
-                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-brand-500 rounded text-center"
+                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-ring rounded text-center"
                       value={resp.multiple}
                       onChange={e => updateRespDetail(idx, { multiple: Number(e.target.value) })}
                     />
                   </div>
-                  <div className="px-1 py-1 border-r dark:border-slate-600">
+                  <div className="px-1 py-1 border-r border-border">
                     <select
-                      className="w-full px-0 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-brand-500 rounded"
+                      className="w-full px-0 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-ring rounded"
                       value={resp.targetType}
                       onChange={e =>
                         updateRespDetail(idx, { targetType: e.target.value as TargetType })
@@ -303,10 +303,10 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
                       ))}
                     </select>
                   </div>
-                  <div className="px-1 py-1 border-r dark:border-slate-600">
+                  <div className="px-1 py-1 border-r border-border">
                     <input
                       type="number"
-                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-brand-500 rounded text-center"
+                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-ring rounded text-center"
                       value={resp.targetValue ?? ''}
                       onChange={e =>
                         updateRespDetail(idx, {
@@ -318,7 +318,7 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
                   <div className="px-1 py-1 flex items-center justify-center">
                     <button
                       onClick={() => removeRespDetail(idx)}
-                      className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                      className="p-1 text-destructive hover:bg-destructive/10 rounded"
                     >
                       <TrashIcon className="w-4 h-4" />
                     </button>

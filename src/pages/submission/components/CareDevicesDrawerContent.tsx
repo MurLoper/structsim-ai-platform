@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Alert, FormItem, Tag, Button, Checkbox } from '@/components/ui';
 import type { CareDevice } from '@/types/config';
 
 interface CareDevicesDrawerContentProps {
@@ -55,19 +56,18 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
   return (
     <div className="space-y-5">
       {/* 说明文字 */}
-      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-        <p className="text-sm text-blue-700 dark:text-blue-300">
-          {t('sub.care_devices_config_desc')}
-        </p>
-      </div>
+      <Alert type="info">{t('sub.care_devices_config_desc')}</Alert>
 
       {/* 已选择数量 */}
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground">
+        <span className="text-sm font-medium text-foreground">
           {t('sub.care_devices_selected')}: {selectedDeviceIds.length}
         </span>
         {selectedDeviceIds.length > 0 && (
-          <button onClick={() => onUpdate([])} className="text-xs text-red-500 hover:text-red-600">
+          <button
+            onClick={() => onUpdate([])}
+            className="text-xs text-destructive hover:text-destructive/80"
+          >
             {t('sub.clear_all')}
           </button>
         )}
@@ -77,19 +77,19 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
       {configCareDevices.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 eyecare:text-foreground">
+            <span className="text-sm font-bold text-foreground">
               {t('sub.care_devices_from_config')} ({configCareDevices.length})
-            </label>
+            </span>
             <div className="flex gap-2">
               <button
                 onClick={selectAllConfig}
-                className="text-xs text-brand-600 hover:text-brand-700"
+                className="text-xs text-primary hover:text-primary/80"
               >
                 {t('sub.select_all')}
               </button>
               <button
                 onClick={clearConfigSelection}
-                className="text-xs text-slate-500 hover:text-slate-600"
+                className="text-xs text-muted-foreground hover:text-foreground"
               >
                 {t('sub.clear')}
               </button>
@@ -104,22 +104,24 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
                   key={device.id}
                   className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all border ${
                     isSelected
-                      ? 'bg-brand-50 dark:bg-brand-900/20 border-brand-300'
-                      : 'bg-slate-50 dark:bg-slate-700 eyecare:bg-card/50 border-transparent hover:border-slate-300'
+                      ? 'bg-primary/5 border-primary/30'
+                      : 'bg-muted/50 border-transparent hover:border-border'
                   }`}
                 >
                   <input
                     type="checkbox"
                     checked={isSelected}
                     onChange={() => toggleDevice(deviceKey)}
-                    className="w-4 h-4 rounded border-slate-300"
+                    className="w-4 h-4 rounded border-input"
                   />
                   <div className="flex-1 min-w-0">
-                    <span className="text-sm truncate block" title={device.name}>
+                    <span className="text-sm text-foreground truncate block" title={device.name}>
                       {device.name}
                     </span>
                     {device.code && (
-                      <span className="text-xs text-slate-400 truncate block">{device.code}</span>
+                      <span className="text-xs text-muted-foreground truncate block">
+                        {device.code}
+                      </span>
                     )}
                   </div>
                 </label>
@@ -130,10 +132,7 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
       )}
 
       {/* 手动输入区域 */}
-      <div>
-        <label className="text-sm font-bold text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-2 block">
-          {t('sub.care_devices_manual_input')}
-        </label>
+      <FormItem label={t('sub.care_devices_manual_input')}>
         <div className="flex gap-2">
           <input
             type="text"
@@ -141,41 +140,25 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
             onChange={e => setManualInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleAddManual()}
             placeholder={t('sub.care_devices_input_placeholder')}
-            className="flex-1 px-3 py-2 text-sm border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800 focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+            className="flex-1 px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
-          <button
-            onClick={handleAddManual}
-            disabled={!manualInput.trim()}
-            className="px-4 py-2 text-sm font-medium text-white bg-brand-600 rounded-lg hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+          <Button onClick={handleAddManual} disabled={!manualInput.trim()}>
             {t('sub.add')}
-          </button>
+          </Button>
         </div>
-      </div>
+      </FormItem>
 
       {/* 已选择的器件列表 */}
       {selectedDeviceIds.length > 0 && (
-        <div>
-          <label className="text-sm font-bold text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-2 block">
-            {t('sub.care_devices_selected_list')}
-          </label>
+        <FormItem label={t('sub.care_devices_selected_list')}>
           <div className="flex flex-wrap gap-2">
             {selectedDeviceIds.map(id => (
-              <span
-                key={id}
-                className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-brand-100 dark:bg-brand-900/30 text-brand-700 dark:text-brand-300 rounded-full"
-              >
+              <Tag key={id} closable onClose={() => handleRemoveDevice(id)}>
                 {id}
-                <button
-                  onClick={() => handleRemoveDevice(id)}
-                  className="ml-1 text-brand-500 hover:text-brand-700"
-                >
-                  ×
-                </button>
-              </span>
+              </Tag>
             ))}
           </div>
-        </div>
+        </FormItem>
       )}
     </div>
   );

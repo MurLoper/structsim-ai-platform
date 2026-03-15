@@ -122,10 +122,10 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
       />
 
       <div>
-        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
+        <label className="block text-sm font-bold mb-2 text-foreground">
           {t('sub.source_geo')}
         </label>
-        <div className="flex bg-slate-100 dark:bg-slate-700 eyecare:bg-muted rounded-lg p-1 mb-3">
+        <div className="flex bg-muted rounded-lg p-1 mb-3">
           {[
             { v: 1, l: t('sub.source_type_path') },
             { v: 2, l: t('sub.source_type_id') },
@@ -135,9 +135,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
               key={opt.v}
               onClick={() => handleOriginTypeChange(opt.v)}
               className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-                originType === opt.v
-                  ? 'bg-white dark:bg-slate-600 eyecare:bg-card shadow text-brand-600'
-                  : 'text-slate-500'
+                originType === opt.v ? 'bg-card shadow text-primary' : 'text-muted-foreground'
               }`}
               type="button"
             >
@@ -150,13 +148,11 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
           <div className="space-y-3">
             {originName ? (
               /* 已上传文件显示 */
-              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 eyecare:bg-background border border-slate-200 dark:border-slate-600 eyecare:border-border rounded-lg">
-                <DocumentIcon className="w-8 h-8 text-brand-500 flex-shrink-0" />
+              <div className="flex items-center gap-3 p-3 bg-background border border-border rounded-lg">
+                <DocumentIcon className="w-8 h-8 text-primary flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">
-                    {originName}
-                  </p>
-                  <p className="text-xs text-slate-500">{t('sub.file_uploaded')}</p>
+                  <p className="text-sm font-medium text-foreground truncate">{originName}</p>
+                  <p className="text-xs text-muted-foreground">{t('sub.file_uploaded')}</p>
                 </div>
                 <button
                   type="button"
@@ -164,10 +160,10 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
                     setValue('originFile.name', '', { shouldValidate: true, shouldDirty: true });
                     setValue('originFile.path', '', { shouldValidate: true, shouldDirty: true });
                   }}
-                  className="p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded transition-colors"
+                  className="p-1 hover:bg-muted rounded transition-colors"
                   title={t('sub.delete_file')}
                 >
-                  <XMarkIcon className="w-5 h-5 text-slate-500" />
+                  <XMarkIcon className="w-5 h-5 text-muted-foreground" />
                 </button>
               </div>
             ) : (
@@ -231,34 +227,31 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
             />
             {/* 验证状态显示 */}
             {originVerified && (
-              <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+              <div className="flex items-center gap-2 text-sm text-primary">
                 <CheckCircleIcon className="w-4 h-4 flex-shrink-0" />
                 <span>{t('sub.file_verify_success')}</span>
                 {originVerifiedName && (
-                  <span className="text-slate-600 dark:text-slate-300 font-medium truncate">
+                  <span className="text-muted-foreground font-medium truncate">
                     - {originVerifiedName}
                   </span>
                 )}
               </div>
             )}
             {verifyError && (
-              <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+              <div className="flex items-center gap-2 text-sm text-destructive">
                 <ExclamationCircleIcon className="w-4 h-4" />
                 <span>{verifyError}</span>
               </div>
             )}
             {/* INP文件set集显示 */}
             {inpSets.length > 0 && (
-              <div className="p-3 bg-slate-50 dark:bg-slate-800 eyecare:bg-background rounded-lg">
-                <p className="text-xs font-medium text-slate-500 mb-2">
+              <div className="p-3 bg-background rounded-lg">
+                <p className="text-xs font-medium text-muted-foreground mb-2">
                   {t('sub.inp_sets_detected')}:
                 </p>
                 <div className="flex flex-wrap gap-1">
                   {inpSets.map((set, idx) => (
-                    <span
-                      key={idx}
-                      className="px-2 py-0.5 text-xs bg-slate-200 dark:bg-slate-700 eyecare:bg-muted rounded"
-                    >
+                    <span key={idx} className="px-2 py-0.5 text-xs bg-muted rounded">
                       {set.type}: {set.name}
                     </span>
                   ))}
@@ -291,10 +284,10 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
 
       {/* 模型级别选择 */}
       <div>
-        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
+        <label className="block text-sm font-bold mb-2 text-foreground">
           {t('sub.model_level')}
         </label>
-        <div className="flex bg-slate-100 dark:bg-slate-700 eyecare:bg-muted rounded-lg p-1">
+        <div className="flex bg-muted rounded-lg p-1">
           {[
             { v: ModelLevel.WHOLE, l: t('sub.model_level_whole') },
             { v: ModelLevel.PART, l: t('sub.model_level_part') },
@@ -303,9 +296,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
               key={opt.v}
               onClick={() => setValue('modelLevelId', opt.v, { shouldValidate: true })}
               className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-                modelLevelId === opt.v
-                  ? 'bg-white dark:bg-slate-600 eyecare:bg-card shadow text-brand-600'
-                  : 'text-slate-500'
+                modelLevelId === opt.v ? 'bg-card shadow text-primary' : 'text-muted-foreground'
               }`}
               type="button"
             >
@@ -338,9 +329,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
                     <label
                       key={user.id}
                       className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
-                        isSelected
-                          ? 'bg-brand-50 dark:bg-brand-900/20'
-                          : 'hover:bg-slate-50 dark:hover:bg-slate-700'
+                        isSelected ? 'bg-primary/5' : 'hover:bg-muted'
                       }`}
                     >
                       <input
@@ -353,7 +342,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
                             field.onChange(selectedIds.filter((id: number) => id !== user.id));
                           }
                         }}
-                        className="w-4 h-4 rounded border-slate-300"
+                        className="w-4 h-4 rounded border-input"
                       />
                       <span className="flex-1 text-sm">{user.name || user.username}</span>
                     </label>

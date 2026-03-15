@@ -1,4 +1,5 @@
 import React from 'react';
+import { FormItem, Checkbox } from '@/components/ui';
 import type { SimTypeConfig, SolverConfig, GlobalSolverConfig } from '../types';
 import type { Solver, SolverResource } from '@/types/config';
 
@@ -34,42 +35,34 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
   return (
     <div className="space-y-6">
       {/* 应用到所有仿真类型 */}
-      <div className="p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={globalSolver.applyToAll}
-            onChange={e => {
-              onGlobalSolverChange({ ...globalSolver, applyToAll: e.target.checked });
-              if (e.target.checked) {
-                onApplyToAll({
-                  solverId: config.solver.solverId,
-                  solverVersion: config.solver.solverVersion,
-                  cpuType: config.solver.cpuType,
-                  cpuCores: config.solver.cpuCores,
-                  double: config.solver.double,
-                  resourceId: config.solver.resourceId,
-                });
-              }
-            }}
-            className="rounded"
-          />
-          <div>
-            <div className="text-sm font-bold text-purple-700 dark:text-purple-300">
-              {t('sub.solver.apply_all')}
-            </div>
-            <div className="text-xs text-purple-500">{t('sub.solver.apply_all_desc')}</div>
-          </div>
-        </label>
+      <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
+        <Checkbox
+          checked={globalSolver.applyToAll}
+          onChange={e => {
+            onGlobalSolverChange({
+              ...globalSolver,
+              applyToAll: (e.target as HTMLInputElement).checked,
+            });
+            if ((e.target as HTMLInputElement).checked) {
+              onApplyToAll({
+                solverId: config.solver.solverId,
+                solverVersion: config.solver.solverVersion,
+                cpuType: config.solver.cpuType,
+                cpuCores: config.solver.cpuCores,
+                double: config.solver.double,
+                resourceId: config.solver.resourceId,
+              });
+            }
+          }}
+          label={t('sub.solver.apply_all')}
+        />
+        <p className="text-xs text-muted-foreground ml-6">{t('sub.solver.apply_all_desc')}</p>
       </div>
 
       {/* 求解器选择 */}
-      <div>
-        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
-          {t('sub.solver.select')}
-        </label>
+      <FormItem label={t('sub.solver.select')}>
         <select
-          className="w-full p-3 border rounded-lg bg-background text-foreground border-input"
+          className="w-full p-3 border rounded-lg bg-background text-foreground border-input focus:outline-none focus:ring-2 focus:ring-ring"
           value={config.solver.solverId}
           onChange={e => {
             const solver = solvers.find(s => s.id === Number(e.target.value));
@@ -85,45 +78,39 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
             </option>
           ))}
         </select>
-      </div>
+      </FormItem>
 
       {/* CPU类型 */}
-      <div>
-        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
-          {t('sub.solver.compute_mode')}
-        </label>
+      <FormItem label={t('sub.solver.compute_mode')}>
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => handleChange({ cpuType: -1, cpuCores: -1 })}
             className={`p-4 rounded-lg border-2 transition-all ${
               config.solver.cpuType === -1
-                ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
-                : 'border-slate-200 dark:border-slate-600 eyecare:border-border hover:border-slate-300'
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-primary/50'
             }`}
           >
-            <div className="text-sm font-bold">{t('sub.single_node')}</div>
-            <div className="text-xs text-slate-500 mt-1">{t('sub.solver.no_parallel')}</div>
+            <div className="text-sm font-bold text-foreground">{t('sub.single_node')}</div>
+            <div className="text-xs text-muted-foreground mt-1">{t('sub.solver.no_parallel')}</div>
           </button>
           <button
             onClick={() => handleChange({ cpuType: 1, cpuCores: 16 })}
             className={`p-4 rounded-lg border-2 transition-all ${
               config.solver.cpuType === 1
-                ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
-                : 'border-slate-200 dark:border-slate-600 eyecare:border-border hover:border-slate-300'
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-primary/50'
             }`}
           >
-            <div className="text-sm font-bold">{t('sub.solver.parallel')}</div>
-            <div className="text-xs text-slate-500 mt-1">{t('sub.solver.server_node')}</div>
+            <div className="text-sm font-bold text-foreground">{t('sub.solver.parallel')}</div>
+            <div className="text-xs text-muted-foreground mt-1">{t('sub.solver.server_node')}</div>
           </button>
         </div>
-      </div>
+      </FormItem>
 
       {/* CPU核数 - 仅并行模式显示 */}
       {config.solver.cpuType === 1 && (
-        <div>
-          <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
-            {t('sub.solver.cpu_cores')}
-          </label>
+        <FormItem label={t('sub.solver.cpu_cores')}>
           <input
             type="range"
             min="1"
@@ -133,9 +120,9 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
             value={config.solver.cpuCores}
             onChange={e => handleChange({ cpuCores: Number(e.target.value) })}
           />
-          <div className="flex justify-between text-xs text-slate-500 mt-1">
+          <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>1</span>
-            <span className="font-bold text-brand-600 text-lg">
+            <span className="font-bold text-primary text-lg">
               {config.solver.cpuCores} {t('sub.cores')}
             </span>
             <span>512</span>
@@ -147,8 +134,8 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
                 onClick={() => handleChange({ cpuCores: cores })}
                 className={`py-2 text-sm rounded border transition-all ${
                   config.solver.cpuCores === cores
-                    ? 'bg-brand-500 text-white border-brand-500'
-                    : 'border-slate-300 dark:border-slate-600 eyecare:border-border hover:border-brand-300'
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'border-border hover:border-primary/50'
                 }`}
               >
                 {cores}
@@ -156,46 +143,40 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
               </button>
             ))}
           </div>
-        </div>
+        </FormItem>
       )}
 
       {/* 双精度设置 */}
-      <div>
-        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
-          {t('sub.solver.double')}
-        </label>
+      <FormItem label={t('sub.solver.double')}>
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => handleChange({ double: 0 })}
             className={`p-3 rounded-lg border-2 transition-all ${
               config.solver.double === 0
-                ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
-                : 'border-slate-200 dark:border-slate-600 eyecare:border-border hover:border-slate-300'
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-primary/50'
             }`}
           >
-            <div className="text-sm font-bold">{t('sub.solver.double_off')}</div>
+            <div className="text-sm font-bold text-foreground">{t('sub.solver.double_off')}</div>
           </button>
           <button
             onClick={() => handleChange({ double: 1 })}
             className={`p-3 rounded-lg border-2 transition-all ${
               config.solver.double === 1
-                ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
-                : 'border-slate-200 dark:border-slate-600 eyecare:border-border hover:border-slate-300'
+                ? 'border-primary bg-primary/5'
+                : 'border-border hover:border-primary/50'
             }`}
           >
-            <div className="text-sm font-bold">{t('sub.solver.double_on')}</div>
+            <div className="text-sm font-bold text-foreground">{t('sub.solver.double_on')}</div>
           </button>
         </div>
-      </div>
+      </FormItem>
 
       {/* 资源池选择 - 选择求解器后显示 */}
       {config.solver.solverId > 0 && resourcePools.length > 0 && (
-        <div>
-          <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
-            {t('sub.solver.resource')}
-          </label>
+        <FormItem label={t('sub.solver.resource')}>
           <select
-            className="w-full p-3 border rounded-lg bg-background text-foreground border-input"
+            className="w-full p-3 border rounded-lg bg-background text-foreground border-input focus:outline-none focus:ring-2 focus:ring-ring"
             value={config.solver.resourceId ?? ''}
             onChange={e =>
               handleChange({ resourceId: e.target.value ? Number(e.target.value) : null })
@@ -210,7 +191,7 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
                 </option>
               ))}
           </select>
-        </div>
+        </FormItem>
       )}
     </div>
   );

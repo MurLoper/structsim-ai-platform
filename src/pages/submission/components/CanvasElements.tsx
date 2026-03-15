@@ -30,18 +30,18 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
   children,
 }) => {
   const borderClass = isSelected
-    ? 'border-brand-500 ring-4 ring-brand-500/20'
+    ? 'border-primary ring-4 ring-primary/20'
     : isComplete
-      ? 'border-green-500'
+      ? 'border-primary'
       : hasError
-        ? 'border-red-400'
+        ? 'border-destructive'
         : isActive
-          ? 'border-brand-400'
-          : 'border-slate-200 dark:border-slate-700';
+          ? 'border-primary/60'
+          : 'border-border';
 
   return (
     <div
-      className={`absolute bg-white dark:bg-slate-800 rounded-xl shadow-lg border-2 transition-all cursor-pointer
+      className={`absolute bg-card rounded-xl shadow-lg border-2 transition-all cursor-pointer
         ${borderClass} hover:shadow-xl hover:scale-[1.02]`}
       style={{ left: x, top: y, width }}
       onClick={onClick}
@@ -51,21 +51,19 @@ export const CanvasNode: React.FC<CanvasNodeProps> = ({
           <div
             className={`p-2 rounded-lg ${
               isComplete
-                ? 'bg-green-100 text-green-600 dark:bg-green-900/30'
+                ? 'bg-primary/10 text-primary'
                 : hasError
-                  ? 'bg-red-100 text-red-600 dark:bg-red-900/30'
+                  ? 'bg-destructive/10 text-destructive'
                   : isActive
-                    ? 'bg-brand-100 text-brand-600 dark:bg-brand-900/30'
-                    : 'bg-slate-100 dark:bg-slate-700 text-slate-500'
+                    ? 'bg-primary/10 text-primary'
+                    : 'bg-muted text-muted-foreground'
             }`}
           >
             {icon}
           </div>
-          <div className="font-semibold text-slate-800 dark:text-white truncate flex-1">
-            {title}
-          </div>
-          {isComplete && <CheckCircleIcon className="w-5 h-5 text-green-500" />}
-          {hasError && <ExclamationTriangleIcon className="w-5 h-5 text-red-500" />}
+          <div className="font-semibold text-foreground truncate flex-1">{title}</div>
+          {isComplete && <CheckCircleIcon className="w-5 h-5 text-primary" />}
+          {hasError && <ExclamationTriangleIcon className="w-5 h-5 text-destructive" />}
         </div>
         {children}
       </div>
