@@ -63,7 +63,7 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
 
       {/* 已选择数量 */}
       <div className="flex items-center justify-between">
-        <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+        <span className="text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground">
           {t('sub.care_devices_selected')}: {selectedDeviceIds.length}
         </span>
         {selectedDeviceIds.length > 0 && (
@@ -77,7 +77,7 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
       {configCareDevices.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 eyecare:text-foreground">
               {t('sub.care_devices_from_config')} ({configCareDevices.length})
             </label>
             <div className="flex gap-2">
@@ -105,7 +105,7 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
                   className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-all border ${
                     isSelected
                       ? 'bg-brand-50 dark:bg-brand-900/20 border-brand-300'
-                      : 'bg-slate-50 dark:bg-slate-700/50 border-transparent hover:border-slate-300'
+                      : 'bg-slate-50 dark:bg-slate-700 eyecare:bg-card/50 border-transparent hover:border-slate-300'
                   }`}
                 >
                   <input
@@ -131,7 +131,7 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
 
       {/* 手动输入区域 */}
       <div>
-        <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 block">
+        <label className="text-sm font-bold text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-2 block">
           {t('sub.care_devices_manual_input')}
         </label>
         <div className="flex gap-2">
@@ -156,7 +156,7 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
       {/* 已选择的器件列表 */}
       {selectedDeviceIds.length > 0 && (
         <div>
-          <label className="text-sm font-bold text-slate-700 dark:text-slate-300 mb-2 block">
+          <label className="text-sm font-bold text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-2 block">
             {t('sub.care_devices_selected_list')}
           </label>
           <div className="flex flex-wrap gap-2">

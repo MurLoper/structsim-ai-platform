@@ -122,10 +122,10 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
       />
 
       <div>
-        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
+        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
           {t('sub.source_geo')}
         </label>
-        <div className="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-1 mb-3">
+        <div className="flex bg-slate-100 dark:bg-slate-700 eyecare:bg-muted rounded-lg p-1 mb-3">
           {[
             { v: 1, l: t('sub.source_type_path') },
             { v: 2, l: t('sub.source_type_id') },
@@ -136,7 +136,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
               onClick={() => handleOriginTypeChange(opt.v)}
               className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
                 originType === opt.v
-                  ? 'bg-white dark:bg-slate-600 shadow text-brand-600'
+                  ? 'bg-white dark:bg-slate-600 eyecare:bg-card shadow text-brand-600'
                   : 'text-slate-500'
               }`}
               type="button"
@@ -150,7 +150,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
           <div className="space-y-3">
             {originName ? (
               /* 已上传文件显示 */
-              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-lg">
+              <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800 eyecare:bg-background border border-slate-200 dark:border-slate-600 eyecare:border-border rounded-lg">
                 <DocumentIcon className="w-8 h-8 text-brand-500 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">
@@ -249,7 +249,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
             )}
             {/* INP文件set集显示 */}
             {inpSets.length > 0 && (
-              <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+              <div className="p-3 bg-slate-50 dark:bg-slate-800 eyecare:bg-background rounded-lg">
                 <p className="text-xs font-medium text-slate-500 mb-2">
                   {t('sub.inp_sets_detected')}:
                 </p>
@@ -257,7 +257,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
                   {inpSets.map((set, idx) => (
                     <span
                       key={idx}
-                      className="px-2 py-0.5 text-xs bg-slate-200 dark:bg-slate-700 rounded"
+                      className="px-2 py-0.5 text-xs bg-slate-200 dark:bg-slate-700 eyecare:bg-muted rounded"
                     >
                       {set.type}: {set.name}
                     </span>
@@ -291,10 +291,10 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
 
       {/* 模型级别选择 */}
       <div>
-        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
+        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
           {t('sub.model_level')}
         </label>
-        <div className="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
+        <div className="flex bg-slate-100 dark:bg-slate-700 eyecare:bg-muted rounded-lg p-1">
           {[
             { v: ModelLevel.WHOLE, l: t('sub.model_level_whole') },
             { v: ModelLevel.PART, l: t('sub.model_level_part') },
@@ -304,7 +304,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
               onClick={() => setValue('modelLevelId', opt.v, { shouldValidate: true })}
               className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
                 modelLevelId === opt.v
-                  ? 'bg-white dark:bg-slate-600 shadow text-brand-600'
+                  ? 'bg-white dark:bg-slate-600 eyecare:bg-card shadow text-brand-600'
                   : 'text-slate-500'
               }`}
               type="button"

@@ -65,11 +65,11 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
 
       {/* 求解器选择 */}
       <div>
-        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
+        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
           {t('sub.solver.select')}
         </label>
         <select
-          className="w-full p-3 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+          className="w-full p-3 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
           value={config.solver.solverId}
           onChange={e => {
             const solver = solvers.find(s => s.id === Number(e.target.value));
@@ -89,7 +89,7 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
 
       {/* CPU类型 */}
       <div>
-        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
+        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
           {t('sub.solver.compute_mode')}
         </label>
         <div className="grid grid-cols-2 gap-3">
@@ -98,7 +98,7 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
             className={`p-4 rounded-lg border-2 transition-all ${
               config.solver.cpuType === -1
                 ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
-                : 'border-slate-200 dark:border-slate-600 hover:border-slate-300'
+                : 'border-slate-200 dark:border-slate-600 eyecare:border-border hover:border-slate-300'
             }`}
           >
             <div className="text-sm font-bold">{t('sub.single_node')}</div>
@@ -109,7 +109,7 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
             className={`p-4 rounded-lg border-2 transition-all ${
               config.solver.cpuType === 1
                 ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
-                : 'border-slate-200 dark:border-slate-600 hover:border-slate-300'
+                : 'border-slate-200 dark:border-slate-600 eyecare:border-border hover:border-slate-300'
             }`}
           >
             <div className="text-sm font-bold">{t('sub.solver.parallel')}</div>
@@ -121,7 +121,7 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
       {/* CPU核数 - 仅并行模式显示 */}
       {config.solver.cpuType === 1 && (
         <div>
-          <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
+          <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
             {t('sub.solver.cpu_cores')}
           </label>
           <input
@@ -148,7 +148,7 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
                 className={`py-2 text-sm rounded border transition-all ${
                   config.solver.cpuCores === cores
                     ? 'bg-brand-500 text-white border-brand-500'
-                    : 'border-slate-300 dark:border-slate-600 hover:border-brand-300'
+                    : 'border-slate-300 dark:border-slate-600 eyecare:border-border hover:border-brand-300'
                 }`}
               >
                 {cores}
@@ -161,7 +161,7 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
 
       {/* 双精度设置 */}
       <div>
-        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
+        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
           {t('sub.solver.double')}
         </label>
         <div className="grid grid-cols-2 gap-3">
@@ -170,7 +170,7 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
             className={`p-3 rounded-lg border-2 transition-all ${
               config.solver.double === 0
                 ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
-                : 'border-slate-200 dark:border-slate-600 hover:border-slate-300'
+                : 'border-slate-200 dark:border-slate-600 eyecare:border-border hover:border-slate-300'
             }`}
           >
             <div className="text-sm font-bold">{t('sub.solver.double_off')}</div>
@@ -180,7 +180,7 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
             className={`p-3 rounded-lg border-2 transition-all ${
               config.solver.double === 1
                 ? 'border-brand-500 bg-brand-50 dark:bg-brand-900/20'
-                : 'border-slate-200 dark:border-slate-600 hover:border-slate-300'
+                : 'border-slate-200 dark:border-slate-600 eyecare:border-border hover:border-slate-300'
             }`}
           >
             <div className="text-sm font-bold">{t('sub.solver.double_on')}</div>
@@ -191,11 +191,11 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
       {/* 资源池选择 - 选择求解器后显示 */}
       {config.solver.solverId > 0 && resourcePools.length > 0 && (
         <div>
-          <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
+          <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
             {t('sub.solver.resource')}
           </label>
           <select
-            className="w-full p-3 border rounded-lg dark:bg-slate-700 dark:border-slate-600"
+            className="w-full p-3 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
             value={config.solver.resourceId ?? ''}
             onChange={e =>
               handleChange({ resourceId: e.target.value ? Number(e.target.value) : null })

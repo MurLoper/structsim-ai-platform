@@ -340,7 +340,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
       {/* 参数组快速应用 */}
       {filteredParamGroups.length > 0 && (
         <div>
-          <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
+          <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
             {t('sub.params.apply_group')}
           </label>
           <div className="flex flex-wrap gap-2">
@@ -349,7 +349,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                 key={group.id}
                 onClick={() => applyParamGroup(group.id)}
                 disabled={loadingGroup}
-                className="px-3 py-1.5 text-sm bg-slate-100 dark:bg-slate-700 hover:bg-brand-100 dark:hover:bg-brand-900/30 text-slate-700 dark:text-slate-300 rounded-lg transition-colors disabled:opacity-50"
+                className="px-3 py-1.5 text-sm bg-slate-100 dark:bg-slate-700 eyecare:bg-muted hover:bg-brand-100 dark:hover:bg-brand-900/30 text-slate-700 dark:text-slate-300 eyecare:text-foreground rounded-lg transition-colors disabled:opacity-50"
               >
                 {group.name}
               </button>
@@ -361,7 +361,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
 
       {/* 优化算法选择 */}
       <div>
-        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
+        <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
           {t('sub.params.alg_type')}
         </label>
         <div className="grid grid-cols-3 gap-2">
@@ -370,7 +370,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
             className={`p-3 rounded-lg border-2 transition-all ${
               currentAlgType === AlgType.BAYESIAN
                 ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
-                : 'border-slate-200 dark:border-slate-600'
+                : 'border-slate-200 dark:border-slate-600 eyecare:border-border'
             }`}
           >
             <div className="text-sm font-bold text-purple-600">{t('sub.params.bayesian')}</div>
@@ -381,7 +381,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
             className={`p-3 rounded-lg border-2 transition-all ${
               currentAlgType === AlgType.DOE
                 ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                : 'border-slate-200 dark:border-slate-600'
+                : 'border-slate-200 dark:border-slate-600 eyecare:border-border'
             }`}
           >
             <div className="text-sm font-bold text-blue-600">{t('sub.params.doe')}</div>
@@ -392,7 +392,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
             className={`p-3 rounded-lg border-2 transition-all ${
               currentAlgType === AlgType.DOE_FILE
                 ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-                : 'border-slate-200 dark:border-slate-600'
+                : 'border-slate-200 dark:border-slate-600 eyecare:border-border'
             }`}
           >
             <div className="text-sm font-bold text-green-600">{t('sub.params.doe_file')}</div>
@@ -405,7 +405,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
       {(currentAlgType === AlgType.BAYESIAN || currentAlgType === AlgType.DOE) && (
         <div>
           <div className="flex justify-between items-center mb-2">
-            <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+            <label className="text-sm font-bold text-slate-700 dark:text-slate-300 eyecare:text-foreground">
               {t('sub.params.domain')}
             </label>
             <button
@@ -421,7 +421,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
           <div className="border rounded-lg dark:border-slate-600 overflow-hidden">
             {/* 表头 */}
             <div
-              className={`grid ${currentAlgType === AlgType.DOE ? 'grid-cols-[100px_1fr_40px]' : 'grid-cols-[100px_1fr_1fr_1fr_40px]'} bg-slate-100 dark:bg-slate-700 text-xs font-medium text-slate-600 dark:text-slate-300`}
+              className={`grid ${currentAlgType === AlgType.DOE ? 'grid-cols-[100px_1fr_40px]' : 'grid-cols-[100px_1fr_1fr_1fr_40px]'} bg-slate-100 dark:bg-slate-700 eyecare:bg-muted text-xs font-medium text-slate-600 dark:text-slate-300`}
             >
               <div className="px-2 py-2 border-r dark:border-slate-600">
                 {t('sub.params.param_name')}
@@ -561,33 +561,36 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                     <div className="border rounded-lg dark:border-slate-600 overflow-hidden">
                       <div className="max-h-[300px] overflow-auto custom-scrollbar">
                         <div
-                          className="grid gap-px bg-slate-200 dark:bg-slate-600"
+                          className="grid gap-px bg-slate-200 dark:bg-slate-600 eyecare:bg-border"
                           style={{
                             gridTemplateColumns: `50px repeat(${config.params.optParams.doeParamHeads?.length || 0}, minmax(80px, 1fr)) 40px`,
                           }}
                         >
                           {/* 表头 */}
-                          <div className="bg-slate-100 dark:bg-slate-700 px-2 py-2 text-xs font-medium text-center">
+                          <div className="bg-slate-100 dark:bg-slate-700 eyecare:bg-muted px-2 py-2 text-xs font-medium text-center">
                             #
                           </div>
                           {(config.params.optParams.doeParamHeads || []).map(h => (
                             <div
                               key={h}
-                              className="bg-slate-100 dark:bg-slate-700 px-2 py-2 text-xs font-medium text-center"
+                              className="bg-slate-100 dark:bg-slate-700 eyecare:bg-muted px-2 py-2 text-xs font-medium text-center"
                             >
                               {h}
                             </div>
                           ))}
-                          <div className="bg-slate-100 dark:bg-slate-700"></div>
+                          <div className="bg-slate-100 dark:bg-slate-700 eyecare:bg-muted"></div>
 
                           {/* 数据行 */}
                           {config.params.optParams.doeParamData.map((row, rowIdx) => (
                             <React.Fragment key={rowIdx}>
-                              <div className="bg-white dark:bg-slate-800 px-2 py-1 text-xs text-center text-slate-500">
+                              <div className="bg-white dark:bg-slate-800 eyecare:bg-card px-2 py-1 text-xs text-center text-slate-500">
                                 {rowIdx + 1}
                               </div>
                               {(config.params.optParams.doeParamHeads || []).map(h => (
-                                <div key={h} className="bg-white dark:bg-slate-800 p-0.5">
+                                <div
+                                  key={h}
+                                  className="bg-white dark:bg-slate-800 eyecare:bg-card p-0.5"
+                                >
                                   <input
                                     type="text"
                                     className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-brand-500 rounded text-center"
@@ -596,7 +599,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                                   />
                                 </div>
                               ))}
-                              <div className="bg-white dark:bg-slate-800 flex items-center justify-center">
+                              <div className="bg-white dark:bg-slate-800 eyecare:bg-card flex items-center justify-center">
                                 <button
                                   onClick={() => removeDoeRow(rowIdx)}
                                   className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
@@ -619,7 +622,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
       {/* DOE 文件上传 - 仅 DOE_FILE 模式显示 */}
       {currentAlgType === AlgType.DOE_FILE && (
         <div>
-          <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
+          <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
             {t('sub.params.doe_file_upload')}
           </label>
           <label className="block border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-4 text-center cursor-pointer hover:border-brand-400 transition-colors">
@@ -640,19 +643,19 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                 <div className="border rounded-lg dark:border-slate-600 overflow-hidden">
                   <div className="max-h-[300px] overflow-auto custom-scrollbar">
                     <div
-                      className="grid gap-px bg-slate-200 dark:bg-slate-600"
+                      className="grid gap-px bg-slate-200 dark:bg-slate-600 eyecare:bg-border"
                       style={{
                         gridTemplateColumns: `50px repeat(${config.params.optParams.doeParamHeads?.length || 0}, minmax(80px, 1fr))`,
                       }}
                     >
                       {/* 表头 */}
-                      <div className="bg-slate-100 dark:bg-slate-700 px-2 py-2 text-xs font-medium text-center">
+                      <div className="bg-slate-100 dark:bg-slate-700 eyecare:bg-muted px-2 py-2 text-xs font-medium text-center">
                         #
                       </div>
                       {(config.params.optParams.doeParamHeads || []).map(h => (
                         <div
                           key={h}
-                          className="bg-slate-100 dark:bg-slate-700 px-2 py-2 text-xs font-medium text-center"
+                          className="bg-slate-100 dark:bg-slate-700 eyecare:bg-muted px-2 py-2 text-xs font-medium text-center"
                         >
                           {h}
                         </div>
@@ -661,13 +664,13 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                       {/* 数据行 - 只读 */}
                       {config.params.optParams.doeParamData.map((row, rowIdx) => (
                         <React.Fragment key={rowIdx}>
-                          <div className="bg-white dark:bg-slate-800 px-2 py-1 text-xs text-center text-slate-500">
+                          <div className="bg-white dark:bg-slate-800 eyecare:bg-card px-2 py-1 text-xs text-center text-slate-500">
                             {rowIdx + 1}
                           </div>
                           {(config.params.optParams.doeParamHeads || []).map(h => (
                             <div
                               key={h}
-                              className="bg-white dark:bg-slate-800 px-2 py-1 text-xs text-center"
+                              className="bg-white dark:bg-slate-800 eyecare:bg-card px-2 py-1 text-xs text-center"
                             >
                               {row[h]}
                             </div>
@@ -685,12 +688,12 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
       {/* 批次配置 - 仅贝叶斯模式显示 */}
       {currentAlgType === AlgType.BAYESIAN && (
         <div>
-          <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300">
+          <label className="block text-sm font-bold mb-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground">
             {t('sub.params.batch_config')}
           </label>
 
           {/* 批次类型切换 */}
-          <div className="flex bg-slate-100 dark:bg-slate-700 rounded-lg p-1 mb-3">
+          <div className="flex bg-slate-100 dark:bg-slate-700 eyecare:bg-muted rounded-lg p-1 mb-3">
             <button
               onClick={() => updateOptParams({ batchSizeType: 1 })}
               className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
@@ -727,7 +730,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                 </button>
               </div>
               <div className="border rounded-lg dark:border-slate-600 overflow-hidden">
-                <div className="grid grid-cols-[60px_1fr_40px] bg-slate-100 dark:bg-slate-700 text-xs font-medium text-slate-600 dark:text-slate-300">
+                <div className="grid grid-cols-[60px_1fr_40px] bg-slate-100 dark:bg-slate-700 eyecare:bg-muted text-xs font-medium text-slate-600 dark:text-slate-300">
                   <div className="px-2 py-2 border-r dark:border-slate-600 text-center">
                     {t('sub.params.batch_round')}
                   </div>
@@ -784,7 +787,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                 </button>
               </div>
               <div className="border rounded-lg dark:border-slate-600 overflow-hidden">
-                <div className="grid grid-cols-[70px_70px_1fr_40px] bg-slate-100 dark:bg-slate-700 text-xs font-medium text-slate-600 dark:text-slate-300">
+                <div className="grid grid-cols-[70px_70px_1fr_40px] bg-slate-100 dark:bg-slate-700 eyecare:bg-muted text-xs font-medium text-slate-600 dark:text-slate-300">
                   <div className="px-2 py-2 border-r dark:border-slate-600 text-center">
                     {t('sub.params.start_idx')}
                   </div>

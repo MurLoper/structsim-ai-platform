@@ -433,15 +433,17 @@ const Submission: React.FC = () => {
   } = CANVAS_LAYOUT;
 
   return (
-    <div className="h-full flex flex-col bg-slate-100 dark:bg-slate-900">
+    <div className="h-full flex flex-col bg-slate-100 dark:bg-slate-900 eyecare:bg-background">
       {/* 顶部工具栏 */}
-      <div className="flex items-center justify-between px-6 py-3 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
-        <h1 className="text-xl font-bold text-slate-800 dark:text-white">{t('sub.title')}</h1>
+      <div className="flex items-center justify-between px-6 py-3 bg-white dark:bg-slate-800 eyecare:bg-card border-b border-slate-200 dark:border-slate-700 eyecare:border-border">
+        <h1 className="text-xl font-bold text-slate-800 dark:text-white eyecare:text-foreground">
+          {t('sub.title')}
+        </h1>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
             <button
               onClick={canvas.zoomOut}
-              className="p-2 hover:bg-white dark:hover:bg-slate-600 rounded"
+              className="p-2 hover:bg-white dark:hover:bg-slate-600 eyecare:hover:bg-card rounded"
               title="缩小"
             >
               <MagnifyingGlassMinusIcon className="w-5 h-5" />
@@ -451,14 +453,14 @@ const Submission: React.FC = () => {
             </span>
             <button
               onClick={canvas.zoomIn}
-              className="p-2 hover:bg-white dark:hover:bg-slate-600 rounded"
+              className="p-2 hover:bg-white dark:hover:bg-slate-600 eyecare:hover:bg-card rounded"
               title="放大"
             >
               <MagnifyingGlassPlusIcon className="w-5 h-5" />
             </button>
             <button
               onClick={canvas.resetView}
-              className="p-2 hover:bg-white dark:hover:bg-slate-600 rounded"
+              className="p-2 hover:bg-white dark:hover:bg-slate-600 eyecare:hover:bg-card rounded"
               title="重置视图"
             >
               <ArrowsPointingOutIcon className="w-5 h-5" />
@@ -468,7 +470,7 @@ const Submission: React.FC = () => {
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 rounded-lg p-1">
             <button
               onClick={() => exportAsImage(canvasContainerRef.current, { scale: 3 })}
-              className="p-2 hover:bg-white dark:hover:bg-slate-600 rounded"
+              className="p-2 hover:bg-white dark:hover:bg-slate-600 eyecare:hover:bg-card rounded"
               title="导出高清图片"
             >
               <CameraIcon className="w-5 h-5" />
@@ -506,7 +508,7 @@ const Submission: React.FC = () => {
                 };
                 exportAsFlowData(flowData);
               }}
-              className="p-2 hover:bg-white dark:hover:bg-slate-600 rounded"
+              className="p-2 hover:bg-white dark:hover:bg-slate-600 eyecare:hover:bg-card rounded"
               title="导出流程数据"
             >
               <DocumentArrowDownIcon className="w-5 h-5" />
@@ -569,7 +571,7 @@ const Submission: React.FC = () => {
               <div className="text-xs text-slate-500 space-y-1 bg-slate-50 dark:bg-slate-900/50 p-2 rounded">
                 <div className="flex justify-between">
                   <span>{t('sub.source_file_label')}:</span>
-                  <span className="font-mono text-slate-700 dark:text-slate-300 truncate max-w-[180px]">
+                  <span className="font-mono text-slate-700 dark:text-slate-300 eyecare:text-foreground truncate max-w-[180px]">
                     {originFile.path || originFile.name || '-'}
                   </span>
                 </div>
@@ -754,7 +756,7 @@ const Submission: React.FC = () => {
                               height: CONFIG_BOX_HEIGHT,
                             }}
                           >
-                            <div className="absolute -top-3 left-4 px-2 bg-white dark:bg-slate-800 text-xs text-slate-500 font-medium">
+                            <div className="absolute -top-3 left-4 px-2 bg-white dark:bg-slate-800 eyecare:bg-card text-xs text-slate-500 font-medium">
                               {t('sub.condition')}
                               {foldIdx + 1}-{foldTypeData.name}
                               {simType.name} {t('sub.config')}
