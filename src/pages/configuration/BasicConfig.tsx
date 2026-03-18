@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
 import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
-import {
-  CubeIcon,
-  AdjustmentsHorizontalIcon,
-  ChartBarIcon,
-  BeakerIcon,
-  CpuChipIcon,
-  ServerIcon,
-} from '@heroicons/react/24/outline';
+import { Box, SlidersHorizontal, BarChart3, FlaskConical, Cpu, Server } from 'lucide-react';
 
 import { ConfigTabs, TabItem } from './components';
 import {
@@ -22,13 +15,13 @@ import {
 } from './tabs';
 
 const TABS: TabItem[] = [
-  { key: 'foldTypes', label: '姿态类型', icon: <BeakerIcon className="w-4 h-4" /> },
-  { key: 'simTypes', label: '仿真类型', icon: <CubeIcon className="w-4 h-4" /> },
-  { key: 'params', label: '参数定义', icon: <AdjustmentsHorizontalIcon className="w-4 h-4" /> },
-  { key: 'outputs', label: '输出定义', icon: <ChartBarIcon className="w-4 h-4" /> },
-  { key: 'solvers', label: '求解器', icon: <AdjustmentsHorizontalIcon className="w-4 h-4" /> },
-  { key: 'solverResources', label: '资源池', icon: <ServerIcon className="w-4 h-4" /> },
-  { key: 'careDevices', label: '关注器件', icon: <CpuChipIcon className="w-4 h-4" /> },
+  { key: 'foldTypes', label: '姿态类型', icon: <FlaskConical className="w-4 h-4" /> },
+  { key: 'simTypes', label: '仿真类型', icon: <Box className="w-4 h-4" /> },
+  { key: 'params', label: '参数定义', icon: <SlidersHorizontal className="w-4 h-4" /> },
+  { key: 'outputs', label: '输出定义', icon: <BarChart3 className="w-4 h-4" /> },
+  { key: 'solvers', label: '求解器', icon: <SlidersHorizontal className="w-4 h-4" /> },
+  { key: 'solverResources', label: '资源池', icon: <Server className="w-4 h-4" /> },
+  { key: 'careDevices', label: '关注器件', icon: <Cpu className="w-4 h-4" /> },
 ];
 
 const BasicConfig: React.FC = () => {

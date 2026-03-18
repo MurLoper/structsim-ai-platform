@@ -1,5 +1,5 @@
 import React from 'react';
-import { AdjustmentsHorizontalIcon } from '@heroicons/react/24/outline';
+import { SlidersHorizontal } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { ConfigCardHeader, ListItem, EditModal, FormInput } from '../components';
 import { useConfigurationState } from '../hooks';
@@ -12,7 +12,7 @@ export const SolversTab: React.FC = () => {
       <Card>
         <ConfigCardHeader
           title="求解器管理"
-          icon={<AdjustmentsHorizontalIcon className="w-5 h-5" />}
+          icon={<SlidersHorizontal className="w-5 h-5" />}
           onAdd={() => state.openModal('solver')}
         />
         <div className="space-y-2">

@@ -36,6 +36,16 @@ export const ordersApi = {
   updateOrder: (orderId: number, payload: Partial<OrderCreatePayload>) =>
     api.put<OrderDetail>(`/orders/${orderId}`, payload),
 
+  /** 验证源文件（路径/ID）并解析 INP set 集 */
+  verifyFile: (path: string, type: number) =>
+    api.post<{
+      success: boolean;
+      name?: string;
+      path?: string;
+      inpSets?: { type: string; name: string }[];
+      error?: string;
+    }>('/orders/verify-file', { path, type }),
+
   // 统计相关接口（开发环境使用 mock 数据）
   getStatistics: async () => {
     if (useMockData) {

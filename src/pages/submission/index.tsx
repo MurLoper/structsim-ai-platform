@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { useUIStore } from '@/stores';
+import { useUIStore, useAuthStore } from '@/stores';
 import { RESOURCES } from '@/locales';
-import { Button, useToast } from '@/components/ui';
+import { Button, useToast, useConfirmDialog } from '@/components/ui';
 import { ordersApi } from '@/api';
 import { queryClient, queryKeys } from '@/lib/queryClient';
 import { useForm, useWatch } from 'react-hook-form';
@@ -46,7 +46,9 @@ const Submission: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { language } = useUIStore();
+  const { user } = useAuthStore();
   const { showToast } = useToast();
+  const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
   const t = (key: string) => RESOURCES[language][key] || key;
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -143,17 +145,44 @@ const Submission: React.FC = () => {
         simTypeIds: order.simTypeIds ?? [],
       });
 
-      // 2. 恢复选中的仿真类型
-      const selectedSimTypes = (order.foldTypeIds ?? []).flatMap(foldTypeId =>
-        (order.simTypeIds ?? []).map(simTypeId => ({ foldTypeId, simTypeId }))
-      );
-      state.setSelectedSimTypes(selectedSimTypes);
+      // 2. 恢复选中的仿真类型（从 inputJson.conditions 重建 SelectedSimType[]）
+      if (order.inputJson?.conditions) {
+        const selectedSimTypes = order.inputJson.conditions.map(c => ({
+          conditionId: c.conditionId,
+          foldTypeId: c.foldTypeId,
+          simTypeId: c.simTypeId,
+        }));
+        state.setSelectedSimTypes(selectedSimTypes);
 
-      // 3. 恢复仿真配置（从 inputJson.optParam）
-      if (order.inputJson?.optParam) {
-        const simTypeIds = Object.keys(order.inputJson.optParam).map(Number);
-        state.markSimTypeIdsAsInitialized(simTypeIds);
-        state.setSimTypeConfigs(order.inputJson.optParam as Record<number, SimTypeConfig>);
+        // 3. 恢复仿真配置（以 conditionId 为 key）
+        const conditionIds = order.inputJson.conditions.map(c => c.conditionId);
+        state.markConditionIdsAsInitialized(conditionIds);
+        const configs: Record<number, SimTypeConfig> = {};
+        order.inputJson.conditions.forEach(c => {
+          configs[c.conditionId] = {
+            conditionId: c.conditionId,
+            foldTypeId: c.foldTypeId,
+            simTypeId: c.simTypeId,
+            params: c.params,
+            output: c.output,
+            solver: c.solver,
+            careDeviceIds: c.careDeviceIds,
+          };
+        });
+        state.setSimTypeConfigs(configs);
+      } else if (order.optParam) {
+        // 兼容旧版数据（optParam 以 simTypeId 为 key）
+        const selectedSimTypes = (order.foldTypeIds ?? []).flatMap(foldTypeId =>
+          (order.simTypeIds ?? []).map(simTypeId => ({
+            conditionId: -(foldTypeId * 10000 + simTypeId),
+            foldTypeId,
+            simTypeId,
+          }))
+        );
+        state.setSelectedSimTypes(selectedSimTypes);
+        const conditionIds = selectedSimTypes.map(s => s.conditionId);
+        state.markConditionIdsAsInitialized(conditionIds);
+        state.setSimTypeConfigs(order.optParam as Record<number, SimTypeConfig>);
       }
 
       // 4. 恢复全局求解器配置
@@ -172,12 +201,12 @@ const Submission: React.FC = () => {
 
     // 新建模式：尝试加载草稿
     if (!isEditMode) {
-      const draft = loadDraft();
+      const draft = loadDraft(orderId);
       if (draft) {
         isLoadingDraftRef.current = true;
         // 先标记已初始化，防止 useEffect 用默认配置覆盖草稿数据
-        const simTypeIds = Object.keys(draft.simTypeConfigs).map(Number);
-        state.markSimTypeIdsAsInitialized(simTypeIds);
+        const conditionIds = Object.keys(draft.simTypeConfigs).map(Number);
+        state.markConditionIdsAsInitialized(conditionIds);
         // 再设置状态
         form.reset(draft.formValues);
         state.setSelectedSimTypes(draft.selectedSimTypes);
@@ -225,41 +254,43 @@ const Submission: React.FC = () => {
     inpSets,
   };
 
-  // 只在组件卸载时保存草稿
+  // 只在组件卸载时保存草稿（编辑态和新建态各自独立 key）
   useEffect(() => {
-    if (isEditMode) return;
-
     return () => {
       // 组件卸载时保存
       if (hasInitializedRef.current && !isLoadingDraftRef.current) {
         const formValues = form.getValues();
         const data = draftDataRef.current;
-        saveDraft({
-          formValues,
-          selectedSimTypes: data.selectedSimTypes,
-          simTypeConfigs: data.simTypeConfigs,
-          globalSolver: data.globalSolver,
-          inpSets: data.inpSets,
-        });
+        saveDraft(
+          {
+            formValues,
+            selectedSimTypes: data.selectedSimTypes,
+            simTypeConfigs: data.simTypeConfigs,
+            globalSolver: data.globalSolver,
+            inpSets: data.inpSets,
+          },
+          orderId
+        );
       }
     };
-  }, [isEditMode, form]);
+  }, [form, orderId]);
 
-  // 页面关闭时保存草稿
+  // 页面关闭时保存草稿（编辑态和新建态各自独立 key）
   useEffect(() => {
-    if (isEditMode) return;
-
     const handleBeforeUnload = () => {
       if (hasInitializedRef.current && !isLoadingDraftRef.current) {
         const formValues = form.getValues();
         const data = draftDataRef.current;
-        saveDraft({
-          formValues,
-          selectedSimTypes: data.selectedSimTypes,
-          simTypeConfigs: data.simTypeConfigs,
-          globalSolver: data.globalSolver,
-          inpSets: data.inpSets,
-        });
+        saveDraft(
+          {
+            formValues,
+            selectedSimTypes: data.selectedSimTypes,
+            simTypeConfigs: data.simTypeConfigs,
+            globalSolver: data.globalSolver,
+            inpSets: data.inpSets,
+          },
+          orderId
+        );
       }
     };
 
@@ -267,40 +298,146 @@ const Submission: React.FC = () => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isEditMode, form, state.selectedSimTypes, state.simTypeConfigs, state.globalSolver, inpSets]);
+  }, [form, orderId, state.selectedSimTypes, state.simTypeConfigs, state.globalSolver, inpSets]);
 
-  // 打开抽屉方法
+  // 打开抽屉方法（统一传入 conditionId）
   const openProjectDrawer = () => {
     state.setDrawerMode('project');
     state.setIsDrawerOpen(true);
   };
 
-  const openParamsDrawer = (foldTypeId: number, simTypeId: number) => {
+  const openParamsDrawer = (conditionId: number, foldTypeId: number, simTypeId: number) => {
+    state.setActiveConditionId(conditionId);
     state.setActiveFoldTypeId(foldTypeId);
     state.setActiveSimTypeId(simTypeId);
     state.setDrawerMode('params');
     state.setIsDrawerOpen(true);
   };
 
-  const openOutputDrawer = (foldTypeId: number, simTypeId: number) => {
+  const openOutputDrawer = (conditionId: number, foldTypeId: number, simTypeId: number) => {
+    state.setActiveConditionId(conditionId);
     state.setActiveFoldTypeId(foldTypeId);
     state.setActiveSimTypeId(simTypeId);
     state.setDrawerMode('output');
     state.setIsDrawerOpen(true);
   };
 
-  const openSolverDrawer = (foldTypeId: number, simTypeId: number) => {
+  const openSolverDrawer = (conditionId: number, foldTypeId: number, simTypeId: number) => {
+    state.setActiveConditionId(conditionId);
     state.setActiveFoldTypeId(foldTypeId);
     state.setActiveSimTypeId(simTypeId);
     state.setDrawerMode('solver');
     state.setIsDrawerOpen(true);
   };
 
-  const openCareDevicesDrawer = (foldTypeId: number, simTypeId: number) => {
+  const openCareDevicesDrawer = (conditionId: number, foldTypeId: number, simTypeId: number) => {
+    state.setActiveConditionId(conditionId);
     state.setActiveFoldTypeId(foldTypeId);
     state.setActiveSimTypeId(simTypeId);
     state.setDrawerMode('careDevices');
     state.setIsDrawerOpen(true);
+  };
+
+  // 默认表单值（新建模式重置用）
+  const defaultFormValues: SubmissionFormValues = {
+    projectId: null as unknown as number,
+    issueTitle: '',
+    modelLevelId: 1,
+    originFile: { type: 1, path: '', name: '', verified: false },
+    originFoldTypeId: null,
+    participantIds: [],
+    foldTypeIds: [],
+    remark: '',
+    simTypeIds: [],
+  };
+
+  // 重置处理（带确认对话框）
+  const handleReset = () => {
+    const title = isEditMode ? '重置为原始数据' : '重置表单';
+    const message = isEditMode
+      ? '确定要将所有配置重置为原始订单数据吗？当前修改将丢失。'
+      : '确定要清空所有配置吗？当前编辑内容和草稿将被清除。';
+
+    showConfirm(
+      title,
+      message,
+      () => {
+        // 清除已初始化标记，确保重新选择仿真类型时会触发初始化
+        state.clearInitializedConditionIds();
+
+        if (isEditMode && orderDetail?.data) {
+          // 编辑模式：重置为原始订单数据
+          const order = orderDetail.data;
+          form.reset({
+            projectId: order.projectId,
+            issueTitle: order.inputJson?.projectInfo?.issueTitle ?? '',
+            modelLevelId: order.modelLevelId ?? 1,
+            originFile: {
+              type: order.originFile?.type ?? 1,
+              path: order.originFile?.path ?? '',
+              name: order.originFile?.name ?? '',
+              verified: true,
+            },
+            originFoldTypeId: order.originFoldTypeId ?? null,
+            participantIds: order.participantIds ?? [],
+            foldTypeIds: order.foldTypeIds ?? [],
+            remark: order.remark ?? '',
+            simTypeIds: order.simTypeIds ?? [],
+          });
+          // 恢复仿真配置
+          if (order.inputJson?.conditions) {
+            const selectedSimTypes = order.inputJson.conditions.map(c => ({
+              conditionId: c.conditionId,
+              foldTypeId: c.foldTypeId,
+              simTypeId: c.simTypeId,
+            }));
+            state.setSelectedSimTypes(selectedSimTypes);
+            const conditionIds = order.inputJson.conditions.map(c => c.conditionId);
+            state.markConditionIdsAsInitialized(conditionIds);
+            const configs: Record<number, SimTypeConfig> = {};
+            order.inputJson.conditions.forEach(c => {
+              configs[c.conditionId] = {
+                conditionId: c.conditionId,
+                foldTypeId: c.foldTypeId,
+                simTypeId: c.simTypeId,
+                params: c.params,
+                output: c.output,
+                solver: c.solver,
+                careDeviceIds: c.careDeviceIds,
+              };
+            });
+            state.setSimTypeConfigs(configs);
+          }
+          if (order.inputJson?.globalSolver) {
+            state.setGlobalSolver(order.inputJson.globalSolver as GlobalSolverConfig);
+          }
+          if (order.inputJson?.inpSets) {
+            setInpSets(order.inputJson.inpSets as InpSetInfo[]);
+          }
+          showToast('info', t('sub.reset_to_original'));
+        } else {
+          // 新建模式：重置为默认值并清除草稿
+          form.reset(defaultFormValues);
+          state.setSelectedSimTypes([]);
+          state.setSimTypeConfigs({});
+          state.setGlobalSolver({
+            applyToAll: false,
+            solverId: 0,
+            solverVersion: '',
+            cpuType: -1,
+            cpuCores: -1,
+            double: 0,
+            applyGlobal: null,
+            useGlobalConfig: 0,
+            resourceId: null,
+          });
+          setInpSets([]);
+          clearDraft(orderId);
+          showToast('info', t('sub.reset_to_default'));
+        }
+      },
+      'warning'
+    );
   };
 
   // 提交处理
@@ -309,10 +446,31 @@ const Submission: React.FC = () => {
       try {
         // 提取所有选中的 simTypeId（去重）
         const selectedSimTypeIds = [...new Set(state.selectedSimTypes.map(item => item.simTypeId))];
+
+        // 构建新版 InputJson（以 conditionId 为核心的 conditions 数组）
+        const conditions = state.selectedSimTypes.map(item => {
+          const config = state.simTypeConfigs[item.conditionId];
+          const foldType = state.safeFoldTypes.find(ft => ft.id === item.foldTypeId);
+          const simType = state.safeSimTypes.find(st => st.id === item.simTypeId);
+          return {
+            conditionId: item.conditionId,
+            foldTypeId: item.foldTypeId,
+            foldTypeName: foldType?.name,
+            simTypeId: item.simTypeId,
+            simTypeName: simType?.name,
+            params: config?.params,
+            output: config?.output,
+            solver: config?.solver,
+            careDeviceIds: config?.careDeviceIds || [],
+          };
+        });
+
+        // 兼容旧版 optParam（以 simTypeId 为 key）
         const optParam = selectedSimTypeIds.reduce<Record<string, unknown>>((acc, simTypeId) => {
-          const config = state.simTypeConfigs[simTypeId];
+          // 找到该 simTypeId 对应的第一个 conditionId 的配置
+          const item = state.selectedSimTypes.find(s => s.simTypeId === simTypeId);
+          const config = item ? state.simTypeConfigs[item.conditionId] : undefined;
           if (config) {
-            // 构建完整的配置结构
             acc[String(simTypeId)] = {
               params: config.params,
               output: config.output,
@@ -330,6 +488,17 @@ const Submission: React.FC = () => {
             values.originFile.type === 2 ? Number(values.originFile.path || '') || null : null,
         };
 
+        // 构建工况概览（供列表页展示）: { "姿态A": ["静力学","模态"], "姿态B": ["热仿真"] }
+        const conditionSummary: Record<string, string[]> = {};
+        for (const c of conditions) {
+          const fName = c.foldTypeName || `姿态${c.foldTypeId}`;
+          if (!conditionSummary[fName]) conditionSummary[fName] = [];
+          const sName = c.simTypeName || `仿真${c.simTypeId}`;
+          if (!conditionSummary[fName].includes(sName)) {
+            conditionSummary[fName].push(sName);
+          }
+        }
+
         const payload = {
           projectId: values.projectId!,
           modelLevelId: values.modelLevelId,
@@ -340,8 +509,20 @@ const Submission: React.FC = () => {
           remark: values.remark,
           simTypeIds: values.simTypeIds,
           optParam,
+          conditionSummary,
           inputJson: {
-            optParam: state.simTypeConfigs,
+            version: 2,
+            projectInfo: {
+              projectId: values.projectId!,
+              projectName: state.projects.find(p => p.id === values.projectId)?.name,
+              modelLevelId: values.modelLevelId,
+              originFile: values.originFile,
+              originFoldTypeId: values.originFoldTypeId ?? null,
+              participantIds: values.participantIds,
+              issueTitle: values.issueTitle,
+              remark: values.remark,
+            },
+            conditions,
             globalSolver: state.globalSolver,
             inpSets,
           },
@@ -357,7 +538,7 @@ const Submission: React.FC = () => {
           await ordersApi.createOrder(payload);
           showToast('success', t('sub.submit_success') || '提交成功');
           // 提交成功后清除草稿
-          clearDraft();
+          clearDraft(orderId);
         }
 
         queryClient.invalidateQueries({ queryKey: queryKeys.orders.list() });
@@ -489,9 +670,10 @@ const Submission: React.FC = () => {
                   })),
                   simTypes: state.selectedSimTypes.map(item => {
                     const st = state.safeSimTypes.find(s => s.id === item.simTypeId);
-                    const config = state.simTypeConfigs[item.simTypeId];
+                    const config = state.simTypeConfigs[item.conditionId];
                     return {
                       id: item.simTypeId,
+                      conditionId: item.conditionId,
                       foldTypeId: item.foldTypeId,
                       name: st?.name || '',
                       isDefault: (st as { isDefault?: boolean })?.isDefault || false,
@@ -531,6 +713,9 @@ const Submission: React.FC = () => {
               {showSimTypeError}
             </span>
           )}
+          <Button variant="outline" onClick={handleReset} disabled={form.formState.isSubmitting}>
+            {t('sub.reset')}
+          </Button>
           <Button variant="primary" onClick={handleSubmit} disabled={form.formState.isSubmitting}>
             {t('sub.submit')}
           </Button>
@@ -669,11 +854,11 @@ const Submission: React.FC = () => {
                 {/* 该姿态下的仿真类型节点 */}
                 {foldTypeData.simTypes.map((simType, simIdx) => {
                   const simTypeNodeY = baseY + simIdx * SIM_TYPE_VERTICAL_SPACING;
-                  // 使用姿态+仿真类型组合判断选中状态
+                  // 使用 conditionId 判断选中状态
                   const isSimTypeSelected = state.selectedSimTypes.some(
-                    item => item.foldTypeId === foldTypeData.id && item.simTypeId === simType.id
+                    item => item.conditionId === simType.conditionId
                   );
-                  const config = state.simTypeConfigs[simType.id];
+                  const config = state.simTypeConfigs[simType.conditionId];
 
                   return (
                     <React.Fragment key={`sim-${simType.id}`}>
@@ -699,9 +884,10 @@ const Submission: React.FC = () => {
                             const currentIds = form.getValues('foldTypeIds') || [];
                             form.setValue('foldTypeIds', [...currentIds, foldTypeData.id]);
                           }
-                          // 切换仿真类型选择（传入姿态ID、仿真类型ID和当前选中的姿态列表）
+                          // 切换仿真类型选择（传入 conditionId、姿态ID、仿真类型ID和当前选中的姿态列表）
                           const currentFoldTypeIds = form.getValues('foldTypeIds') || [];
                           const result = state.toggleSimType(
+                            simType.conditionId,
                             foldTypeData.id,
                             simType.id,
                             currentFoldTypeIds
@@ -771,11 +957,21 @@ const Submission: React.FC = () => {
                               globalSolver={state.globalSolver}
                               drawerMode={state.drawerMode}
                               activeSimTypeId={state.activeSimTypeId}
-                              onOpenParams={() => openParamsDrawer(foldTypeData.id, simType.id)}
-                              onOpenOutput={() => openOutputDrawer(foldTypeData.id, simType.id)}
-                              onOpenSolver={() => openSolverDrawer(foldTypeData.id, simType.id)}
+                              onOpenParams={() =>
+                                openParamsDrawer(simType.conditionId, foldTypeData.id, simType.id)
+                              }
+                              onOpenOutput={() =>
+                                openOutputDrawer(simType.conditionId, foldTypeData.id, simType.id)
+                              }
+                              onOpenSolver={() =>
+                                openSolverDrawer(simType.conditionId, foldTypeData.id, simType.id)
+                              }
                               onOpenCareDevices={() =>
-                                openCareDevicesDrawer(foldTypeData.id, simType.id)
+                                openCareDevicesDrawer(
+                                  simType.conditionId,
+                                  foldTypeData.id,
+                                  simType.id
+                                )
                               }
                               t={t}
                             />
@@ -789,6 +985,36 @@ const Submission: React.FC = () => {
             );
           })}
         </div>
+
+        {/* 浮动快捷操作按钮 - 右下角 */}
+        {state.activeConditionId && (
+          <div className="absolute bottom-6 right-6 flex flex-col gap-2 z-10">
+            {(
+              [
+                { mode: 'params', label: t('sub.params_config'), icon: '⚙️' },
+                { mode: 'output', label: t('sub.output_config'), icon: '📊' },
+                { mode: 'solver', label: t('sub.solver_config'), icon: '🖥️' },
+                { mode: 'careDevices', label: t('sub.care_devices'), icon: '🔍' },
+              ] as const
+            ).map(fab => (
+              <button
+                key={fab.mode}
+                title={fab.label}
+                onClick={() => {
+                  state.setDrawerMode(fab.mode);
+                  state.setIsDrawerOpen(true);
+                }}
+                className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center text-xl transition-all hover:scale-110 active:scale-95 ${
+                  state.isDrawerOpen && state.drawerMode === fab.mode
+                    ? 'bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2'
+                    : 'bg-background border border-border hover:border-primary/50 hover:bg-primary/5'
+                }`}
+              >
+                {fab.icon}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* 配置抽屉 */}
@@ -798,6 +1024,11 @@ const Submission: React.FC = () => {
         title={getDrawerTitle()}
         width={state.drawerMode === 'output' ? 'wide' : 'normal'}
         resizable={state.drawerMode === 'params' || state.drawerMode === 'output'}
+        activeMode={state.drawerMode}
+        onModeChange={mode => {
+          state.setDrawerMode(mode);
+        }}
+        t={t}
       >
         {state.drawerMode === 'project' ? (
           <ProjectDrawerContent
@@ -807,83 +1038,89 @@ const Submission: React.FC = () => {
             control={form.control}
             setValue={form.setValue}
             t={t}
-            onVerifyFile={async (path, _type) => {
-              // TODO: 实现文件验证 API 调用
-              // 这里暂时返回模拟数据
-              const mockInpSets: InpSetInfo[] = path.toLowerCase().endsWith('.inp')
-                ? [
-                    { type: 'component', name: 'CHIP-1' },
-                    { type: 'component', name: 'CHIP-2' },
-                    { type: 'component', name: 'PCB-MAIN' },
-                    { type: 'eleset', name: 'PART-1' },
-                    { type: 'nodeset', name: 'SET-1' },
-                  ]
-                : [];
-              // 保存 inpSets 用于关注器件选择
-              setInpSets(mockInpSets);
-              return {
-                success: true,
-                name: path.split(/[/\\]/).pop() || path,
-                path: path,
-                inpSets: mockInpSets.length > 0 ? mockInpSets : undefined,
-              };
+            onVerifyFile={async (filePath, fileType) => {
+              try {
+                const resp = await ordersApi.verifyFile(filePath, fileType);
+                const result = resp.data ?? resp;
+                if (result.success) {
+                  // 保存 inpSets 用于关注器件选择
+                  const parsedSets: InpSetInfo[] = (result.inpSets || []).map(
+                    (s: { type: string; name: string }) => ({
+                      type: s.type as InpSetInfo['type'],
+                      name: s.name,
+                    })
+                  );
+                  setInpSets(parsedSets);
+                  return {
+                    success: true,
+                    name: result.name || filePath.split(/[/\\]/).pop() || filePath,
+                    path: result.path || filePath,
+                    inpSets: parsedSets.length > 0 ? parsedSets : undefined,
+                  };
+                }
+                return { success: false, error: result.error || t('sub.file_verify_fail') };
+              } catch (err) {
+                const msg = (err as { message?: string })?.message || t('sub.verify_request_fail');
+                return { success: false, error: msg };
+              }
             }}
           />
         ) : state.drawerMode === 'params' &&
-          state.activeSimTypeId &&
-          state.simTypeConfigs[state.activeSimTypeId] ? (
+          state.activeConditionId &&
+          state.simTypeConfigs[state.activeConditionId] ? (
           <ParamsDrawerContent
-            config={state.simTypeConfigs[state.activeSimTypeId]}
-            simTypeId={state.activeSimTypeId}
+            config={state.simTypeConfigs[state.activeConditionId]}
+            simTypeId={state.activeSimTypeId!}
             paramDefs={state.safeParamDefs}
             paramGroups={state.safeParamGroups}
             conditionConfig={
-              foldTypeIds.length > 0
-                ? state.getConditionConfig(foldTypeIds[0], state.activeSimTypeId)
+              state.activeFoldTypeId && state.activeSimTypeId
+                ? state.getConditionConfig(state.activeFoldTypeId, state.activeSimTypeId)
                 : undefined
             }
-            onUpdate={updates => state.updateSimTypeConfig(state.activeSimTypeId!, updates)}
+            onUpdate={updates => state.updateSimTypeConfig(state.activeConditionId!, updates)}
             onFetchGroupParams={state.fetchParamGroupParams}
             t={t}
           />
         ) : state.drawerMode === 'output' &&
-          state.activeSimTypeId &&
-          state.simTypeConfigs[state.activeSimTypeId] ? (
+          state.activeConditionId &&
+          state.simTypeConfigs[state.activeConditionId] ? (
           <OutputDrawerContent
-            config={state.simTypeConfigs[state.activeSimTypeId]}
-            simTypeId={state.activeSimTypeId}
+            config={state.simTypeConfigs[state.activeConditionId]}
+            simTypeId={state.activeSimTypeId!}
             outputSets={state.safeOutputSets}
             conditionConfig={
-              foldTypeIds.length > 0
-                ? state.getConditionConfig(foldTypeIds[0], state.activeSimTypeId)
+              state.activeFoldTypeId && state.activeSimTypeId
+                ? state.getConditionConfig(state.activeFoldTypeId, state.activeSimTypeId)
                 : undefined
             }
             inpSets={inpSets}
-            onUpdate={updates => state.updateSimTypeConfig(state.activeSimTypeId!, updates)}
+            onUpdate={updates => state.updateSimTypeConfig(state.activeConditionId!, updates)}
             onFetchGroupOutputs={state.fetchOutputGroupOutputs}
             t={t}
           />
         ) : state.drawerMode === 'solver' &&
-          state.activeSimTypeId &&
-          state.simTypeConfigs[state.activeSimTypeId] ? (
+          state.activeConditionId &&
+          state.simTypeConfigs[state.activeConditionId] ? (
           <SolverDrawerContent
-            config={state.simTypeConfigs[state.activeSimTypeId]}
+            config={state.simTypeConfigs[state.activeConditionId]}
             solvers={state.safeSolvers}
             resourcePools={solverResources}
             globalSolver={state.globalSolver}
-            onUpdate={updates => state.updateSolverConfig(state.activeSimTypeId!, updates)}
+            maxCpuCores={user?.maxCpuCores}
+            onUpdate={updates => state.updateSolverConfig(state.activeConditionId!, updates)}
             onGlobalSolverChange={state.setGlobalSolver}
             onApplyToAll={state.applySolverToAll}
             t={t}
           />
         ) : state.drawerMode === 'careDevices' &&
-          state.activeSimTypeId &&
-          state.simTypeConfigs[state.activeSimTypeId] ? (
+          state.activeConditionId &&
+          state.simTypeConfigs[state.activeConditionId] ? (
           <CareDevicesDrawerContent
             configCareDevices={configCareDevices}
-            selectedDeviceIds={state.simTypeConfigs[state.activeSimTypeId].careDeviceIds || []}
+            selectedDeviceIds={state.simTypeConfigs[state.activeConditionId].careDeviceIds || []}
             onUpdate={deviceIds =>
-              state.updateSimTypeConfig(state.activeSimTypeId!, { careDeviceIds: deviceIds })
+              state.updateSimTypeConfig(state.activeConditionId!, { careDeviceIds: deviceIds })
             }
             t={t}
           />
@@ -893,6 +1130,7 @@ const Submission: React.FC = () => {
           </div>
         )}
       </ConfigDrawer>
+      <ConfirmDialogComponent />
     </div>
   );
 };

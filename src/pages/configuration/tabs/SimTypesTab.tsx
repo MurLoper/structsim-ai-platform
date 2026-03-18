@@ -1,5 +1,5 @@
 import React from 'react';
-import { CubeIcon } from '@heroicons/react/24/outline';
+import { Box } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { ConfigCardHeader, ListItem, EditModal, FormInput, FormSelect } from '../components';
 import { useConfigurationState } from '../hooks';
@@ -35,7 +35,7 @@ export const SimTypesTab: React.FC = () => {
       <Card>
         <ConfigCardHeader
           title="仿真类型管理"
-          icon={<CubeIcon className="w-5 h-5" />}
+          icon={<Box className="w-5 h-5" />}
           onAdd={() => state.openModal('simType')}
         />
         <div className="space-y-2">

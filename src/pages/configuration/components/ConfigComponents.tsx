@@ -1,5 +1,5 @@
 import React from 'react';
-import { PencilIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { Pencil, Trash2, Plus } from 'lucide-react';
 import { CardHeader, Button } from '@/components/ui';
 
 // 操作按钮组件
@@ -11,10 +11,10 @@ interface ActionButtonsProps {
 export const ActionButtons: React.FC<ActionButtonsProps> = ({ onEdit, onDelete }) => (
   <div className="flex gap-1">
     <button onClick={onEdit} className="p-1.5 hover:bg-muted rounded">
-      <PencilIcon className="w-4 h-4 text-muted-foreground" />
+      <Pencil className="w-4 h-4 text-muted-foreground" />
     </button>
     <button onClick={onDelete} className="p-1.5 hover:bg-destructive/10 rounded">
-      <TrashIcon className="w-4 h-4 text-red-500" />
+      <Trash2 className="w-4 h-4 text-red-500" />
     </button>
   </div>
 );
@@ -32,7 +32,7 @@ export const ConfigCardHeader: React.FC<ConfigCardHeaderProps> = ({ title, icon,
     icon={icon}
     action={
       <Button variant="primary" size="sm" onClick={onAdd}>
-        <PlusIcon className="w-4 h-4 mr-1" />
+        <Plus className="w-4 h-4 mr-1" />
         新建
       </Button>
     }

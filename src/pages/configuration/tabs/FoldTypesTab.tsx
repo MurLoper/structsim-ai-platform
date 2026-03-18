@@ -1,5 +1,5 @@
 import React from 'react';
-import { BeakerIcon } from '@heroicons/react/24/outline';
+import { FlaskConical } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { ConfigCardHeader, ListItem, EditModal, FormInput } from '../components';
 import { useConfigurationState } from '../hooks';
@@ -12,7 +12,7 @@ export const FoldTypesTab: React.FC = () => {
       <Card>
         <ConfigCardHeader
           title="姿态类型管理"
-          icon={<BeakerIcon className="w-5 h-5" />}
+          icon={<FlaskConical className="w-5 h-5" />}
           onAdd={() => state.openModal('foldType')}
         />
         <div className="space-y-2">

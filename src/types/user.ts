@@ -45,6 +45,10 @@ export interface User {
   permissionIds?: number[];
   permissionCodes?: string[];
   department?: string;
+  /** 用户可用的最大 CPU 核数（由后端根据权限返回，默认 192） */
+  maxCpuCores?: number;
+  /** 用户默认资源池 ID */
+  defaultResourceId?: number | null;
   valid?: number;
   created_at?: string;
   updated_at?: string;

@@ -153,15 +153,38 @@ const OrderList: React.FC = () => {
       {
         header: t('orders.col.sim_types'),
         accessorKey: 'simTypeIds',
-        cell: ({ row }) => (
-          <div className="flex gap-1 flex-wrap">
-            {(row.original.simTypeIds || []).map(simTypeId => (
-              <Badge key={simTypeId} size="sm">
-                {simTypeMap.get(simTypeId)?.name || `#${simTypeId}`}
-              </Badge>
-            ))}
-          </div>
-        ),
+        cell: ({ row }) => {
+          // 优先使用 conditionSummary（姿态→仿真类型映射）
+          const summary = row.original.conditionSummary;
+          if (summary && Object.keys(summary).length > 0) {
+            return (
+              <div className="flex flex-col gap-0.5">
+                {Object.entries(summary).map(([foldName, simNames]) => (
+                  <div key={foldName} className="flex items-center gap-1 flex-wrap">
+                    <span className="text-xs text-slate-400 eyecare:text-muted-foreground shrink-0">
+                      {foldName}:
+                    </span>
+                    {simNames.map(name => (
+                      <Badge key={name} size="sm">
+                        {name}
+                      </Badge>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            );
+          }
+          // 降级：仅显示仿真类型
+          return (
+            <div className="flex gap-1 flex-wrap">
+              {(row.original.simTypeIds || []).map(simTypeId => (
+                <Badge key={simTypeId} size="sm">
+                  {simTypeMap.get(simTypeId)?.name || `#${simTypeId}`}
+                </Badge>
+              ))}
+            </div>
+          );
+        },
       },
       {
         header: t('orders.col.status'),

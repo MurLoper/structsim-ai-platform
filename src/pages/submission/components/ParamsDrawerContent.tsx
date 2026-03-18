@@ -37,18 +37,36 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
   const [loadingGroup, setLoadingGroup] = useState(false);
   // DOE 验证错误信息
   const [doeValidationError, setDoeValidationError] = useState<string | null>(null);
+  // 参数组选择状态
+  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(
+    config.params.templateSetId || null
+  );
+  // 核验状态: null=未核验, true=通过, false=失败
+  const [verifyStatus, setVerifyStatus] = useState<boolean | null>(null);
+  const [verifyMessage, setVerifyMessage] = useState<string>('');
 
   // 获取当前算法类型
   const currentAlgType = config.params.optParams?.algType ?? AlgType.DOE;
 
-  // 根据工况配置筛选参数组
+  // 根据工况配置 + 算法类型筛选参数组
   const filteredParamGroups = useMemo(() => {
+    let groups = paramGroups;
+
+    // 1. 按工况配置过滤
     if (conditionConfig?.paramGroupIds?.length) {
-      return paramGroups.filter(g => conditionConfig.paramGroupIds.includes(g.id));
+      groups = groups.filter(g => conditionConfig.paramGroupIds.includes(g.id));
     }
-    // 如果没有工况配置，返回所有参数组
-    return paramGroups;
-  }, [paramGroups, conditionConfig]);
+
+    // 2. 按算法类型过滤：显示通用(0) + 匹配当前算法类型的组合
+    // AlgType.BAYESIAN=1 对应 algType=1, AlgType.DOE=2 对应 algType=2
+    const algTypeValue =
+      currentAlgType === AlgType.BAYESIAN ? 1 : currentAlgType === AlgType.DOE ? 2 : 0;
+    if (algTypeValue > 0) {
+      groups = groups.filter(g => (g.algType ?? 0) === 0 || (g.algType ?? 0) === algTypeValue);
+    }
+
+    return groups;
+  }, [paramGroups, conditionConfig, currentAlgType]);
 
   // 更新 optParams 的辅助函数
   const updateOptParams = (updates: Partial<OptParams>) => {
@@ -294,35 +312,47 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     }
   };
 
-  // 应用参数组
+  // 应用参数组（从下拉选择的组）
   const applyParamGroup = async (groupId: number) => {
     if (!onFetchGroupParams) return;
 
     setLoadingGroup(true);
+    setVerifyStatus(null);
+    setVerifyMessage('');
     try {
       const params = await onFetchGroupParams(groupId);
       if (params && params.length > 0) {
-        // 将参数组中的参数转换为 domain 格式
-        // 使用参数 key 作为参数名，默认值填入 range 字段
         const domain: ParamDomain[] = params.map(p => {
-          // 从 paramDefs 中查找对应的参数定义
           const paramDef = paramDefs.find(def => def.id === p.paramDefId);
-          // 优先使用参数组中的默认值，其次使用参数定义的默认值
           const defaultValStr = p.defaultValue || paramDef?.defaultVal || '';
           const defaultVal = parseFloat(defaultValStr);
 
           return {
-            // 使用参数 key 作为参数名
             paramName: paramDef?.key || p.paramKey || p.paramName || '',
             minValue: paramDef?.minVal ?? 0,
             maxValue: paramDef?.maxVal ?? 100,
             initValue: isNaN(defaultVal) ? 50 : defaultVal,
-            // 将默认值填入 range，作为 DOE 的唯一取值
             range: defaultValStr,
             rangeList: isNaN(defaultVal) ? [] : [defaultVal],
           };
         });
         updateOptParams({ domain });
+        // 同步更新 templateSetId
+        onUpdate({
+          params: {
+            ...config.params,
+            templateSetId: groupId,
+            optParams: {
+              ...(config.params.optParams || {
+                algType: AlgType.DOE,
+                domain: [],
+                batchSize: [{ value: 5 }],
+                maxIter: 1,
+              }),
+              domain,
+            },
+          },
+        });
       }
     } catch (error) {
       console.error('Failed to fetch param group:', error);
@@ -331,23 +361,95 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     }
   };
 
+  // 核验参数域完整性
+  const verifyParams = () => {
+    const domain = config.params.optParams?.domain || [];
+    if (domain.length === 0) {
+      setVerifyStatus(false);
+      setVerifyMessage(t('sub.params.verify_empty') || '参数域为空，请先应用参数组或手动添加参数');
+      return;
+    }
+
+    const errors: string[] = [];
+    domain.forEach((d, idx) => {
+      if (!d.paramName.trim()) {
+        errors.push(`#${idx + 1}: ${t('sub.params.verify_no_name') || '参数名为空'}`);
+      }
+      if (currentAlgType === AlgType.DOE) {
+        if (!d.range && (!d.rangeList || d.rangeList.length === 0)) {
+          errors.push(
+            `${d.paramName || '#' + (idx + 1)}: ${t('sub.params.verify_no_values') || '取值为空'}`
+          );
+        }
+      } else {
+        // 贝叶斯模式检查 min < max
+        if (d.minValue >= d.maxValue) {
+          errors.push(`${d.paramName}: ${t('sub.params.verify_range_error') || 'min >= max'}`);
+        }
+      }
+    });
+
+    if (errors.length > 0) {
+      setVerifyStatus(false);
+      setVerifyMessage(errors.join('；'));
+    } else {
+      setVerifyStatus(true);
+      setVerifyMessage(
+        `${t('sub.params.verify_pass') || '核验通过'}：${domain.length} ${t('sub.params.verify_params_count') || '个参数'}`
+      );
+    }
+  };
+
   return (
     <div className="space-y-5 pb-6">
-      {/* 参数组快速应用 */}
+      {/* 参数组选择+应用+核验 */}
       {filteredParamGroups.length > 0 && (
         <FormItem label={t('sub.params.apply_group')}>
-          <div className="flex flex-wrap gap-2">
-            {filteredParamGroups.map(group => (
-              <button
-                key={group.id}
-                onClick={() => applyParamGroup(group.id)}
-                disabled={loadingGroup}
-                className="px-3 py-1.5 text-sm bg-muted hover:bg-primary/10 text-foreground rounded-lg transition-colors disabled:opacity-50"
-              >
-                {group.name}
-              </button>
-            ))}
+          <div className="flex gap-2 items-center">
+            <select
+              className="flex-1 p-2.5 border rounded-lg bg-background text-foreground border-input focus:outline-none focus:ring-2 focus:ring-ring text-sm"
+              value={selectedGroupId || ''}
+              onChange={e => {
+                const id = Number(e.target.value) || null;
+                setSelectedGroupId(id);
+                setVerifyStatus(null);
+                setVerifyMessage('');
+              }}
+            >
+              <option value="">-- {t('sub.params.select_group') || '选择参数组'} --</option>
+              {filteredParamGroups.map(group => (
+                <option key={group.id} value={group.id}>
+                  {group.name}
+                  {group.algType === 1 ? ' [贝叶斯]' : group.algType === 2 ? ' [DOE]' : ''}
+                </option>
+              ))}
+            </select>
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={!selectedGroupId || loadingGroup}
+              onClick={() => selectedGroupId && applyParamGroup(selectedGroupId)}
+            >
+              {loadingGroup ? t('sub.loading') || '加载中...' : t('sub.params.apply') || '应用'}
+            </Button>
+            <Button size="sm" variant="outline" onClick={verifyParams}>
+              <CheckCircleIcon className="w-4 h-4 mr-1" />
+              {t('sub.params.verify') || '核验'}
+            </Button>
           </div>
+          {/* 核验结果提示 */}
+          {verifyStatus !== null && (
+            <div
+              className={`mt-2 text-xs px-3 py-2 rounded-lg ${
+                verifyStatus
+                  ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                  : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
+              }`}
+            >
+              {verifyStatus ? '✓ ' : '✗ '}
+              {verifyMessage}
+            </div>
+          )}
           <p className="text-xs text-muted-foreground mt-1">{t('sub.params.apply_group_hint')}</p>
         </FormItem>
       )}

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { LinkIcon, PlusIcon, PencilIcon, TrashIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { Link, Plus, Pencil, Trash2, X } from 'lucide-react';
 import { Card, CardHeader, Button } from '@/components/ui';
 import { configApi } from '@/api';
 import { useToast, useConfirmDialog } from '@/hooks';
@@ -90,11 +90,29 @@ export const ConditionConfigManagement: React.FC = () => {
   }, [foldTypes, conditionConfigs]);
 
   // 获取名称的辅助函数
+  const getFoldTypeName = (id: number) => foldTypes.find(f => f.id === id)?.name || '-';
   const getSimTypeName = (id: number) => simTypes.find(s => s.id === id)?.name || '-';
+  const getSolverName = (id: number) => solvers.find(s => s.id === id)?.name || '-';
   const getParamGroupName = (id: number) =>
     paramGroups.find((p: ParamGroup) => p.id === id)?.name || '-';
   const getOutputGroupName = (id: number) =>
     outputGroups.find((o: OutputGroup) => o.id === id)?.name || '-';
+
+  // 检查姿态+仿真类型组合是否已存在
+  const isDuplicateCombo = (foldTypeId: number | null, simTypeId: number | null) => {
+    if (!foldTypeId || !simTypeId) return false;
+    return conditionConfigs.some(
+      c => c.foldTypeId === foldTypeId && c.simTypeId === simTypeId && c.id !== editingConfig?.id
+    );
+  };
+
+  // 自动生成工况名称
+  const autoGenerateName = (foldId: number | null, simId: number | null) => {
+    if (!foldId || !simId) return '';
+    const fName = foldTypes.find(f => f.id === foldId)?.name || '';
+    const sName = simTypes.find(s => s.id === simId)?.name || '';
+    return fName && sName ? `${fName}-${sName}` : '';
+  };
 
   // Mutations
   const createMutation = useMutation({
@@ -137,12 +155,13 @@ export const ConditionConfigManagement: React.FC = () => {
   });
 
   // 打开新增弹窗
-  const handleAdd = () => {
+  const handleAdd = (presetFoldTypeId?: number) => {
     setEditingConfig(null);
+    const autoName = presetFoldTypeId ? autoGenerateName(presetFoldTypeId, null) : '';
     setFormData({
-      name: '',
+      name: autoName,
       code: '',
-      foldTypeId: null,
+      foldTypeId: presetFoldTypeId ?? null,
       simTypeId: null,
       paramGroupIds: [],
       outputGroupIds: [],
@@ -206,6 +225,14 @@ export const ConditionConfigManagement: React.FC = () => {
       showToast('error', '请选择仿真类型');
       return;
     }
+    // 检查重复组合
+    if (isDuplicateCombo(formData.foldTypeId, formData.simTypeId)) {
+      showToast(
+        'error',
+        `「${getFoldTypeName(formData.foldTypeId!)}」+「${getSimTypeName(formData.simTypeId!)}」的组合已存在`
+      );
+      return;
+    }
 
     const data = {
       name: formData.name.trim(),
@@ -232,11 +259,11 @@ export const ConditionConfigManagement: React.FC = () => {
     <Card>
       <CardHeader
         title="工况组合配置"
-        icon={<LinkIcon className="w-5 h-5" />}
+        icon={<Link className="w-5 h-5" />}
         subtitle="配置姿态+仿真类型+参数组+输出组的关联关系"
         action={
-          <Button size="sm" onClick={handleAdd}>
-            <PlusIcon className="w-4 h-4 mr-1" />
+          <Button size="sm" onClick={() => handleAdd()}>
+            <Plus className="w-4 h-4 mr-1" />
             新增工况
           </Button>
         }
@@ -248,7 +275,7 @@ export const ConditionConfigManagement: React.FC = () => {
               <th className="p-3 text-left border dark:border-slate-600" rowSpan={2}>
                 目标姿态
               </th>
-              <th className="p-3 text-left border dark:border-slate-600" colSpan={4}>
+              <th className="p-3 text-left border dark:border-slate-600" colSpan={5}>
                 工况配置
               </th>
             </tr>
@@ -256,6 +283,7 @@ export const ConditionConfigManagement: React.FC = () => {
               <th className="p-2 text-left border dark:border-slate-600 text-xs">仿真类型</th>
               <th className="p-2 text-left border dark:border-slate-600 text-xs">参数组</th>
               <th className="p-2 text-left border dark:border-slate-600 text-xs">输出组</th>
+              <th className="p-2 text-left border dark:border-slate-600 text-xs">默认求解器</th>
               <th className="p-2 text-center border dark:border-slate-600 text-xs w-20">操作</th>
             </tr>
           </thead>
@@ -321,6 +349,15 @@ export const ConditionConfigManagement: React.FC = () => {
                         <span className="text-slate-400">-</span>
                       )}
                     </td>
+                    <td className="p-2 border dark:border-slate-600">
+                      {config.defaultSolverId ? (
+                        <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded text-xs">
+                          {getSolverName(config.defaultSolverId)}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
+                    </td>
                     <td className="p-2 border dark:border-slate-600 text-center">
                       <div className="flex items-center justify-center gap-1">
                         <button
@@ -328,14 +365,14 @@ export const ConditionConfigManagement: React.FC = () => {
                           className="p-1 text-slate-500 hover:text-brand-600"
                           title="编辑"
                         >
-                          <PencilIcon className="w-4 h-4" />
+                          <Pencil className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(config.id, config.name)}
                           className="p-1 text-slate-500 hover:text-red-600"
                           title="删除"
                         >
-                          <TrashIcon className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -349,11 +386,17 @@ export const ConditionConfigManagement: React.FC = () => {
                       {foldType.name}
                     </div>
                   </td>
-                  <td
-                    colSpan={4}
-                    className="p-3 text-center text-slate-400 border dark:border-slate-600"
-                  >
-                    暂无工况配置
+                  <td colSpan={5} className="p-3 border dark:border-slate-600">
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-slate-400">暂无工况配置</span>
+                      <button
+                        onClick={() => handleAdd(foldType.id)}
+                        className="inline-flex items-center gap-1 px-2 py-1 text-xs text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded transition-colors"
+                      >
+                        <Plus className="w-3 h-3" />
+                        添加
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );
@@ -374,7 +417,7 @@ export const ConditionConfigManagement: React.FC = () => {
                 onClick={handleCloseModal}
                 className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
               >
-                <XMarkIcon className="w-5 h-5" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -415,12 +458,20 @@ export const ConditionConfigManagement: React.FC = () => {
                   </label>
                   <select
                     value={formData.foldTypeId?.toString() || ''}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        foldTypeId: e.target.value ? Number(e.target.value) : null,
-                      }))
-                    }
+                    onChange={e => {
+                      const fId = e.target.value ? Number(e.target.value) : null;
+                      setFormData(prev => {
+                        const generated = autoGenerateName(fId, prev.simTypeId);
+                        return {
+                          ...prev,
+                          foldTypeId: fId,
+                          name:
+                            prev.name === autoGenerateName(prev.foldTypeId, prev.simTypeId)
+                              ? generated
+                              : prev.name,
+                        };
+                      });
+                    }}
                     className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
                     disabled={!!editingConfig}
                   >
@@ -438,12 +489,21 @@ export const ConditionConfigManagement: React.FC = () => {
                   </label>
                   <select
                     value={formData.simTypeId?.toString() || ''}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        simTypeId: e.target.value ? Number(e.target.value) : null,
-                      }))
-                    }
+                    onChange={e => {
+                      const sId = e.target.value ? Number(e.target.value) : null;
+                      setFormData(prev => {
+                        const generated = autoGenerateName(prev.foldTypeId, sId);
+                        return {
+                          ...prev,
+                          simTypeId: sId,
+                          name:
+                            prev.name === autoGenerateName(prev.foldTypeId, prev.simTypeId) ||
+                            prev.name === ''
+                              ? generated
+                              : prev.name,
+                        };
+                      });
+                    }}
                     className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
                     disabled={!!editingConfig}
                   >
@@ -456,6 +516,12 @@ export const ConditionConfigManagement: React.FC = () => {
                   </select>
                 </div>
               </div>
+              {/* 重复组合警告 */}
+              {isDuplicateCombo(formData.foldTypeId, formData.simTypeId) && (
+                <div className="px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-sm text-amber-700 dark:text-amber-400">
+                  ⚠ 该姿态+仿真类型的组合已存在，保存时将被拒绝
+                </div>
+              )}
 
               {/* 参数组选择 */}
               <div>
@@ -614,6 +680,38 @@ export const ConditionConfigManagement: React.FC = () => {
                       </option>
                     ))}
                   </select>
+                </div>
+              </div>
+
+              {/* 排序和备注 */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
+                    排序
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.sort}
+                    onChange={e =>
+                      setFormData(prev => ({ ...prev, sort: Number(e.target.value) || 0 }))
+                    }
+                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border text-sm"
+                    min={0}
+                    step={10}
+                  />
+                  <p className="text-xs text-slate-400 mt-0.5">值越小越靠前</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
+                    备注
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.remark}
+                    onChange={e => setFormData(prev => ({ ...prev, remark: e.target.value }))}
+                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border text-sm"
+                    placeholder="可选备注信息"
+                  />
                 </div>
               </div>
             </div>

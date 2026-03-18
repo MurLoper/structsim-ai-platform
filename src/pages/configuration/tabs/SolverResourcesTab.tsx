@@ -1,5 +1,5 @@
 import React from 'react';
-import { ServerIcon } from '@heroicons/react/24/outline';
+import { Server } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { ConfigCardHeader, ListItem, EditModal, FormInput } from '../components';
 import { useConfigurationState } from '../hooks';
@@ -12,7 +12,7 @@ export const SolverResourcesTab: React.FC = () => {
       <Card>
         <ConfigCardHeader
           title="资源池管理"
-          icon={<ServerIcon className="w-5 h-5" />}
+          icon={<Server className="w-5 h-5" />}
           onAdd={() => state.openModal('solverResource')}
         />
         <div className="space-y-2">

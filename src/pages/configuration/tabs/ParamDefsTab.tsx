@@ -1,10 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  AdjustmentsHorizontalIcon,
-  ArrowUpTrayIcon,
-  ArrowDownTrayIcon,
-  PlusIcon,
-} from '@heroicons/react/24/outline';
+import { SlidersHorizontal, Upload, Download, Plus } from 'lucide-react';
 import { Card, useToast, useConfirmDialog, SearchBar } from '@/components/ui';
 import { ActionButtons, EditModal, FormInput, FormSelect } from '../components';
 import { baseConfigApi } from '@/api';
@@ -135,7 +130,7 @@ export const ParamDefsTab: React.FC = () => {
         <div className="p-4 border-b border-border">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-2">
-              <AdjustmentsHorizontalIcon className="w-5 h-5 text-primary" />
+              <SlidersHorizontal className="w-5 h-5 text-primary" />
               <h3 className="text-lg font-semibold text-foreground">参数定义管理</h3>
               <span className="text-sm text-muted-foreground">共 {total} 条</span>
             </div>
@@ -144,21 +139,21 @@ export const ParamDefsTab: React.FC = () => {
                 onClick={handleDownloadTemplate}
                 className="px-3 py-2 text-muted-foreground hover:bg-muted rounded-lg text-sm flex items-center gap-1"
               >
-                <ArrowDownTrayIcon className="w-4 h-4" />
+                <Download className="w-4 h-4" />
                 模板
               </button>
               <button
                 onClick={() => setShowUploadModal(true)}
                 className="px-3 py-2 text-muted-foreground hover:bg-muted rounded-lg text-sm flex items-center gap-1"
               >
-                <ArrowUpTrayIcon className="w-4 h-4" />
+                <Upload className="w-4 h-4" />
                 导入
               </button>
               <button
                 onClick={() => openEditModal()}
                 className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center gap-2"
               >
-                <PlusIcon className="w-4 h-4" />
+                <Plus className="w-4 h-4" />
                 新建参数
               </button>
             </div>

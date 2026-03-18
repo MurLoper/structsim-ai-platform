@@ -8,22 +8,31 @@ interface SolverDrawerContentProps {
   solvers: Solver[];
   resourcePools?: SolverResource[];
   globalSolver: GlobalSolverConfig;
+  /** 用户允许的最大 CPU 核数（来自 User.maxCpuCores，默认 192） */
+  maxCpuCores?: number;
   onUpdate: (updates: Partial<SolverConfig>) => void;
   onGlobalSolverChange: (config: GlobalSolverConfig) => void;
   onApplyToAll: (updates: Partial<SolverConfig>) => void;
   t?: (key: string) => string;
 }
 
+const DEFAULT_MAX_CPU = 192;
+
 export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
   config,
   solvers,
   resourcePools = [],
   globalSolver,
+  maxCpuCores = DEFAULT_MAX_CPU,
   onUpdate,
   onGlobalSolverChange,
   onApplyToAll,
   t = (key: string) => key,
 }) => {
+  // 动态计算 CPU 核数上限：取用户权限和求解器配置的较小值
+  const selectedSolver = solvers.find(s => s.id === config.solver.solverId);
+  const solverMax = selectedSolver?.cpuCoreMax ?? 512;
+  const effectiveMax = Math.min(maxCpuCores, solverMax);
   const handleChange = (updates: Partial<SolverConfig>) => {
     onUpdate(updates);
     if (globalSolver.applyToAll) {
@@ -114,34 +123,36 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
           <input
             type="range"
             min="1"
-            max="512"
+            max={effectiveMax}
             step="1"
             className="w-full"
-            value={config.solver.cpuCores}
+            value={Math.min(config.solver.cpuCores, effectiveMax)}
             onChange={e => handleChange({ cpuCores: Number(e.target.value) })}
           />
           <div className="flex justify-between text-xs text-muted-foreground mt-1">
             <span>1</span>
             <span className="font-bold text-primary text-lg">
-              {config.solver.cpuCores} {t('sub.cores')}
+              {Math.min(config.solver.cpuCores, effectiveMax)} {t('sub.cores')}
             </span>
-            <span>512</span>
+            <span>{effectiveMax}</span>
           </div>
           <div className="grid grid-cols-4 gap-2 mt-3">
-            {[16, 32, 64, 128, 256, 512].map(cores => (
-              <button
-                key={cores}
-                onClick={() => handleChange({ cpuCores: cores })}
-                className={`py-2 text-sm rounded border transition-all ${
-                  config.solver.cpuCores === cores
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'border-border hover:border-primary/50'
-                }`}
-              >
-                {cores}
-                {t('sub.cores')}
-              </button>
-            ))}
+            {[16, 32, 64, 128, 256, 512]
+              .filter(c => c <= effectiveMax)
+              .map(cores => (
+                <button
+                  key={cores}
+                  onClick={() => handleChange({ cpuCores: cores })}
+                  className={`py-2 text-sm rounded border transition-all ${
+                    config.solver.cpuCores === cores
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  {cores}
+                  {t('sub.cores')}
+                </button>
+              ))}
           </div>
         </FormItem>
       )}

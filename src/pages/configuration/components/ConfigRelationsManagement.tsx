@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Card } from '@/components/ui';
-import { PlusIcon, TrashIcon, StarIcon } from '@heroicons/react/24/outline';
-import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
+import { Plus, Trash2, Star } from 'lucide-react';
 import { configApi } from '@/api';
 import { useFormState } from '@/hooks/useFormState';
 import type {
@@ -288,7 +287,7 @@ export const ConfigRelationsManagement: React.FC = () => {
                     onClick={() => setShowAddParamGroupModal(true)}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                   >
-                    <PlusIcon className="w-4 h-4" />
+                    <Plus className="w-4 h-4" />
                     添加关联
                   </button>
                 </div>
@@ -329,16 +328,16 @@ export const ConfigRelationsManagement: React.FC = () => {
                               title="设为默认"
                             >
                               {rel.isDefault === 1 ? (
-                                <StarIconSolid className="w-5 h-5" />
+                                <Star className="w-5 h-5 fill-current" />
                               ) : (
-                                <StarIcon className="w-5 h-5" />
+                                <Star className="w-5 h-5" />
                               )}
                             </button>
                             <button
                               onClick={() => handleRemoveParamGroup(rel.paramGroupId)}
                               className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
                             >
-                              <TrashIcon className="w-5 h-5" />
+                              <Trash2 className="w-5 h-5" />
                             </button>
                           </div>
                         </div>
@@ -358,7 +357,7 @@ export const ConfigRelationsManagement: React.FC = () => {
                     onClick={() => setShowAddOutputGroupModal(true)}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                   >
-                    <PlusIcon className="w-4 h-4" />
+                    <Plus className="w-4 h-4" />
                     添加关联
                   </button>
                 </div>
@@ -399,16 +398,16 @@ export const ConfigRelationsManagement: React.FC = () => {
                               title="设为默认"
                             >
                               {rel.isDefault === 1 ? (
-                                <StarIconSolid className="w-5 h-5" />
+                                <Star className="w-5 h-5 fill-current" />
                               ) : (
-                                <StarIcon className="w-5 h-5" />
+                                <Star className="w-5 h-5" />
                               )}
                             </button>
                             <button
                               onClick={() => handleRemoveOutputGroup(rel.outputGroupId)}
                               className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
                             >
-                              <TrashIcon className="w-5 h-5" />
+                              <Trash2 className="w-5 h-5" />
                             </button>
                           </div>
                         </div>
@@ -428,7 +427,7 @@ export const ConfigRelationsManagement: React.FC = () => {
                     onClick={() => setShowAddSolverModal(true)}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                   >
-                    <PlusIcon className="w-4 h-4" />
+                    <Plus className="w-4 h-4" />
                     添加关联
                   </button>
                 </div>
@@ -467,16 +466,16 @@ export const ConfigRelationsManagement: React.FC = () => {
                               title="设为默认"
                             >
                               {rel.isDefault === 1 ? (
-                                <StarIconSolid className="w-5 h-5" />
+                                <Star className="w-5 h-5 fill-current" />
                               ) : (
-                                <StarIcon className="w-5 h-5" />
+                                <Star className="w-5 h-5" />
                               )}
                             </button>
                             <button
                               onClick={() => handleRemoveSolver(rel.solverId)}
                               className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors"
                             >
-                              <TrashIcon className="w-5 h-5" />
+                              <Trash2 className="w-5 h-5" />
                             </button>
                           </div>
                         </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { CpuChipIcon } from '@heroicons/react/24/outline';
+import { Cpu } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { ConfigCardHeader, ListItem, EditModal, FormInput } from '../components';
 import { useConfigurationState } from '../hooks';
@@ -12,7 +12,7 @@ export const CareDevicesTab: React.FC = () => {
       <Card>
         <ConfigCardHeader
           title="关注器件管理"
-          icon={<CpuChipIcon className="w-5 h-5" />}
+          icon={<Cpu className="w-5 h-5" />}
           onAdd={() => state.openModal('careDevice')}
         />
         <div className="space-y-2">

@@ -64,33 +64,32 @@ export const useSubmissionPersistence = ({
   const hasInitializedRef = useRef(false);
   const hasDraftRef = useRef(false);
 
-  // 检查是否有草稿
+  // 检查是否有草稿（区分新建/编辑态）
   useEffect(() => {
-    if (!isEditMode) {
-      const draft = loadDraft();
-      hasDraftRef.current = draft !== null;
-    }
-  }, [isEditMode]);
+    const draft = loadDraft(orderId);
+    hasDraftRef.current = draft !== null;
+  }, [orderId]);
 
-  // 保存当前草稿
+  // 保存当前草稿（编辑态和新建态各自独立存储）
   const saveCurrentDraft = useCallback((): boolean => {
-    if (isEditMode) return false; // 编辑模式不保存草稿
-
     const formValues = form.getValues();
-    return saveDraft({
-      formValues,
-      selectedSimTypes,
-      simTypeConfigs,
-      globalSolver,
-      inpSets,
-    });
-  }, [form, selectedSimTypes, simTypeConfigs, globalSolver, inpSets, isEditMode]);
+    return saveDraft(
+      {
+        formValues,
+        selectedSimTypes,
+        simTypeConfigs,
+        globalSolver,
+        inpSets,
+      },
+      orderId
+    );
+  }, [form, selectedSimTypes, simTypeConfigs, globalSolver, inpSets, orderId]);
 
   // 清除草稿
   const clearCurrentDraft = useCallback(() => {
-    clearDraft();
+    clearDraft(orderId);
     hasDraftRef.current = false;
-  }, []);
+  }, [orderId]);
 
   // 应用草稿数据到表单和状态
   const applyDraft = useCallback(
@@ -119,7 +118,7 @@ export const useSubmissionPersistence = ({
     }
 
     // 新建模式：尝试加载草稿
-    const draft = loadDraft();
+    const draft = loadDraft(orderId);
     if (draft) {
       applyDraft(draft);
       hasDraftRef.current = true;
@@ -128,10 +127,8 @@ export const useSubmissionPersistence = ({
     hasInitializedRef.current = true;
   }, [isConfigLoaded, isEditMode, orderId, applyDraft]);
 
-  // 页面离开时自动保存草稿
+  // 页面离开时自动保存草稿（编辑态和新建态都保存，各自独立 key）
   useEffect(() => {
-    if (isEditMode) return; // 编辑模式不自动保存
-
     const handleBeforeUnload = () => {
       saveCurrentDraft();
     };

@@ -3,15 +3,27 @@ import type { SearchParamsResponse, CreateAndAddParamResult } from '@/types/conf
 
 // ============ 参数组合管理 API ============
 export const paramGroupsApi = {
-  getParamGroups: () => api.get('/config/param-groups'),
+  getParamGroups: (filters?: { projectId?: number; valid?: number }) =>
+    api.get('/config/param-groups', { params: filters }),
 
   getParamGroup: (id: number) => api.get(`/config/param-groups/${id}`),
 
-  createParamGroup: (data: { name: string; description?: string; sort?: number }) =>
-    api.post('/config/param-groups', data),
+  createParamGroup: (data: {
+    name: string;
+    description?: string;
+    projectIds?: number[];
+    sort?: number;
+  }) => api.post('/config/param-groups', data),
 
-  updateParamGroup: (id: number, data: { name?: string; description?: string; sort?: number }) =>
-    api.put(`/config/param-groups/${id}`, data),
+  updateParamGroup: (
+    id: number,
+    data: {
+      name?: string;
+      description?: string;
+      projectIds?: number[];
+      sort?: number;
+    }
+  ) => api.put(`/config/param-groups/${id}`, data),
 
   deleteParamGroup: (id: number) => api.delete(`/config/param-groups/${id}`),
 
@@ -19,7 +31,15 @@ export const paramGroupsApi = {
 
   addParamToGroup: (
     id: number,
-    data: { paramDefId: number; defaultValue?: string; sort?: number }
+    data: {
+      paramDefId: number;
+      defaultValue?: string;
+      minVal?: number | null;
+      maxVal?: number | null;
+      doeDefaultValue?: string;
+      bayesianDefaultValue?: string;
+      sort?: number;
+    }
   ) => api.post(`/config/param-groups/${id}/params`, data),
 
   removeParamFromGroup: (groupId: number, paramId: number) =>
@@ -30,7 +50,15 @@ export const paramGroupsApi = {
 
   batchAddParams: (
     groupId: number,
-    params: Array<{ paramDefId: number; defaultValue?: string; sort?: number }>
+    params: Array<{
+      paramDefId: number;
+      defaultValue?: string;
+      minVal?: number | null;
+      maxVal?: number | null;
+      doeDefaultValue?: string;
+      bayesianDefaultValue?: string;
+      sort?: number;
+    }>
   ) => api.post(`/config/param-groups/${groupId}/params/batch`, { params }),
 
   batchRemoveParams: (groupId: number, paramDefIds: number[]) =>
@@ -38,7 +66,15 @@ export const paramGroupsApi = {
 
   replaceGroupParams: (
     groupId: number,
-    params: Array<{ paramDefId: number; defaultValue?: string; sort?: number }>
+    params: Array<{
+      paramDefId: number;
+      defaultValue?: string;
+      minVal?: number | null;
+      maxVal?: number | null;
+      doeDefaultValue?: string;
+      bayesianDefaultValue?: string;
+      sort?: number;
+    }>
   ) => api.put(`/config/param-groups/${groupId}/params/replace`, { params }),
 
   // 搜索参数
@@ -70,22 +106,53 @@ export const paramGroupsApi = {
 
 // ============ 输出组合管理 API ============
 export const outputGroupsApi = {
-  getOutputGroups: () => api.get('/config/output-groups'),
+  getOutputGroups: (filters?: { projectId?: number; algType?: number; valid?: number }) =>
+    api.get('/config/output-groups', { params: filters }),
 
   getOutputGroup: (id: number) => api.get(`/config/output-groups/${id}`),
 
-  createOutputGroup: (data: { name: string; description?: string; sort?: number }) =>
-    api.post('/config/output-groups', data),
+  createOutputGroup: (data: {
+    name: string;
+    description?: string;
+    projectId?: number | null;
+    algType?: number;
+    sort?: number;
+  }) => api.post('/config/output-groups', data),
 
-  updateOutputGroup: (id: number, data: { name?: string; description?: string; sort?: number }) =>
-    api.put(`/config/output-groups/${id}`, data),
+  updateOutputGroup: (
+    id: number,
+    data: {
+      name?: string;
+      description?: string;
+      projectId?: number | null;
+      algType?: number;
+      sort?: number;
+    }
+  ) => api.put(`/config/output-groups/${id}`, data),
 
   deleteOutputGroup: (id: number) => api.delete(`/config/output-groups/${id}`),
 
   getOutputGroupOutputs: (id: number) => api.get(`/config/output-groups/${id}/outputs`),
 
-  addOutputToGroup: (id: number, data: { outputDefId: number; sort?: number }) =>
-    api.post(`/config/output-groups/${id}/outputs`, data),
+  addOutputToGroup: (
+    id: number,
+    data: {
+      outputDefId: number;
+      setName?: string;
+      component?: string;
+      stepName?: string;
+      sectionPoint?: string;
+      specialOutputSet?: string;
+      description?: string;
+      weight?: number;
+      multiple?: number;
+      lowerLimit?: number;
+      upperLimit?: number;
+      targetType?: number;
+      targetValue?: number;
+      sort?: number;
+    }
+  ) => api.post(`/config/output-groups/${id}/outputs`, data),
 
   removeOutputFromGroup: (groupId: number, outputId: number) =>
     api.delete(`/config/output-groups/${groupId}/outputs/${outputId}`),

@@ -1,5 +1,5 @@
 import React from 'react';
-import { FolderIcon } from '@heroicons/react/24/outline';
+import { Folder } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { ConfigCardHeader, ActionButtons, EditModal, FormInput } from '../components';
 import { useConfigurationState } from '../hooks';
@@ -12,7 +12,7 @@ export const ProjectsTab: React.FC = () => {
       <Card>
         <ConfigCardHeader
           title="项目管理"
-          icon={<FolderIcon className="w-5 h-5" />}
+          icon={<Folder className="w-5 h-5" />}
           onAdd={() => state.openModal('project')}
         />
         <div className="p-4 space-y-2">

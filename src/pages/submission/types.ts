@@ -86,7 +86,10 @@ export interface ParamConfig {
 export interface RespDetail {
   set: string; // 输出集名称
   outputType: string; // 输出类型: RF3, LEP2, LEP1, S33等
+  integrationPoint?: string; // 积分点(integration point)，如 CENTROID, MAX, MIN
   component: string; // 组件ID
+  stepName?: string; // 分析步名称，特殊输出才需要
+  specialOutputSet?: string; // 特殊输出set，仅component为特殊值时需要
   description?: string; // 描述
   lowerLimit: number | null; // 下限（可选）
   upperLimit: number | null; // 上限（可选）
@@ -106,9 +109,11 @@ export interface OutputConfig {
   respDetails?: RespDetail[]; // 响应输出详情列表
 }
 
-// 仿真类型配置
+// 仿真类型配置（以 conditionId 为 key，conditionId 来自工况配置表 condition_config.id）
 export interface SimTypeConfig {
-  simTypeId: number;
+  conditionId: number; // 工况配置ID（condition_config.id = foldTypeId + simTypeId 组合的唯一标识）
+  foldTypeId: number; // 所属姿态ID
+  simTypeId: number; // 仿真类型ID
   params: ParamConfig;
   output: OutputConfig;
   solver: SolverConfig;
@@ -118,6 +123,47 @@ export interface SimTypeConfig {
 // 全局求解器配置（可应用到所有仿真类型）
 export interface GlobalSolverConfig extends SolverConfig {
   applyToAll: boolean;
+}
+
+// ============ input_json 提单数据存储结构 ============
+
+/** 项目信息（存储在 input_json.projectInfo） */
+export interface InputProjectInfo {
+  projectId: number;
+  projectName?: string;
+  modelLevelId: number;
+  originFile: OriginFile;
+  originFoldTypeId?: number | null;
+  participantIds: number[];
+  issueTitle?: string;
+  remark?: string;
+}
+
+/** 工况条目 — 以 conditionId 关联的完整配置 */
+export interface InputConditionEntry {
+  conditionId: number; // 工况配置ID（condition_config.id）
+  foldTypeId: number;
+  foldTypeName?: string;
+  simTypeId: number;
+  simTypeName?: string;
+  params: ParamConfig;
+  output: OutputConfig;
+  solver: SolverConfig;
+  careDeviceIds: string[];
+}
+
+/** input_json 顶层结构 */
+export interface InputJson {
+  /** 版本号，用于前端兼容旧数据 */
+  version: number;
+  /** 项目级信息 */
+  projectInfo: InputProjectInfo;
+  /** 工况列表（每个条目 = conditionId 关联的姿态 + 仿真类型 + 配置） */
+  conditions: InputConditionEntry[];
+  /** 全局求解器配置 */
+  globalSolver: GlobalSolverConfig;
+  /** INP 文件解析出的 set 集合 */
+  inpSets?: InpSetInfo[];
 }
 
 // 源文件配置

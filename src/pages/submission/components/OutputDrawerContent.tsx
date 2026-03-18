@@ -42,7 +42,7 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
     const newDetail: RespDetail = {
       set: '',
       outputType: 'RF3',
-      component: '',
+      component: 'OTHER',
       description: '',
       lowerLimit: null,
       upperLimit: null,
@@ -73,7 +73,8 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
   // 输出类型选项
   const outputTypeOptions = ['RF3', 'LEP2', 'LEP1', 'S33', 'S11', 'S22', 'U1', 'U2', 'U3'];
 
-  // 目标类型选项
+  // 积分点选项（适用于体单元应力/应变输出）
+  const integrationPointOptions = ['', 'CENTROID', 'MAX', 'MIN', 'INTERPOLATE'];
   const targetTypeOptions = [
     { value: TargetType.MIN, label: t('sub.output.target_min') || '最小化' },
     { value: TargetType.MAX, label: t('sub.output.target_max') || '最大化' },
@@ -103,17 +104,27 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
               try {
                 const groupOutputs = await onFetchGroupOutputs(groupId);
                 if (groupOutputs.length > 0) {
+                  // 映射后端 targetType 数字 → 前端枚举
+                  const mapTargetType = (t?: number): TargetType => {
+                    if (t === 1) return TargetType.MAX;
+                    if (t === 2) return TargetType.MIN;
+                    if (t === 3) return TargetType.TARGET;
+                    return TargetType.MAX;
+                  };
                   const newRespDetails: RespDetail[] = groupOutputs.map(o => ({
-                    set: '',
+                    set: o.setName || 'push',
                     outputType: o.outputCode || 'RF3',
-                    component: '',
-                    description: o.outputName || '',
-                    lowerLimit: null,
-                    upperLimit: null,
-                    weight: 1,
-                    multiple: 1,
-                    targetValue: null,
-                    targetType: TargetType.MAX,
+                    component: o.component || 'OTHER',
+                    integrationPoint: o.sectionPoint || undefined,
+                    stepName: o.stepName || undefined,
+                    specialOutputSet: o.specialOutputSet || undefined,
+                    description: o.description || o.outputName || '',
+                    lowerLimit: o.lowerLimit ?? null,
+                    upperLimit: o.upperLimit ?? null,
+                    weight: o.weight ?? 1,
+                    multiple: o.multiple ?? 1,
+                    targetValue: o.targetValue ?? null,
+                    targetType: mapTargetType(o.targetType),
                   }));
                   onUpdate({
                     output: { ...config.output, outputSetId: groupId, respDetails: newRespDetails },
@@ -153,12 +164,15 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
         {/* 表格形式展示 */}
         <div className="border rounded-lg border-border overflow-hidden">
           {/* 表头 */}
-          <div className="grid grid-cols-[80px_70px_80px_1fr_60px_60px_60px_60px_80px_60px_36px] bg-muted text-xs font-medium text-muted-foreground">
+          <div className="grid grid-cols-[80px_70px_70px_80px_1fr_60px_60px_60px_60px_80px_60px_36px] bg-muted text-xs font-medium text-muted-foreground">
             <div className="px-1 py-2 border-r border-border text-center">
               {t('sub.output.set_name')}
             </div>
             <div className="px-1 py-2 border-r border-border text-center">
               {t('sub.output.output_type')}
+            </div>
+            <div className="px-1 py-2 border-r border-border text-center">
+              {t('sub.output.integration_point')}
             </div>
             <div className="px-1 py-2 border-r border-border text-center">
               {t('sub.output.component_id')}
@@ -197,7 +211,7 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
               (config.output.respDetails || []).map((resp, idx) => (
                 <div
                   key={idx}
-                  className="grid grid-cols-[80px_70px_80px_1fr_60px_60px_60px_60px_80px_60px_36px] border-t border-border hover:bg-muted/50"
+                  className="grid grid-cols-[80px_70px_70px_80px_1fr_60px_60px_60px_60px_80px_60px_36px] border-t border-border hover:bg-muted/50"
                 >
                   <div className="px-1 py-1 border-r border-border">
                     <input
@@ -225,6 +239,21 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
                       {outputTypeOptions.map(opt => (
                         <option key={opt} value={opt}>
                           {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="px-1 py-1 border-r border-border">
+                    <select
+                      className="w-full px-0 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-ring rounded"
+                      value={resp.integrationPoint ?? ''}
+                      onChange={e =>
+                        updateRespDetail(idx, { integrationPoint: e.target.value || undefined })
+                      }
+                    >
+                      {integrationPointOptions.map(opt => (
+                        <option key={opt} value={opt}>
+                          {opt || '--'}
                         </option>
                       ))}
                     </select>

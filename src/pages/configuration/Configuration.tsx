@@ -3,15 +3,15 @@ import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
 import { Card, CardHeader } from '@/components/ui';
 import {
-  FolderIcon,
-  AdjustmentsHorizontalIcon,
-  ArrowPathIcon,
-  BeakerIcon,
-  ChartBarIcon,
-  CubeIcon,
-  LinkIcon,
-  TagIcon,
-} from '@heroicons/react/24/outline';
+  Folder,
+  SlidersHorizontal,
+  RefreshCw,
+  FlaskConical,
+  BarChart3,
+  Box,
+  Link,
+  Tag,
+} from 'lucide-react';
 
 import { useConfigurationState } from './hooks';
 import {
@@ -63,60 +63,60 @@ const Configuration: React.FC = () => {
     {
       key: 'basic',
       label: '基础配置',
-      icon: <CubeIcon className="w-4 h-4" />,
+      icon: <Box className="w-4 h-4" />,
       items: [
-        { key: 'simTypes', label: '仿真类型', icon: <CubeIcon className="w-5 h-5" /> },
+        { key: 'simTypes', label: '仿真类型', icon: <Box className="w-5 h-5" /> },
         {
           key: 'params',
           label: '参数定义',
-          icon: <AdjustmentsHorizontalIcon className="w-5 h-5" />,
+          icon: <SlidersHorizontal className="w-5 h-5" />,
         },
         {
           key: 'solvers',
           label: '求解器',
-          icon: <AdjustmentsHorizontalIcon className="w-5 h-5" />,
+          icon: <SlidersHorizontal className="w-5 h-5" />,
         },
-        { key: 'conditions', label: '工况定义', icon: <BeakerIcon className="w-5 h-5" /> },
-        { key: 'outputs', label: '输出定义', icon: <ChartBarIcon className="w-5 h-5" /> },
-        { key: 'foldTypes', label: '姿态类型', icon: <CubeIcon className="w-5 h-5" /> },
+        { key: 'conditions', label: '工况定义', icon: <FlaskConical className="w-5 h-5" /> },
+        { key: 'outputs', label: '输出定义', icon: <BarChart3 className="w-5 h-5" /> },
+        { key: 'foldTypes', label: '姿态类型', icon: <Box className="w-5 h-5" /> },
       ],
     },
     {
       key: 'groups',
       label: '组合配置',
-      icon: <FolderIcon className="w-4 h-4" />,
+      icon: <Folder className="w-4 h-4" />,
       items: [
         {
           key: 'paramGroups',
           label: '参数组合',
-          icon: <AdjustmentsHorizontalIcon className="w-5 h-5" />,
+          icon: <SlidersHorizontal className="w-5 h-5" />,
         },
-        { key: 'outputGroups', label: '输出组合', icon: <BeakerIcon className="w-5 h-5" /> },
+        { key: 'outputGroups', label: '输出组合', icon: <FlaskConical className="w-5 h-5" /> },
       ],
     },
     {
       key: 'relations',
       label: '关联配置',
-      icon: <LinkIcon className="w-4 h-4" />,
+      icon: <Link className="w-4 h-4" />,
       items: [
-        { key: 'configRelations', label: '配置关联管理', icon: <LinkIcon className="w-5 h-5" /> },
-        { key: 'foldTypeSimTypes', label: '姿态仿真类型', icon: <LinkIcon className="w-5 h-5" /> },
+        { key: 'configRelations', label: '配置关联管理', icon: <Link className="w-5 h-5" /> },
+        { key: 'foldTypeSimTypes', label: '姿态仿真类型', icon: <Link className="w-5 h-5" /> },
       ],
     },
     {
       key: 'system',
       label: '系统配置',
-      icon: <FolderIcon className="w-4 h-4" />,
+      icon: <Folder className="w-4 h-4" />,
       items: [
-        { key: 'projects', label: '项目管理', icon: <FolderIcon className="w-5 h-5" /> },
+        { key: 'projects', label: '项目管理', icon: <Folder className="w-5 h-5" /> },
         {
           key: 'projectSimTypes',
           label: '项目仿真类型',
-          icon: <LinkIcon className="w-5 h-5" />,
+          icon: <Link className="w-5 h-5" />,
         },
-        { key: 'statusConfig', label: '状态配置', icon: <TagIcon className="w-5 h-5" /> },
-        { key: 'systemConfig', label: '系统配置', icon: <CubeIcon className="w-5 h-5" /> },
-        { key: 'workflow', label: '工作流', icon: <ArrowPathIcon className="w-5 h-5" /> },
+        { key: 'statusConfig', label: '状态配置', icon: <Tag className="w-5 h-5" /> },
+        { key: 'systemConfig', label: '系统配置', icon: <Box className="w-5 h-5" /> },
+        { key: 'workflow', label: '工作流', icon: <RefreshCw className="w-5 h-5" /> },
       ],
     },
   ];
@@ -175,7 +175,7 @@ const Configuration: React.FC = () => {
             <Card>
               <ConfigCardHeader
                 title="仿真类型管理"
-                icon={<CubeIcon className="w-5 h-5" />}
+                icon={<Box className="w-5 h-5" />}
                 onAdd={() => state.openModal('simType')}
               />
               <div className="space-y-2">
@@ -198,7 +198,7 @@ const Configuration: React.FC = () => {
             <Card>
               <ConfigCardHeader
                 title="参数定义管理"
-                icon={<AdjustmentsHorizontalIcon className="w-5 h-5" />}
+                icon={<SlidersHorizontal className="w-5 h-5" />}
                 onAdd={() => state.openModal('paramDef')}
               />
               <table className="w-full text-left text-sm">
@@ -238,7 +238,7 @@ const Configuration: React.FC = () => {
             <Card>
               <ConfigCardHeader
                 title="求解器管理"
-                icon={<AdjustmentsHorizontalIcon className="w-5 h-5" />}
+                icon={<SlidersHorizontal className="w-5 h-5" />}
                 onAdd={() => state.openModal('solver')}
               />
               <div className="space-y-2">
@@ -260,7 +260,7 @@ const Configuration: React.FC = () => {
             <Card>
               <ConfigCardHeader
                 title="工况定义管理"
-                icon={<BeakerIcon className="w-5 h-5" />}
+                icon={<FlaskConical className="w-5 h-5" />}
                 onAdd={() => state.openModal('conditionDef')}
               />
               <div className="space-y-2">
@@ -282,7 +282,7 @@ const Configuration: React.FC = () => {
             <Card>
               <ConfigCardHeader
                 title="输出定义管理"
-                icon={<ChartBarIcon className="w-5 h-5" />}
+                icon={<BarChart3 className="w-5 h-5" />}
                 onAdd={() => state.openModal('outputDef')}
               />
               <table className="w-full text-left text-sm">
@@ -320,7 +320,7 @@ const Configuration: React.FC = () => {
             <Card>
               <ConfigCardHeader
                 title="姿态类型管理"
-                icon={<CubeIcon className="w-5 h-5" />}
+                icon={<Box className="w-5 h-5" />}
                 onAdd={() => state.openModal('foldType')}
               />
               <div className="space-y-2">
@@ -354,7 +354,7 @@ const Configuration: React.FC = () => {
             <Card>
               <ConfigCardHeader
                 title="项目管理"
-                icon={<FolderIcon className="w-5 h-5" />}
+                icon={<Folder className="w-5 h-5" />}
                 onAdd={() => state.openModal('project')}
               />
               <div className="p-4">
@@ -411,7 +411,7 @@ const Configuration: React.FC = () => {
           {/* 工作流（只读） */}
           {state.activeTab === 'workflow' && (
             <Card>
-              <CardHeader title="工作流配置" icon={<ArrowPathIcon className="w-5 h-5" />} />
+              <CardHeader title="工作流配置" icon={<RefreshCw className="w-5 h-5" />} />
               <div className="space-y-3">
                 {state.workflows.map(wf => (
                   <div

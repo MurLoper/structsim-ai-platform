@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
-import { AdjustmentsHorizontalIcon, BeakerIcon } from '@heroicons/react/24/outline';
+import { SlidersHorizontal, FlaskConical } from 'lucide-react';
 
 import { ConfigTabs, TabItem } from './components';
 import { ParamGroupsManagement } from './components/ParamGroupsManagement';
@@ -11,9 +11,9 @@ const TABS: TabItem[] = [
   {
     key: 'paramGroups',
     label: '参数组合',
-    icon: <AdjustmentsHorizontalIcon className="w-4 h-4" />,
+    icon: <SlidersHorizontal className="w-4 h-4" />,
   },
-  { key: 'outputGroups', label: '输出组合', icon: <BeakerIcon className="w-4 h-4" /> },
+  { key: 'outputGroups', label: '输出组合', icon: <FlaskConical className="w-4 h-4" /> },
 ];
 
 const GroupsConfig: React.FC = () => {

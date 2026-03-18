@@ -1,5 +1,5 @@
 import React from 'react';
-import { XMarkIcon } from '@heroicons/react/24/outline';
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui';
 
 interface EditModalProps {
@@ -27,7 +27,7 @@ export const EditModal: React.FC<EditModalProps> = ({
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h3 className="text-lg font-bold text-foreground">{title}</h3>
           <button onClick={onClose} className="p-1 hover:bg-muted rounded">
-            <XMarkIcon className="w-5 h-5" />
+            <X className="w-5 h-5" />
           </button>
         </div>
         <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">{children}</div>

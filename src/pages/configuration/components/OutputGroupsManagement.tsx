@@ -1,16 +1,49 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, useToast, useConfirmDialog } from '@/components/ui';
-import {
-  PlusIcon,
-  PencilIcon,
-  TrashIcon,
-  MagnifyingGlassIcon,
-  XMarkIcon,
-} from '@heroicons/react/24/outline';
+import { Plus, Pencil, Trash2, Search, X, Filter } from 'lucide-react';
 import { configApi, outputGroupsApi } from '@/api';
 import { useFormState } from '@/hooks/useFormState';
+import { VirtualTable } from '@/components/tables/VirtualTable';
+import type { ColumnDef } from '@tanstack/react-table';
 import type { OutputGroup, OutputInGroup } from '@/types/configGroups';
 import type { OutputDef } from '@/api';
+
+/** 每个输出的 resp_details 预配置 */
+interface OutputRespConfig {
+  outputDefId: number;
+  setName: string;
+  component: string;
+  stepName?: string;
+  sectionPoint?: string;
+  specialOutputSet?: string;
+  description?: string;
+  weight: number;
+  multiple: number;
+  lowerLimit: number;
+  upperLimit?: number;
+  targetType: number;
+  targetValue?: number;
+  sort: number;
+}
+
+const DEFAULT_RESP: Omit<OutputRespConfig, 'outputDefId'> = {
+  setName: 'push',
+  component: '35',
+  weight: 1.0,
+  multiple: 1.0,
+  lowerLimit: 0.0,
+  targetType: 3,
+  sort: 100,
+};
+
+const ALG_TYPE_MAP: Record<number, { label: string; color: string }> = {
+  0: { label: '通用', color: 'bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-200' },
+  1: {
+    label: '贝叶斯',
+    color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+  },
+  2: { label: 'DOE', color: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300' },
+};
 
 interface TableRow {
   group: OutputGroup;
@@ -22,9 +55,12 @@ interface TableRow {
 export const OutputGroupsManagement: React.FC = () => {
   const [groups, setGroups] = useState<OutputGroup[]>([]);
   const [allOutputDefs, setAllOutputDefs] = useState<OutputDef[]>([]);
+  const [projects, setProjects] = useState<Array<{ id: number; name: string }>>([]);
   const [groupOutputsMap, setGroupOutputsMap] = useState<Map<number, OutputInGroup[]>>(new Map());
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterProjectId, setFilterProjectId] = useState<number | ''>('');
+  const [filterAlgType, setFilterAlgType] = useState<number | ''>('');
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Partial<OutputGroup> | null>(null);
 
@@ -35,16 +71,19 @@ export const OutputGroupsManagement: React.FC = () => {
   const loadAllData = async () => {
     try {
       setLoading(true);
-      const [groupsRes, outputDefsRes] = await Promise.all([
+      const [groupsRes, outputDefsRes, projectsRes] = await Promise.all([
         outputGroupsApi.getOutputGroups(),
         configApi.getOutputDefs(),
+        configApi.getProjects(),
       ]);
 
       const groupsData = Array.isArray(groupsRes?.data) ? groupsRes.data : [];
       const outputDefsData = Array.isArray(outputDefsRes?.data) ? outputDefsRes.data : [];
+      const projectsData = Array.isArray(projectsRes?.data) ? projectsRes.data : [];
 
       setGroups(groupsData);
       setAllOutputDefs(outputDefsData);
+      setProjects(projectsData.map(p => ({ id: p.id, name: p.name })));
 
       // 加载所有组合的输出
       const outputsMap = new Map<number, OutputInGroup[]>();
@@ -70,19 +109,32 @@ export const OutputGroupsManagement: React.FC = () => {
     loadAllData();
   }, []);
 
-  // 计算表格数据：按组合分组，支持行合并
+  // 计算表格数据：按组合分组，支持行合并 + 按项目/算法类型过滤
   const tableData = useMemo(() => {
     const rows: TableRow[] = [];
-    const filteredGroups = groups.filter(
-      g =>
-        !searchTerm ||
-        g.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (groupOutputsMap.get(g.id) || []).some(
+    const filteredGroups = groups.filter(g => {
+      // 项目过滤
+      if (filterProjectId !== '') {
+        if (filterProjectId === -1) {
+          if (g.projectId != null) return false;
+        } else {
+          if (g.projectId !== filterProjectId && g.projectId != null) return false;
+        }
+      }
+      // 算法类型过滤
+      if (filterAlgType !== '' && (g.algType ?? 0) !== filterAlgType) return false;
+      // 关键词搜索
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        const nameMatch = g.name.toLowerCase().includes(term);
+        const outputMatch = (groupOutputsMap.get(g.id) || []).some(
           o =>
-            o.outputName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            o.outputCode?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-    );
+            o.outputName?.toLowerCase().includes(term) || o.outputCode?.toLowerCase().includes(term)
+        );
+        if (!nameMatch && !outputMatch) return false;
+      }
+      return true;
+    });
 
     filteredGroups.forEach(group => {
       const outputs = groupOutputsMap.get(group.id) || [];
@@ -110,15 +162,17 @@ export const OutputGroupsManagement: React.FC = () => {
     });
 
     return rows;
-  }, [groups, groupOutputsMap, searchTerm]);
+  }, [groups, groupOutputsMap, searchTerm, filterProjectId, filterAlgType]);
 
   // 创建/更新工况输出组合
-  const handleSaveGroup = async (data: Partial<OutputGroup>, selectedOutputIds: number[]) => {
+  const handleSaveGroup = async (data: Partial<OutputGroup>, outputConfigs: OutputRespConfig[]) => {
     try {
       let groupId: number;
       if (editingGroup?.id) {
         await outputGroupsApi.updateOutputGroup(editingGroup.id, data);
         groupId = editingGroup.id;
+        // 编辑模式：先清空再重新添加
+        await outputGroupsApi.clearGroupOutputs(groupId);
       } else {
         const res = await outputGroupsApi.createOutputGroup(
           data as { name: string; description?: string; sort?: number }
@@ -126,13 +180,28 @@ export const OutputGroupsManagement: React.FC = () => {
         groupId = (res?.data as { id: number })?.id || 0;
       }
 
-      // 如果有选中的输出，批量添加
-      if (selectedOutputIds.length > 0 && groupId) {
-        for (const outputDefId of selectedOutputIds) {
+      // 逐个添加输出（含 resp_details）
+      if (groupId && outputConfigs.length > 0) {
+        for (const cfg of outputConfigs) {
           try {
-            await outputGroupsApi.addOutputToGroup(groupId, { outputDefId });
+            await outputGroupsApi.addOutputToGroup(groupId, {
+              outputDefId: cfg.outputDefId,
+              setName: cfg.setName,
+              component: cfg.component,
+              stepName: cfg.stepName || undefined,
+              sectionPoint: cfg.sectionPoint || undefined,
+              specialOutputSet: cfg.specialOutputSet || undefined,
+              description: cfg.description || undefined,
+              weight: cfg.weight,
+              multiple: cfg.multiple,
+              lowerLimit: cfg.lowerLimit,
+              upperLimit: cfg.upperLimit,
+              targetType: cfg.targetType,
+              targetValue: cfg.targetValue,
+              sort: cfg.sort,
+            });
           } catch (error) {
-            console.error(`添加输出 ${outputDefId} 失败:`, error);
+            console.error(`添加输出 ${cfg.outputDefId} 失败:`, error);
           }
         }
       }
@@ -140,9 +209,6 @@ export const OutputGroupsManagement: React.FC = () => {
       setShowGroupModal(false);
       setEditingGroup(null);
       loadAllData();
-      if (groupId) {
-        // group 已保存成功，数据将在 loadAllData() 中刷新
-      }
     } catch (error) {
       console.error('保存工况输出组合失败:', error);
     }
@@ -205,28 +271,71 @@ export const OutputGroupsManagement: React.FC = () => {
             }}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
-            <PlusIcon className="w-4 h-4" />
+            <Plus className="w-4 h-4" />
             新建组合
           </button>
         </div>
-        {/* 搜索框 */}
-        <div className="mt-4 relative">
-          <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="搜索组合名称或输出..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+        {/* 搜索框 + 过滤器 */}
+        <div className="mt-4 flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="搜索组合名称或输出..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <select
+              value={filterProjectId}
+              onChange={e =>
+                setFilterProjectId(e.target.value === '' ? '' : Number(e.target.value))
+              }
+              className="px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border text-sm"
             >
-              <XMarkIcon className="w-5 h-5" />
-            </button>
-          )}
+              <option value="">全部项目</option>
+              <option value={-1}>全局（无项目）</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filterAlgType}
+              onChange={e => setFilterAlgType(e.target.value === '' ? '' : Number(e.target.value))}
+              className="px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border text-sm"
+            >
+              <option value="">全部类型</option>
+              {Object.entries(ALG_TYPE_MAP).map(([k, v]) => (
+                <option key={k} value={k}>
+                  {v.label}
+                </option>
+              ))}
+            </select>
+            {(filterProjectId !== '' || filterAlgType !== '') && (
+              <button
+                onClick={() => {
+                  setFilterProjectId('');
+                  setFilterAlgType('');
+                }}
+                className="px-2 py-2 text-slate-400 hover:text-slate-600 rounded-lg"
+                title="清除过滤"
+              >
+                <Filter className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -255,7 +364,31 @@ export const OutputGroupsManagement: React.FC = () => {
                   {row.rowSpan > 0 && (
                     <>
                       <td className="px-4 py-3" rowSpan={row.rowSpan}>
-                        <span className="font-medium">{row.group.name}</span>
+                        <div className="font-medium flex items-center gap-2">
+                          {row.group.name}
+                          {(() => {
+                            const algInfo = ALG_TYPE_MAP[row.group.algType ?? 0];
+                            return algInfo && (row.group.algType ?? 0) !== 0 ? (
+                              <span
+                                className={`px-1.5 py-0.5 text-xs rounded-md font-medium ${algInfo.color}`}
+                              >
+                                {algInfo.label}
+                              </span>
+                            ) : null;
+                          })()}
+                        </div>
+                        <div className="flex items-center gap-2 mt-1">
+                          {row.group.projectId != null ? (
+                            <span className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded">
+                              {projects.find(p => p.id === row.group.projectId)?.name ||
+                                `项目#${row.group.projectId}`}
+                            </span>
+                          ) : (
+                            <span className="text-xs px-1.5 py-0.5 bg-slate-50 text-slate-500 dark:bg-slate-600/30 dark:text-slate-400 rounded">
+                              全局
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-slate-500" rowSpan={row.rowSpan}>
                         {row.group.description || '-'}
@@ -296,14 +429,14 @@ export const OutputGroupsManagement: React.FC = () => {
                             className="p-1.5 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg"
                             title="编辑"
                           >
-                            <PencilIcon className="w-4 h-4" />
+                            <Pencil className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteGroup(row.group.id)}
                             className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
                             title="删除"
                           >
-                            <TrashIcon className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </>
                       )}
@@ -313,7 +446,7 @@ export const OutputGroupsManagement: React.FC = () => {
                           className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
                           title="移除"
                         >
-                          <TrashIcon className="w-4 h-4" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       )}
                     </div>
@@ -330,10 +463,26 @@ export const OutputGroupsManagement: React.FC = () => {
         <GroupModal
           group={editingGroup}
           outputDefs={allOutputDefs}
-          existingOutputIds={
+          projects={projects}
+          existingOutputConfigs={
             editingGroup?.id
-              ? new Set((groupOutputsMap.get(editingGroup.id) || []).map(o => o.outputDefId))
-              : new Set()
+              ? (groupOutputsMap.get(editingGroup.id) || []).map(o => ({
+                  outputDefId: o.outputDefId,
+                  setName: o.setName || 'push',
+                  component: o.component || '35',
+                  stepName: o.stepName,
+                  sectionPoint: o.sectionPoint,
+                  specialOutputSet: o.specialOutputSet,
+                  description: o.description,
+                  weight: o.weight ?? 1.0,
+                  multiple: o.multiple ?? 1.0,
+                  lowerLimit: o.lowerLimit ?? 0.0,
+                  upperLimit: o.upperLimit,
+                  targetType: o.targetType ?? 3,
+                  targetValue: o.targetValue,
+                  sort: o.sort ?? 100,
+                }))
+              : []
           }
           onSave={handleSaveGroup}
           onClose={() => {
@@ -347,121 +496,331 @@ export const OutputGroupsManagement: React.FC = () => {
   );
 };
 
-// 组合编辑模态框（整合输出选择）
+// 组合编辑模态框（表格式输出预配置，支持同一输出多行不同 set）
 const GroupModal: React.FC<{
   group: Partial<OutputGroup> | null;
   outputDefs: OutputDef[];
-  existingOutputIds?: Set<number>;
-  onSave: (data: Partial<OutputGroup>, selectedOutputIds: number[]) => void;
+  projects: Array<{ id: number; name: string }>;
+  existingOutputConfigs?: OutputRespConfig[];
+  onSave: (data: Partial<OutputGroup>, outputConfigs: OutputRespConfig[]) => void;
   onClose: () => void;
-}> = ({ group, outputDefs, existingOutputIds = new Set(), onSave, onClose }) => {
+}> = ({ group, outputDefs, projects, existingOutputConfigs = [], onSave, onClose }) => {
   const initialData = useMemo(
     () => ({
       name: group?.name || '',
       description: group?.description || '',
+      projectId: group?.projectId ?? null,
+      algType: group?.algType ?? 0,
       sort: group?.sort ?? 100,
     }),
     [group]
   );
 
   const { formData, updateField } = useFormState(initialData);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(existingOutputIds);
+  const [rows, setRows] = useState<OutputRespConfig[]>(() => [...existingOutputConfigs]);
+  const [showPicker, setShowPicker] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 过滤输出：已选中的排在前面
-  const filteredOutputs = useMemo(() => {
-    const filtered = outputDefs.filter(
-      o =>
-        !searchTerm ||
-        o.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        o.code?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    return filtered.sort((a, b) => {
-      const aSelected = selectedIds.has(a.id);
-      const bSelected = selectedIds.has(b.id);
-      if (aSelected && !bSelected) return -1;
-      if (!aSelected && bSelected) return 1;
-      return 0;
-    });
-  }, [outputDefs, searchTerm, selectedIds]);
+  const addRow = useCallback((defId: number) => {
+    setRows(prev => [...prev, { outputDefId: defId, ...DEFAULT_RESP }]);
+    setShowPicker(false);
+    setSearchTerm('');
+  }, []);
+  const removeRow = useCallback(
+    (idx: number) => setRows(prev => prev.filter((_, i) => i !== idx)),
+    []
+  );
+  const updateRow = useCallback((idx: number, key: string, val: unknown) => {
+    setRows(prev => prev.map((r, i) => (i === idx ? { ...r, [key]: val } : r)));
+  }, []);
+  const getDef = useCallback((id: number) => outputDefs.find(o => o.id === id), [outputDefs]);
 
-  const toggleOutput = (id: number) => {
-    const newSet = new Set(selectedIds);
-    if (newSet.has(id)) {
-      newSet.delete(id);
-    } else {
-      newSet.add(id);
-    }
-    setSelectedIds(newSet);
-  };
+  const filteredDefs = useMemo(() => {
+    if (!searchTerm) return outputDefs;
+    const t = searchTerm.toLowerCase();
+    return outputDefs.filter(
+      o => o.name.toLowerCase().includes(t) || o.code?.toLowerCase().includes(t)
+    );
+  }, [outputDefs, searchTerm]);
+
+  const inputCls =
+    'w-full px-2.5 py-1.5 text-sm border rounded-md bg-background border-border focus:outline-none focus:ring-1 focus:ring-ring';
+
+  const respColumns: ColumnDef<OutputRespConfig, unknown>[] = useMemo(
+    () => [
+      {
+        header: '输出类型',
+        accessorKey: 'outputDefId',
+        size: 160,
+        enableSorting: false,
+        cell: ({ row }) => {
+          const d = getDef(row.original.outputDefId);
+          return (
+            <div className="py-0.5">
+              <div className="font-medium text-sm text-foreground">{d?.name || '?'}</div>
+              <div className="text-xs text-muted-foreground">{d?.code}</div>
+            </div>
+          );
+        },
+      },
+      {
+        header: 'Set集',
+        accessorKey: 'setName',
+        size: 100,
+        enableSorting: false,
+        cell: ({ row }) => (
+          <input
+            className={inputCls}
+            value={row.original.setName || ''}
+            onChange={e => updateRow(row.index, 'setName', e.target.value)}
+          />
+        ),
+      },
+      {
+        header: 'Component',
+        accessorKey: 'component',
+        size: 110,
+        enableSorting: false,
+        cell: ({ row }) => (
+          <input
+            className={inputCls}
+            value={row.original.component || ''}
+            onChange={e => updateRow(row.index, 'component', e.target.value)}
+          />
+        ),
+      },
+      {
+        header: '目标',
+        accessorKey: 'targetType',
+        size: 115,
+        enableSorting: false,
+        cell: ({ row }) => (
+          <select
+            className={inputCls}
+            value={row.original.targetType ?? 3}
+            onChange={e => updateRow(row.index, 'targetType', Number(e.target.value))}
+          >
+            <option value={1}>最大化</option>
+            <option value={2}>最小化</option>
+            <option value={3}>靠近目标</option>
+          </select>
+        ),
+      },
+      {
+        header: '权重',
+        accessorKey: 'weight',
+        size: 80,
+        enableSorting: false,
+        cell: ({ row }) => (
+          <input
+            className={inputCls}
+            type="number"
+            step="0.1"
+            value={row.original.weight ?? 1}
+            onChange={e => updateRow(row.index, 'weight', parseFloat(e.target.value) || 1)}
+          />
+        ),
+      },
+      {
+        header: '数量级',
+        accessorKey: 'multiple',
+        size: 80,
+        enableSorting: false,
+        cell: ({ row }) => (
+          <input
+            className={inputCls}
+            type="number"
+            step="0.1"
+            value={row.original.multiple ?? 1}
+            onChange={e => updateRow(row.index, 'multiple', parseFloat(e.target.value) || 1)}
+          />
+        ),
+      },
+      {
+        header: '下限',
+        accessorKey: 'lowerLimit',
+        size: 80,
+        enableSorting: false,
+        cell: ({ row }) => (
+          <input
+            className={inputCls}
+            type="number"
+            value={row.original.lowerLimit ?? 0}
+            onChange={e => updateRow(row.index, 'lowerLimit', parseFloat(e.target.value) || 0)}
+          />
+        ),
+      },
+      {
+        header: '上限',
+        accessorKey: 'upperLimit',
+        size: 80,
+        enableSorting: false,
+        cell: ({ row }) => (
+          <input
+            className={inputCls}
+            type="number"
+            value={row.original.upperLimit ?? ''}
+            onChange={e =>
+              updateRow(
+                row.index,
+                'upperLimit',
+                e.target.value ? parseFloat(e.target.value) : undefined
+              )
+            }
+          />
+        ),
+      },
+      {
+        header: '目标值',
+        accessorKey: 'targetValue',
+        size: 80,
+        enableSorting: false,
+        cell: ({ row }) => (
+          <input
+            className={inputCls}
+            type="number"
+            value={row.original.targetValue ?? ''}
+            onChange={e =>
+              updateRow(
+                row.index,
+                'targetValue',
+                e.target.value ? parseFloat(e.target.value) : undefined
+              )
+            }
+          />
+        ),
+      },
+      {
+        header: '',
+        id: 'actions',
+        size: 40,
+        enableSorting: false,
+        cell: ({ row }) => (
+          <button
+            onClick={() => removeRow(row.index)}
+            className="p-1.5 text-red-400 hover:text-red-600 rounded hover:bg-red-50 dark:hover:bg-red-900/20"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        ),
+      },
+    ],
+    [getDef, updateRow, removeRow, inputCls]
+  );
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-lg p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-lg p-6 w-full max-w-[90vw] max-h-[90vh] flex flex-col">
         <h3 className="text-lg font-semibold mb-4">{group?.id ? '编辑' : '创建'}工况输出组合</h3>
         <div className="space-y-4 overflow-y-auto flex-1">
-          <div>
-            <label className="block text-sm font-medium mb-1">名称</label>
-            <input
-              type="text"
-              value={formData.name || ''}
-              onChange={e => updateField('name', e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">描述</label>
-            <textarea
-              value={formData.description || ''}
-              onChange={e => updateField('description', e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
-              rows={2}
-            />
+          {/* 基本信息 */}
+          <div className="grid grid-cols-4 gap-3">
+            <div className="col-span-2">
+              <label className="block text-xs font-medium mb-1">名称</label>
+              <input
+                type="text"
+                value={formData.name || ''}
+                onChange={e => updateField('name', e.target.value)}
+                className="w-full px-3 py-2 border rounded-lg bg-background border-border"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">关联项目</label>
+              <select
+                value={formData.projectId ?? ''}
+                onChange={e =>
+                  updateField('projectId', e.target.value === '' ? null : Number(e.target.value))
+                }
+                className="w-full px-3 py-2 border rounded-lg bg-background border-border"
+              >
+                <option value="">全局</option>
+                {projects.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1">算法类型</label>
+              <select
+                value={formData.algType ?? 0}
+                onChange={e => updateField('algType', Number(e.target.value))}
+                className="w-full px-3 py-2 border rounded-lg bg-background border-border"
+              >
+                {Object.entries(ALG_TYPE_MAP).map(([k, v]) => (
+                  <option key={k} value={k}>
+                    {v.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          {/* 输出选择区域 */}
+          {/* 输出响应预配置表格 */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium">选择输出</label>
-              <span className="text-xs text-slate-500">已选 {selectedIds.size} 个</span>
-            </div>
-            <input
-              type="text"
-              placeholder="搜索输出..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border mb-2"
-            />
-            <div className="border rounded-lg dark:border-slate-600 max-h-[300px] overflow-y-auto">
-              {filteredOutputs.map(output => (
-                <label
-                  key={output.id}
-                  className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 eyecare:hover:bg-muted cursor-pointer border-b last:border-b-0 dark:border-slate-600"
+              <label className="text-sm font-medium">输出响应预配置 ({rows.length})</label>
+              <div className="relative">
+                <button
+                  onClick={() => setShowPicker(!showPicker)}
+                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700"
                 >
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(output.id)}
-                    onChange={() => toggleOutput(output.id)}
-                    className="w-4 h-4"
-                  />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">{output.name}</div>
-                    <div className="text-xs text-slate-500">{output.code}</div>
-                  </div>
-                </label>
-              ))}
+                  <Plus className="w-3.5 h-3.5" /> 添加输出
+                </button>
+                {showPicker && (
+                  <>
+                    <div className="fixed inset-0 z-[60]" onClick={() => setShowPicker(false)} />
+                    <div className="fixed right-[10vw] top-1/3 w-72 border rounded-lg p-3 bg-card border-border shadow-xl z-[61]">
+                      <input
+                        placeholder="搜索输出..."
+                        value={searchTerm}
+                        onChange={e => setSearchTerm(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-sm border rounded-md bg-background border-border mb-2"
+                        autoFocus
+                      />
+                      <div className="max-h-52 overflow-y-auto">
+                        {filteredDefs.map(o => (
+                          <button
+                            key={o.id}
+                            onClick={() => addRow(o.id)}
+                            className="w-full text-left px-2.5 py-2 text-sm hover:bg-muted rounded"
+                          >
+                            {o.name} <span className="text-muted-foreground">({o.code})</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
+            {rows.length > 0 ? (
+              <VirtualTable
+                data={rows}
+                columns={respColumns}
+                rowHeight={56}
+                containerHeight={Math.min(rows.length * 56 + 48, 400)}
+                enableSorting={false}
+                emptyText="暂无输出配置"
+                getRowId={(row: OutputRespConfig) => `${row.outputDefId}-${rows.indexOf(row)}`}
+              />
+            ) : (
+              <div className="border rounded-lg border-border p-8 text-center text-muted-foreground text-sm">
+                点击「添加输出」开始配置输出响应
+              </div>
+            )}
           </div>
         </div>
-        <div className="flex justify-end gap-2 mt-6 pt-4 border-t dark:border-slate-700">
+        <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+            className="px-4 py-2 text-muted-foreground hover:bg-muted rounded-lg"
           >
             取消
           </button>
           <button
-            onClick={() => onSave(formData, Array.from(selectedIds))}
+            onClick={() => onSave(formData, rows)}
             disabled={!formData.name?.trim()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >

@@ -3,6 +3,7 @@ export interface ParamGroup {
   id: number;
   name: string;
   description?: string;
+  projectIds?: number[];
   sort: number;
   valid: number;
   createdAt: number;
@@ -14,6 +15,10 @@ export interface ParamInGroup {
   paramGroupId: number;
   paramDefId: number;
   defaultValue?: string;
+  minVal?: number | null;
+  maxVal?: number | null;
+  doeDefaultValue?: string;
+  bayesianDefaultValue?: string;
   sort: number;
   createdAt: number;
   // 参数定义信息
@@ -22,6 +27,10 @@ export interface ParamInGroup {
   unit?: string;
   valType?: number;
   required?: number;
+  // 参数定义的原始上下限（供参考）
+  defMinVal?: number | null;
+  defMaxVal?: number | null;
+  defDefaultVal?: string;
 }
 
 // ============ 搜索和批量操作结果类型 ============
@@ -84,6 +93,8 @@ export interface OutputGroup {
   id: number;
   name: string;
   description?: string;
+  projectId?: number | null;
+  algType?: number; // 0=通用, 1=贝叶斯优化, 2=DOE
   sort: number;
   valid: number;
   createdAt: number;
@@ -94,6 +105,19 @@ export interface OutputInGroup {
   id: number;
   outputGroupId: number;
   outputDefId: number;
+  // resp_details 预配置
+  setName?: string;
+  component?: string;
+  stepName?: string;
+  sectionPoint?: string;
+  specialOutputSet?: string;
+  description?: string;
+  weight?: number;
+  multiple?: number;
+  lowerLimit?: number;
+  upperLimit?: number;
+  targetType?: number;
+  targetValue?: number;
   sort: number;
   createdAt: number;
   // 输出定义信息

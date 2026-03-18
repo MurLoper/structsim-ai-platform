@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Card, useToast, useConfirmDialog } from '@/components/ui';
 import {
-  PlusIcon,
-  PencilIcon,
-  TrashIcon,
-  MagnifyingGlassIcon,
-  ArrowDownTrayIcon,
-  ArrowUpTrayIcon,
-  XMarkIcon,
-  CheckIcon,
-  ArrowPathIcon,
-} from '@heroicons/react/24/outline';
+  Plus,
+  Pencil,
+  Trash2,
+  Search,
+  Download,
+  Upload,
+  X,
+  Check,
+  RefreshCw,
+  Filter,
+} from 'lucide-react';
 import { configApi } from '@/api';
 import { useFormState } from '@/hooks/useFormState';
 import type { ParamGroup, ParamInGroup, SearchParamResult } from '@/types/configGroups';
@@ -26,9 +27,12 @@ interface TableRow {
 export const ParamGroupsManagement: React.FC = () => {
   const [groups, setGroups] = useState<ParamGroup[]>([]);
   const [allParamDefs, setAllParamDefs] = useState<ParamDef[]>([]);
+  const [projects, setProjects] = useState<Array<{ id: number; name: string }>>([]);
   const [groupParamsMap, setGroupParamsMap] = useState<Map<number, ParamInGroup[]>>(new Map());
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterProjectId, setFilterProjectId] = useState<number | ''>('');
+
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showParamModal, setShowParamModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -42,16 +46,19 @@ export const ParamGroupsManagement: React.FC = () => {
   const loadAllData = async () => {
     try {
       setLoading(true);
-      const [groupsRes, paramDefsRes] = await Promise.all([
+      const [groupsRes, paramDefsRes, projectsRes] = await Promise.all([
         configApi.getParamGroups(),
         configApi.getParamDefs(),
+        configApi.getProjects(),
       ]);
 
       const groupsData = Array.isArray(groupsRes?.data) ? groupsRes.data : [];
       const paramDefsData = Array.isArray(paramDefsRes?.data) ? paramDefsRes.data : [];
+      const projectsData = Array.isArray(projectsRes?.data) ? projectsRes.data : [];
 
       setGroups(groupsData);
       setAllParamDefs(paramDefsData);
+      setProjects(projectsData.map(p => ({ id: p.id, name: p.name })));
 
       // 加载所有组合的参数
       const paramsMap = new Map<number, ParamInGroup[]>();
@@ -77,19 +84,32 @@ export const ParamGroupsManagement: React.FC = () => {
     loadAllData();
   }, []);
 
-  // 计算表格数据：按组合分组，支持行合并
+  // 计算表格数据：按组合分组，支持行合并 + 按项目/算法类型过滤
   const tableData = useMemo(() => {
     const rows: TableRow[] = [];
-    const filteredGroups = groups.filter(
-      g =>
-        !searchTerm ||
-        g.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (groupParamsMap.get(g.id) || []).some(
-          p =>
-            p.paramName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            p.paramKey?.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-    );
+    const filteredGroups = groups.filter(g => {
+      // 项目过滤
+      if (filterProjectId !== '') {
+        const ids = g.projectIds || [];
+        if (filterProjectId === -1) {
+          // 全局（未关联任何项目）
+          if (ids.length > 0) return false;
+        } else {
+          // 关联了该项目 或 全局组合
+          if (ids.length > 0 && !ids.includes(filterProjectId as number)) return false;
+        }
+      }
+      // 关键词搜索
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        const nameMatch = g.name.toLowerCase().includes(term);
+        const paramMatch = (groupParamsMap.get(g.id) || []).some(
+          p => p.paramName?.toLowerCase().includes(term) || p.paramKey?.toLowerCase().includes(term)
+        );
+        if (!nameMatch && !paramMatch) return false;
+      }
+      return true;
+    });
 
     filteredGroups.forEach(group => {
       const params = groupParamsMap.get(group.id) || [];
@@ -117,10 +137,21 @@ export const ParamGroupsManagement: React.FC = () => {
     });
 
     return rows;
-  }, [groups, groupParamsMap, searchTerm]);
+  }, [groups, groupParamsMap, searchTerm, filterProjectId]);
 
-  // 创建/更新参数组合
-  const handleSaveGroup = async (data: Partial<ParamGroup>, selectedParamIds: number[]) => {
+  // 创建/更新参数组合（支持默认值）
+  const handleSaveGroup = async (
+    data: Partial<ParamGroup>,
+    paramConfigs: Array<{
+      paramDefId: number;
+      defaultValue?: string;
+      minVal?: number;
+      maxVal?: number;
+      doeDefaultValue?: string;
+      bayesianDefaultValue?: string;
+      sort?: number;
+    }>
+  ) => {
     try {
       let groupId: number;
       if (editingGroup?.id) {
@@ -133,15 +164,23 @@ export const ParamGroupsManagement: React.FC = () => {
         groupId = (res?.data as { id: number })?.id || 0;
       }
 
-      // 如果有选中的参数，批量添加
-      if (selectedParamIds.length > 0 && groupId) {
-        for (const paramDefId of selectedParamIds) {
-          try {
-            await configApi.addParamToGroup(groupId, { paramDefId });
-          } catch (error) {
-            console.error(`添加参数 ${paramDefId} 失败:`, error);
-          }
-        }
+      // 使用 replaceGroupParams 一次性替换所有参数（含默认值和算法配置）
+      if (groupId && paramConfigs.length > 0) {
+        await configApi.replaceGroupParams(
+          groupId,
+          paramConfigs.map((p, idx) => ({
+            paramDefId: p.paramDefId,
+            defaultValue: p.defaultValue || undefined,
+            minVal: p.minVal,
+            maxVal: p.maxVal,
+            doeDefaultValue: p.doeDefaultValue || undefined,
+            bayesianDefaultValue: p.bayesianDefaultValue || undefined,
+            sort: p.sort ?? idx * 10,
+          }))
+        );
+      } else if (groupId && paramConfigs.length === 0 && editingGroup?.id) {
+        // 编辑模式下清空参数
+        await configApi.clearGroupParams(groupId);
       }
 
       setShowGroupModal(false);
@@ -266,14 +305,14 @@ export const ParamGroupsManagement: React.FC = () => {
               onClick={handleDownloadTemplate}
               className="px-3 py-2 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-1 text-sm"
             >
-              <ArrowDownTrayIcon className="w-4 h-4" />
+              <Download className="w-4 h-4" />
               模板
             </button>
             <button
               onClick={() => setShowUploadModal(true)}
               className="px-3 py-2 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-1 text-sm"
             >
-              <ArrowUpTrayIcon className="w-4 h-4" />
+              <Upload className="w-4 h-4" />
               导入
             </button>
             <button
@@ -283,29 +322,57 @@ export const ParamGroupsManagement: React.FC = () => {
               }}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
             >
-              <PlusIcon className="w-4 h-4" />
+              <Plus className="w-4 h-4" />
               新建组合
             </button>
           </div>
         </div>
-        {/* 搜索框 */}
-        <div className="mt-4 relative">
-          <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="搜索组合名称或参数..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+        {/* 搜索框 + 过滤器 */}
+        <div className="mt-4 flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="搜索组合名称或参数..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <select
+              value={filterProjectId}
+              onChange={e =>
+                setFilterProjectId(e.target.value === '' ? '' : Number(e.target.value))
+              }
+              className="px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border text-sm"
             >
-              <XMarkIcon className="w-5 h-5" />
-            </button>
-          )}
+              <option value="">全部项目</option>
+              <option value={-1}>全局（无项目）</option>
+              {projects.map(p => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+            {filterProjectId !== '' && (
+              <button
+                onClick={() => setFilterProjectId('')}
+                className="px-2 py-2 text-slate-400 hover:text-slate-600 rounded-lg"
+                title="清除过滤"
+              >
+                <Filter className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -354,8 +421,24 @@ export const ParamGroupsManagement: React.FC = () => {
                     >
                       <div className="flex items-start justify-between">
                         <div>
-                          <div className="font-medium text-slate-900 dark:text-white eyecare:text-foreground">
+                          <div className="font-medium text-slate-900 dark:text-white eyecare:text-foreground flex items-center gap-2">
                             {row.group.name}
+                          </div>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            {(row.group.projectIds || []).length > 0 ? (
+                              (row.group.projectIds || []).map(pid => (
+                                <span
+                                  key={pid}
+                                  className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded"
+                                >
+                                  {projects.find(p => p.id === pid)?.name || `项目#${pid}`}
+                                </span>
+                              ))
+                            ) : (
+                              <span className="text-xs px-1.5 py-0.5 bg-slate-50 text-slate-500 dark:bg-slate-600/30 dark:text-slate-400 rounded">
+                                全局
+                              </span>
+                            )}
                           </div>
                           {row.group.description && (
                             <div className="text-xs text-slate-500 mt-1">
@@ -372,14 +455,14 @@ export const ParamGroupsManagement: React.FC = () => {
                             className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg"
                             title="添加参数"
                           >
-                            <PlusIcon className="w-4 h-4" />
+                            <Plus className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleClearParams(row.group.id)}
                             className="p-1.5 text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/30 rounded-lg"
                             title="清空参数"
                           >
-                            <ArrowPathIcon className="w-4 h-4" />
+                            <RefreshCw className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => {
@@ -389,14 +472,14 @@ export const ParamGroupsManagement: React.FC = () => {
                             className="p-1.5 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 eyecare:hover:bg-muted rounded-lg"
                             title="编辑"
                           >
-                            <PencilIcon className="w-4 h-4" />
+                            <Pencil className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteGroup(row.group.id)}
                             className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
                             title="删除"
                           >
-                            <TrashIcon className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
@@ -433,7 +516,7 @@ export const ParamGroupsManagement: React.FC = () => {
                         className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg"
                         title="移除"
                       >
-                        <TrashIcon className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     )}
                   </td>
@@ -449,11 +532,8 @@ export const ParamGroupsManagement: React.FC = () => {
         <GroupModal
           group={editingGroup}
           paramDefs={allParamDefs}
-          existingParamIds={
-            editingGroup?.id
-              ? new Set((groupParamsMap.get(editingGroup.id) || []).map(p => p.paramDefId))
-              : new Set()
-          }
+          projects={projects}
+          existingParams={editingGroup?.id ? groupParamsMap.get(editingGroup.id) || [] : []}
           onSave={handleSaveGroup}
           onClose={() => {
             setShowGroupModal(false);
@@ -491,66 +571,123 @@ export const ParamGroupsManagement: React.FC = () => {
   );
 };
 
-// 组合编辑模态框组件（整合参数选择）
+// 参数配置项（含默认值和算法相关配置）
+interface ParamConfigItem {
+  paramDefId: number;
+  defaultValue: string;
+  minVal: string;
+  maxVal: string;
+  doeDefaultValue: string;
+  bayesianDefaultValue: string;
+  sort: number;
+}
+
+// 组合编辑模态框组件（整合参数选择+默认值编辑）
 const GroupModal: React.FC<{
   group: Partial<ParamGroup> | null;
   paramDefs: ParamDef[];
-  existingParamIds?: Set<number>;
-  onSave: (data: Partial<ParamGroup>, selectedParamIds: number[]) => void;
+  projects: Array<{ id: number; name: string }>;
+  existingParams?: ParamInGroup[];
+  onSave: (
+    data: Partial<ParamGroup>,
+    paramConfigs: Array<{
+      paramDefId: number;
+      defaultValue?: string;
+      minVal?: number;
+      maxVal?: number;
+      doeDefaultValue?: string;
+      bayesianDefaultValue?: string;
+      sort?: number;
+    }>
+  ) => void;
   onClose: () => void;
-}> = ({ group, paramDefs, existingParamIds = new Set(), onSave, onClose }) => {
+}> = ({ group, paramDefs, projects, existingParams = [], onSave, onClose }) => {
   const initialData = useMemo(
     () => ({
       name: group?.name || '',
       description: group?.description || '',
+      projectIds: group?.projectIds ?? ([] as number[]),
       sort: group?.sort ?? 100,
     }),
     [group]
   );
 
   const { formData, updateField } = useFormState(initialData);
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(existingParamIds);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 过滤参数：已选中的排在前面
-  const filteredParams = useMemo(() => {
-    const filtered = paramDefs.filter(
-      p =>
-        !searchTerm ||
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.key.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    return filtered.sort((a, b) => {
-      const aSelected = selectedIds.has(a.id);
-      const bSelected = selectedIds.has(b.id);
-      if (aSelected && !bSelected) return -1;
-      if (!aSelected && bSelected) return 1;
-      return 0;
-    });
-  }, [paramDefs, searchTerm, selectedIds]);
+  // 已选参数配置列表（有序，含默认值）
+  const [paramConfigs, setParamConfigs] = useState<ParamConfigItem[]>(() =>
+    existingParams.map((p, idx) => ({
+      paramDefId: p.paramDefId,
+      defaultValue: p.defaultValue || '',
+      minVal: p.minVal != null ? String(p.minVal) : '',
+      maxVal: p.maxVal != null ? String(p.maxVal) : '',
+      doeDefaultValue: p.doeDefaultValue || '',
+      bayesianDefaultValue: p.bayesianDefaultValue || '',
+      sort: p.sort ?? idx * 10,
+    }))
+  );
 
-  const toggleParam = (id: number) => {
-    const newSet = new Set(selectedIds);
-    if (newSet.has(id)) {
-      newSet.delete(id);
-    } else {
-      newSet.add(id);
-    }
-    setSelectedIds(newSet);
+  // 已选的 paramDefId 集合（快速查找）
+  const selectedIdSet = useMemo(() => new Set(paramConfigs.map(p => p.paramDefId)), [paramConfigs]);
+
+  // 可供添加的参数（未选中的，按搜索过滤）
+  const availableParams = useMemo(() => {
+    return paramDefs.filter(
+      p =>
+        !selectedIdSet.has(p.id) &&
+        (!searchTerm ||
+          p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.key.toLowerCase().includes(searchTerm.toLowerCase()))
+    );
+  }, [paramDefs, selectedIdSet, searchTerm]);
+
+  // 添加参数
+  const addParam = (paramDefId: number) => {
+    const paramDef = paramDefs.find(p => p.id === paramDefId);
+    setParamConfigs(prev => [
+      ...prev,
+      {
+        paramDefId,
+        defaultValue: paramDef?.defaultVal || '',
+        minVal: paramDef?.minVal != null ? String(paramDef.minVal) : '',
+        maxVal: paramDef?.maxVal != null ? String(paramDef.maxVal) : '',
+        doeDefaultValue: '',
+        bayesianDefaultValue: '',
+        sort: (prev.length + 1) * 10,
+      },
+    ]);
   };
+
+  // 移除参数
+  const removeParam = (paramDefId: number) => {
+    setParamConfigs(prev => prev.filter(p => p.paramDefId !== paramDefId));
+  };
+
+  // 更新参数配置字段（通用）
+  const updateParamField = (paramDefId: number, field: keyof ParamConfigItem, value: string) => {
+    setParamConfigs(prev =>
+      prev.map(p => (p.paramDefId === paramDefId ? { ...p, [field]: value } : p))
+    );
+  };
+
+  // 查找参数定义
+  const getParamDef = (paramDefId: number) => paramDefs.find(p => p.id === paramDefId);
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-lg p-6 w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-lg p-6 w-full max-w-3xl max-h-[90vh] flex flex-col">
         <h3 className="text-lg font-semibold mb-4">{group?.id ? '编辑' : '创建'}参数组合</h3>
         <div className="space-y-4 overflow-y-auto flex-1">
+          {/* 基本信息 */}
           <div>
-            <label className="block text-sm font-medium mb-1">名称</label>
+            <label className="block text-sm font-medium mb-1">名称 *</label>
             <input
               type="text"
               value={formData.name || ''}
               onChange={e => updateField('name', e.target.value)}
               className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
+              placeholder="输入组合名称"
             />
           </div>
           <div>
@@ -562,42 +699,223 @@ const GroupModal: React.FC<{
               rows={2}
             />
           </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                关联项目（可多选，不选=全局）
+              </label>
+              <div className="border rounded-lg dark:border-slate-600 max-h-[120px] overflow-y-auto p-2 space-y-1">
+                {projects.length === 0 ? (
+                  <span className="text-xs text-slate-400">暂无项目</span>
+                ) : (
+                  projects.map(p => (
+                    <label
+                      key={p.id}
+                      className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 px-1 py-0.5 rounded text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={(formData.projectIds || []).includes(p.id)}
+                        onChange={e => {
+                          const ids = formData.projectIds || [];
+                          updateField(
+                            'projectIds',
+                            e.target.checked
+                              ? [...ids, p.id]
+                              : ids.filter((id: number) => id !== p.id)
+                          );
+                        }}
+                        className="rounded"
+                      />
+                      {p.name}
+                    </label>
+                  ))
+                )}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">排序</label>
+              <input
+                type="number"
+                value={formData.sort ?? 100}
+                onChange={e => updateField('sort', Number(e.target.value))}
+                className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
+              />
+            </div>
+          </div>
 
-          {/* 参数选择区域 */}
+          {/* 已选参数表格 */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium">选择参数</label>
-              <span className="text-xs text-slate-500">已选 {selectedIds.size} 个</span>
+              <label className="text-sm font-medium">已选参数</label>
+              <span className="text-xs text-slate-500">{paramConfigs.length} 个参数</span>
             </div>
-            <input
-              type="text"
-              placeholder="搜索参数..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border mb-2"
-            />
-            <div className="border rounded-lg dark:border-slate-600 max-h-[300px] overflow-y-auto">
-              {filteredParams.map(param => (
-                <label
-                  key={param.id}
-                  className="flex items-center gap-3 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700 eyecare:hover:bg-muted cursor-pointer border-b last:border-b-0 dark:border-slate-600"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(param.id)}
-                    onChange={() => toggleParam(param.id)}
-                    className="w-4 h-4"
-                  />
-                  <div className="flex-1">
-                    <div className="text-sm font-medium">{param.name}</div>
-                    <div className="text-xs text-slate-500">{param.key}</div>
-                  </div>
-                  {param.unit && <span className="text-xs text-slate-400">{param.unit}</span>}
-                </label>
-              ))}
+            {paramConfigs.length > 0 ? (
+              <div className="border rounded-lg dark:border-slate-600 overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-slate-50 dark:bg-slate-700 text-xs uppercase">
+                    <tr>
+                      <th className="px-2 py-2 text-left">参数名</th>
+                      <th className="px-2 py-2 text-left">Key</th>
+                      <th className="px-2 py-2 text-left">单位</th>
+                      <th className="px-2 py-2 text-left">下限</th>
+                      <th className="px-2 py-2 text-left">上限</th>
+                      <th className="px-2 py-2 text-left">默认值</th>
+                      <th className="px-2 py-2 text-left">DOE默认</th>
+                      <th className="px-2 py-2 text-left">贝叶斯默认</th>
+                      <th className="px-2 py-2 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y dark:divide-slate-600">
+                    {paramConfigs.map(pc => {
+                      const def = getParamDef(pc.paramDefId);
+                      const inputCls =
+                        'w-full px-1.5 py-1 text-xs border rounded dark:bg-slate-600 dark:border-slate-500 eyecare:bg-card eyecare:border-border';
+                      return (
+                        <tr
+                          key={pc.paramDefId}
+                          className="hover:bg-slate-50 dark:hover:bg-slate-700/50"
+                        >
+                          <td className="px-2 py-1.5 font-medium text-xs">{def?.name || '-'}</td>
+                          <td className="px-2 py-1.5 font-mono text-xs text-slate-500">
+                            {def?.key || '-'}
+                          </td>
+                          <td className="px-2 py-1.5 text-slate-400 text-xs">{def?.unit || '-'}</td>
+                          <td className="px-2 py-1">
+                            <input
+                              type="text"
+                              value={pc.minVal}
+                              onChange={e =>
+                                updateParamField(pc.paramDefId, 'minVal', e.target.value)
+                              }
+                              placeholder={def?.minVal != null ? String(def.minVal) : '-'}
+                              className={inputCls}
+                            />
+                          </td>
+                          <td className="px-2 py-1">
+                            <input
+                              type="text"
+                              value={pc.maxVal}
+                              onChange={e =>
+                                updateParamField(pc.paramDefId, 'maxVal', e.target.value)
+                              }
+                              placeholder={def?.maxVal != null ? String(def.maxVal) : '-'}
+                              className={inputCls}
+                            />
+                          </td>
+                          <td className="px-2 py-1">
+                            <input
+                              type="text"
+                              value={pc.defaultValue}
+                              onChange={e =>
+                                updateParamField(pc.paramDefId, 'defaultValue', e.target.value)
+                              }
+                              placeholder={def?.defaultVal || '无'}
+                              className={inputCls}
+                            />
+                          </td>
+                          <td className="px-2 py-1">
+                            <input
+                              type="text"
+                              value={pc.doeDefaultValue}
+                              onChange={e =>
+                                updateParamField(pc.paramDefId, 'doeDefaultValue', e.target.value)
+                              }
+                              placeholder="留空"
+                              className={inputCls}
+                            />
+                          </td>
+                          <td className="px-2 py-1">
+                            <input
+                              type="text"
+                              value={pc.bayesianDefaultValue}
+                              onChange={e =>
+                                updateParamField(
+                                  pc.paramDefId,
+                                  'bayesianDefaultValue',
+                                  e.target.value
+                                )
+                              }
+                              placeholder="留空"
+                              className={inputCls}
+                            />
+                          </td>
+                          <td className="px-2 py-1.5">
+                            <button
+                              onClick={() => removeParam(pc.paramDefId)}
+                              className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="border rounded-lg dark:border-slate-600 p-4 text-center text-slate-400 text-sm">
+                尚未选择参数，请从下方列表添加
+              </div>
+            )}
+          </div>
+
+          {/* 添加参数区域 */}
+          <div>
+            <label className="block text-sm font-medium mb-2">添加参数</label>
+            <div className="relative mb-2">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                placeholder="搜索参数名或Key..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
+              />
+            </div>
+            <div className="border rounded-lg dark:border-slate-600 max-h-[200px] overflow-y-auto">
+              {availableParams.length === 0 ? (
+                <div className="px-3 py-4 text-center text-slate-400 text-sm">
+                  {searchTerm
+                    ? '未找到匹配参数'
+                    : paramDefs.length === 0
+                      ? '暂无参数定义，请先在「参数定义」中创建参数'
+                      : '所有参数已添加'}
+                </div>
+              ) : (
+                availableParams.map(param => (
+                  <button
+                    key={param.id}
+                    onClick={() => addParam(param.id)}
+                    className="w-full flex items-center gap-3 px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer border-b last:border-b-0 dark:border-slate-600 text-left transition-colors"
+                  >
+                    <Plus className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{param.name}</div>
+                      <div className="text-xs text-slate-500">{param.key}</div>
+                    </div>
+                    {param.unit && (
+                      <span className="text-xs text-slate-400 flex-shrink-0">{param.unit}</span>
+                    )}
+                    {(param.minVal != null || param.maxVal != null) && (
+                      <span className="text-xs text-slate-400 flex-shrink-0">
+                        [{param.minVal ?? '−∞'}, {param.maxVal ?? '+∞'}]
+                      </span>
+                    )}
+                    {param.defaultVal && (
+                      <span className="text-xs text-blue-400 flex-shrink-0">
+                        默认: {param.defaultVal}
+                      </span>
+                    )}
+                  </button>
+                ))
+              )}
             </div>
           </div>
         </div>
+
+        {/* 底部按钮 */}
         <div className="flex justify-end gap-2 mt-6 pt-4 border-t dark:border-slate-700">
           <button
             onClick={onClose}
@@ -606,7 +924,20 @@ const GroupModal: React.FC<{
             取消
           </button>
           <button
-            onClick={() => onSave(formData, Array.from(selectedIds))}
+            onClick={() =>
+              onSave(
+                formData,
+                paramConfigs.map(p => ({
+                  paramDefId: p.paramDefId,
+                  defaultValue: p.defaultValue || undefined,
+                  minVal: p.minVal ? Number(p.minVal) : undefined,
+                  maxVal: p.maxVal ? Number(p.maxVal) : undefined,
+                  doeDefaultValue: p.doeDefaultValue || undefined,
+                  bayesianDefaultValue: p.bayesianDefaultValue || undefined,
+                  sort: p.sort,
+                }))
+              )
+            }
             disabled={!formData.name?.trim()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -768,7 +1099,7 @@ const AddParamsModal: React.FC<{
         {/* 搜索和操作 */}
         <div className="p-4 border-b dark:border-slate-700 space-y-3">
           <div className="relative">
-            <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="搜索参数名称或 Key（输入2个字符开始搜索）..."
@@ -795,7 +1126,7 @@ const AddParamsModal: React.FC<{
                 onClick={() => setShowCreateForm(!showCreateForm)}
                 className="text-green-600 hover:underline flex items-center gap-1"
               >
-                <PlusIcon className="w-3 h-3" />
+                <Plus className="w-3 h-3" />
                 快速创建
               </button>
             </div>
@@ -1075,7 +1406,7 @@ const UploadExcelModal: React.FC<{
                         <td className="px-3 py-2">
                           {p.exists ? (
                             <span className="text-green-600 flex items-center gap-1">
-                              <CheckIcon className="w-4 h-4" /> 已存在
+                              <Check className="w-4 h-4" /> 已存在
                             </span>
                           ) : (
                             <span className="text-orange-500">将创建</span>

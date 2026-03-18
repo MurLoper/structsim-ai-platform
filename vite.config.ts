@@ -4,13 +4,16 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, '.', '');
+  const API_TARGET = env.VITE_API_TARGET || 'http://127.0.0.1:6060';
   return {
+    // ✅ 使用相对路径，确保多层代理时 assets 能正确加载
+    base: './',
     server: {
       port: 3000,
       host: '127.0.0.1',
       proxy: {
         '/api': {
-          target: 'http://127.0.0.1:5000',
+          target: API_TARGET,
           changeOrigin: true,
         },
       },

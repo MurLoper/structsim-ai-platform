@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
-import { FolderIcon, Cog6ToothIcon, TagIcon } from '@heroicons/react/24/outline';
+import { Folder, Settings, Tag } from 'lucide-react';
 
 import { ConfigTabs, TabItem } from './components';
 import { ProjectsTab } from './tabs/ProjectsTab';
@@ -9,9 +9,9 @@ import { StatusConfigTab } from './tabs/StatusConfigTab';
 import { SystemConfigManagement } from './components/SystemConfigManagement';
 
 const TABS: TabItem[] = [
-  { key: 'projects', label: '项目管理', icon: <FolderIcon className="w-4 h-4" /> },
-  { key: 'status', label: '状态管理', icon: <TagIcon className="w-4 h-4" /> },
-  { key: 'systemConfig', label: '模块管理', icon: <Cog6ToothIcon className="w-4 h-4" /> },
+  { key: 'projects', label: '项目管理', icon: <Folder className="w-4 h-4" /> },
+  { key: 'status', label: '状态管理', icon: <Tag className="w-4 h-4" /> },
+  { key: 'systemConfig', label: '模块管理', icon: <Settings className="w-4 h-4" /> },
 ];
 
 const SystemConfig: React.FC = () => {
