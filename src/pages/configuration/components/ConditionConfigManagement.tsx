@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link, Plus, Pencil, Trash2, X } from 'lucide-react';
+import { Link, Plus, Pencil, Trash2, X, Star } from 'lucide-react';
 import { Card, CardHeader, Button } from '@/components/ui';
 import { configApi } from '@/api';
 import { useToast, useConfirmDialog } from '@/hooks';
@@ -24,7 +24,7 @@ interface ConditionFormData {
 export const ConditionConfigManagement: React.FC = () => {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
-  const { showConfirm } = useConfirmDialog();
+  const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
 
   // 弹窗状态
   const [showModal, setShowModal] = useState(false);
@@ -211,6 +211,26 @@ export const ConditionConfigManagement: React.FC = () => {
     );
   };
 
+  // 设置默认仿真类型
+  const handleSetDefault = async (config: ConditionConfig) => {
+    try {
+      // 同一姿态下的其他工况取消默认
+      const sameGroup = conditionConfigs.filter(
+        c => c.foldTypeId === config.foldTypeId && c.id !== config.id && c.isDefault === 1
+      );
+      for (const c of sameGroup) {
+        await configApi.updateConditionConfig(c.id, { isDefault: 0 });
+      }
+      // 切换当前工况的默认状态
+      const newDefault = config.isDefault === 1 ? 0 : 1;
+      await configApi.updateConditionConfig(config.id, { isDefault: newDefault });
+      queryClient.invalidateQueries({ queryKey: ['conditionConfigs'] });
+      showToast('success', newDefault === 1 ? '已设为默认' : '已取消默认');
+    } catch {
+      showToast('error', '设置默认失败');
+    }
+  };
+
   // 保存
   const handleSave = () => {
     if (!formData.name.trim()) {
@@ -313,9 +333,16 @@ export const ConditionConfigManagement: React.FC = () => {
                       </td>
                     )}
                     <td className="p-2 border dark:border-slate-600">
-                      <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs">
-                        {getSimTypeName(config.simTypeId)}
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs">
+                          {getSimTypeName(config.simTypeId)}
+                        </span>
+                        {config.isDefault === 1 && (
+                          <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded text-xs">
+                            默认
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="p-2 border dark:border-slate-600">
                       {config.paramGroupIds?.length ? (
@@ -360,6 +387,16 @@ export const ConditionConfigManagement: React.FC = () => {
                     </td>
                     <td className="p-2 border dark:border-slate-600 text-center">
                       <div className="flex items-center justify-center gap-1">
+                        <button
+                          onClick={() => handleSetDefault(config)}
+                          className={`p-1 ${config.isDefault === 1 ? 'text-amber-500' : 'text-slate-400 hover:text-amber-500'}`}
+                          title={config.isDefault === 1 ? '取消默认' : '设为默认'}
+                        >
+                          <Star
+                            className="w-4 h-4"
+                            fill={config.isDefault === 1 ? 'currentColor' : 'none'}
+                          />
+                        </button>
                         <button
                           onClick={() => handleEdit(config)}
                           className="p-1 text-slate-500 hover:text-brand-600"
@@ -734,6 +771,7 @@ export const ConditionConfigManagement: React.FC = () => {
           </div>
         </div>
       )}
+      <ConfirmDialogComponent />
     </Card>
   );
 };

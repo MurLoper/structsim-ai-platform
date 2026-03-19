@@ -36,8 +36,7 @@ export const paramGroupsApi = {
       defaultValue?: string;
       minVal?: number | null;
       maxVal?: number | null;
-      doeDefaultValue?: string;
-      bayesianDefaultValue?: string;
+      enumValues?: string;
       sort?: number;
     }
   ) => api.post(`/config/param-groups/${id}/params`, data),
@@ -55,8 +54,7 @@ export const paramGroupsApi = {
       defaultValue?: string;
       minVal?: number | null;
       maxVal?: number | null;
-      doeDefaultValue?: string;
-      bayesianDefaultValue?: string;
+      enumValues?: string;
       sort?: number;
     }>
   ) => api.post(`/config/param-groups/${groupId}/params/batch`, { params }),
@@ -71,8 +69,7 @@ export const paramGroupsApi = {
       defaultValue?: string;
       minVal?: number | null;
       maxVal?: number | null;
-      doeDefaultValue?: string;
-      bayesianDefaultValue?: string;
+      enumValues?: string;
       sort?: number;
     }>
   ) => api.put(`/config/param-groups/${groupId}/params/replace`, { params }),

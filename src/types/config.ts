@@ -236,6 +236,7 @@ export interface ConditionConfig {
   defaultParamGroupId?: number;
   defaultOutputGroupId?: number;
   defaultSolverId?: number;
+  isDefault?: number; // 1=默认仿真类型, 0=非默认
   // 通用字段
   valid: number;
   sort: number;

@@ -17,8 +17,6 @@ export interface ParamInGroup {
   defaultValue?: string;
   minVal?: number | null;
   maxVal?: number | null;
-  doeDefaultValue?: string;
-  bayesianDefaultValue?: string;
   enumValues?: string; // DOE专属枚举值（逗号分隔，如 "0,15,30,45,60,75,90"）
   sort: number;
   createdAt: number;
