@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Card, useToast, useConfirmDialog } from '@/components/ui';
 import { Plus, Pencil, Trash2, Search, X, Filter } from 'lucide-react';
 import { configApi, outputGroupsApi } from '@/api';
@@ -56,6 +56,7 @@ export const OutputGroupsManagement: React.FC = () => {
 
   const { showToast } = useToast();
   const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
+  const loadedRef = useRef(false);
 
   // 加载所有数据
   const loadAllData = async () => {
@@ -96,6 +97,8 @@ export const OutputGroupsManagement: React.FC = () => {
   };
 
   useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
     loadAllData();
   }, []);
 
