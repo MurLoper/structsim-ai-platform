@@ -306,6 +306,36 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     }
   };
 
+  // 从 domain 列表生成 DOE 全组合数据（纯函数，不操作 state）
+  const buildDoeCombinations = (domain: ParamDomain[]) => {
+    const heads = domain.map(d => d.paramName.trim()).filter(Boolean);
+    if (heads.length !== domain.length) return null;
+
+    const valueLists = domain.map(d => {
+      if (d.rangeList && d.rangeList.length > 0) return d.rangeList;
+      if (d.range) {
+        return d.range
+          .split(',')
+          .map(v => Number(v.trim()))
+          .filter(v => !isNaN(v));
+      }
+      return [];
+    });
+    if (valueLists.some(list => list.length === 0)) return null;
+
+    const cartesian = (...arrays: number[][]): number[][] =>
+      arrays.reduce<number[][]>((acc, arr) => acc.flatMap(x => arr.map(y => [...x, y])), [[]]);
+    const combinations = cartesian(...valueLists);
+    const data: Record<string, number | string>[] = combinations.map(combo => {
+      const row: Record<string, number | string> = {};
+      heads.forEach((h, i) => {
+        row[h] = combo[i];
+      });
+      return row;
+    });
+    return { doeParamHeads: heads, doeParamData: data };
+  };
+
   // 应用参数组（从下拉选择的组），返回生成的 domain 供后续使用
   const applyParamGroup = async (
     groupId: number,
@@ -344,7 +374,17 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
             rangeList,
           };
         });
-        // 同步更新 templateSetId + domain
+
+        // DOE 模式下一次性生成全组合，和 domain 一起写入，避免 stale closure
+        let doeExtras: Partial<OptParams> = {};
+        if (algType === AlgType.DOE) {
+          const result = buildDoeCombinations(domain);
+          if (result) {
+            doeExtras = result;
+          }
+        }
+
+        // 一次性更新 templateSetId + domain + DOE数据
         onUpdate({
           params: {
             ...config.params,
@@ -357,6 +397,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                 maxIter: 1,
               }),
               domain,
+              ...doeExtras,
             },
           },
         });
@@ -416,13 +457,8 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     const defaultGroup = filteredParamGroups[0];
     setSelectedGroupId(defaultGroup.id);
 
-    applyParamGroup(defaultGroup.id, true).then(domain => {
-      // DOE 模式下自动生成全组合
-      if (domain && (config.params.optParams?.algType ?? AlgType.DOE) === AlgType.DOE) {
-        // 延迟一帧确保 state 已更新
-        setTimeout(() => generateDoeCombinationsFromDomain(domain), 0);
-      }
-    });
+    // applyParamGroup 内部已一次性完成 domain + DOE 组合生成
+    applyParamGroup(defaultGroup.id, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredParamGroups, onFetchGroupParams]);
 
@@ -494,11 +530,8 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
               disabled={!selectedGroupId || loadingGroup}
               onClick={() => {
                 if (!selectedGroupId) return;
-                applyParamGroup(selectedGroupId).then(domain => {
-                  if (domain && (config.params.optParams?.algType ?? AlgType.DOE) === AlgType.DOE) {
-                    setTimeout(() => generateDoeCombinationsFromDomain(domain), 0);
-                  }
-                });
+                // applyParamGroup 内部已一次性完成 domain + DOE 组合生成
+                applyParamGroup(selectedGroupId);
               }}
             >
               {loadingGroup ? t('sub.loading') || '加载中...' : t('sub.params.apply') || '应用'}

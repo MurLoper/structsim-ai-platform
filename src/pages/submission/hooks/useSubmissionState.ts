@@ -170,7 +170,7 @@ export const useSubmissionState = (
             if (!st) return null;
             return {
               ...st,
-              isDefault: idx === 0,
+              isDefault: config.isDefault === 1,
               relSort: config.sort || idx * 10,
               conditionId: config.id,
             };
