@@ -19,6 +19,7 @@ export interface ParamInGroup {
   maxVal?: number | null;
   doeDefaultValue?: string;
   bayesianDefaultValue?: string;
+  enumValues?: string; // DOE专属枚举值（逗号分隔，如 "0,15,30,45,60,75,90"）
   sort: number;
   createdAt: number;
   // 参数定义信息
@@ -93,8 +94,7 @@ export interface OutputGroup {
   id: number;
   name: string;
   description?: string;
-  projectId?: number | null;
-  algType?: number; // 0=通用, 1=贝叶斯优化, 2=DOE
+  projectIds?: number[];
   sort: number;
   valid: number;
   createdAt: number;

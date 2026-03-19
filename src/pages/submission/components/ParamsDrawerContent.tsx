@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   DocumentArrowUpIcon,
   PlusIcon,
@@ -44,6 +44,8 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
   // 核验状态: null=未核验, true=通过, false=失败
   const [verifyStatus, setVerifyStatus] = useState<boolean | null>(null);
   const [verifyMessage, setVerifyMessage] = useState<string>('');
+  // 自动应用标记
+  const autoAppliedRef = useRef(false);
 
   // 获取当前算法类型
   const currentAlgType = config.params.optParams?.algType ?? AlgType.DOE;
@@ -57,16 +59,8 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
       groups = groups.filter(g => conditionConfig.paramGroupIds.includes(g.id));
     }
 
-    // 2. 按算法类型过滤：显示通用(0) + 匹配当前算法类型的组合
-    // AlgType.BAYESIAN=1 对应 algType=1, AlgType.DOE=2 对应 algType=2
-    const algTypeValue =
-      currentAlgType === AlgType.BAYESIAN ? 1 : currentAlgType === AlgType.DOE ? 2 : 0;
-    if (algTypeValue > 0) {
-      groups = groups.filter(g => (g.algType ?? 0) === 0 || (g.algType ?? 0) === algTypeValue);
-    }
-
     return groups;
-  }, [paramGroups, conditionConfig, currentAlgType]);
+  }, [paramGroups, conditionConfig]);
 
   // 更新 optParams 的辅助函数
   const updateOptParams = (updates: Partial<OptParams>) => {
@@ -312,32 +306,45 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     }
   };
 
-  // 应用参数组（从下拉选择的组）
-  const applyParamGroup = async (groupId: number) => {
-    if (!onFetchGroupParams) return;
+  // 应用参数组（从下拉选择的组），返回生成的 domain 供后续使用
+  const applyParamGroup = async (
+    groupId: number,
+    autoMode = false
+  ): Promise<ParamDomain[] | null> => {
+    if (!onFetchGroupParams) return null;
 
     setLoadingGroup(true);
-    setVerifyStatus(null);
-    setVerifyMessage('');
+    if (!autoMode) {
+      setVerifyStatus(null);
+      setVerifyMessage('');
+    }
     try {
       const params = await onFetchGroupParams(groupId);
       if (params && params.length > 0) {
+        const algType = config.params.optParams?.algType ?? AlgType.DOE;
         const domain: ParamDomain[] = params.map(p => {
           const paramDef = paramDefs.find(def => def.id === p.paramDefId);
           const defaultValStr = p.defaultValue || paramDef?.defaultVal || '';
           const defaultVal = parseFloat(defaultValStr);
+          // DOE模式：优先使用枚举值，否则用默认值
+          const enumStr = p.enumValues || '';
+          const useEnum = algType === AlgType.DOE && enumStr.trim().length > 0;
+          const rangeStr = useEnum ? enumStr : defaultValStr;
+          const rangeList = rangeStr
+            .split(',')
+            .map(v => Number(v.trim()))
+            .filter(v => !isNaN(v));
 
           return {
             paramName: paramDef?.key || p.paramKey || p.paramName || '',
-            minValue: paramDef?.minVal ?? 0,
-            maxValue: paramDef?.maxVal ?? 100,
+            minValue: p.minVal ?? paramDef?.minVal ?? 0,
+            maxValue: p.maxVal ?? paramDef?.maxVal ?? 100,
             initValue: isNaN(defaultVal) ? 50 : defaultVal,
-            range: defaultValStr,
-            rangeList: isNaN(defaultVal) ? [] : [defaultVal],
+            range: rangeStr,
+            rangeList,
           };
         });
-        updateOptParams({ domain });
-        // 同步更新 templateSetId
+        // 同步更新 templateSetId + domain
         onUpdate({
           params: {
             ...config.params,
@@ -353,13 +360,71 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
             },
           },
         });
+        return domain;
       }
     } catch (error) {
       console.error('Failed to fetch param group:', error);
     } finally {
       setLoadingGroup(false);
     }
+    return null;
   };
+
+  // DOE 全组合生成（可接受外部 domain 参数，用于自动应用场景）
+  const generateDoeCombinationsFromDomain = (domainInput?: ParamDomain[]) => {
+    setDoeValidationError(null);
+    const domain = domainInput || config.params.optParams?.domain || [];
+    if (domain.length === 0) return;
+
+    const heads = domain.map(d => d.paramName.trim()).filter(Boolean);
+    if (heads.length !== domain.length) return;
+
+    const valueLists = domain.map(d => {
+      if (d.rangeList && d.rangeList.length > 0) return d.rangeList;
+      if (d.range) {
+        return d.range
+          .split(',')
+          .map(v => Number(v.trim()))
+          .filter(v => !isNaN(v));
+      }
+      return [];
+    });
+    if (valueLists.some(list => list.length === 0)) return;
+
+    const cartesian = (...arrays: number[][]): number[][] =>
+      arrays.reduce<number[][]>((acc, arr) => acc.flatMap(x => arr.map(y => [...x, y])), [[]]);
+    const combinations = cartesian(...valueLists);
+    const data: Record<string, number | string>[] = combinations.map(combo => {
+      const row: Record<string, number | string> = {};
+      heads.forEach((h, i) => {
+        row[h] = combo[i];
+      });
+      return row;
+    });
+    updateOptParams({ doeParamHeads: heads, doeParamData: data });
+  };
+
+  // 自动应用默认参数组（首次加载时）
+  useEffect(() => {
+    if (autoAppliedRef.current) return;
+    if (!onFetchGroupParams || filteredParamGroups.length === 0) return;
+    // 如果已有 domain 数据，不自动覆盖
+    if ((config.params.optParams?.domain || []).length > 0) return;
+
+    autoAppliedRef.current = true;
+    // 选择第一个参数组作为默认
+    const defaultGroup = filteredParamGroups[0];
+    setSelectedGroupId(defaultGroup.id);
+
+    applyParamGroup(defaultGroup.id, true).then(domain => {
+      // DOE 模式下自动生成全组合
+      if (domain && (config.params.optParams?.algType ?? AlgType.DOE) === AlgType.DOE) {
+        // 延迟一帧确保 state 已更新
+        setTimeout(() => generateDoeCombinationsFromDomain(domain), 0);
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filteredParamGroups, onFetchGroupParams]);
 
   // 核验参数域完整性
   const verifyParams = () => {
@@ -420,7 +485,6 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
               {filteredParamGroups.map(group => (
                 <option key={group.id} value={group.id}>
                   {group.name}
-                  {group.algType === 1 ? ' [贝叶斯]' : group.algType === 2 ? ' [DOE]' : ''}
                 </option>
               ))}
             </select>
@@ -428,7 +492,14 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
               size="sm"
               variant="primary"
               disabled={!selectedGroupId || loadingGroup}
-              onClick={() => selectedGroupId && applyParamGroup(selectedGroupId)}
+              onClick={() => {
+                if (!selectedGroupId) return;
+                applyParamGroup(selectedGroupId).then(domain => {
+                  if (domain && (config.params.optParams?.algType ?? AlgType.DOE) === AlgType.DOE) {
+                    setTimeout(() => generateDoeCombinationsFromDomain(domain), 0);
+                  }
+                });
+              }}
             >
               {loadingGroup ? t('sub.loading') || '加载中...' : t('sub.params.apply') || '应用'}
             </Button>

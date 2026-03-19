@@ -147,8 +147,7 @@ export const ParamGroupsManagement: React.FC = () => {
       defaultValue?: string;
       minVal?: number;
       maxVal?: number;
-      doeDefaultValue?: string;
-      bayesianDefaultValue?: string;
+      enumValues?: string;
       sort?: number;
     }>
   ) => {
@@ -173,8 +172,7 @@ export const ParamGroupsManagement: React.FC = () => {
             defaultValue: p.defaultValue || undefined,
             minVal: p.minVal,
             maxVal: p.maxVal,
-            doeDefaultValue: p.doeDefaultValue || undefined,
-            bayesianDefaultValue: p.bayesianDefaultValue || undefined,
+            enumValues: p.enumValues || undefined,
             sort: p.sort ?? idx * 10,
           }))
         );
@@ -577,8 +575,7 @@ interface ParamConfigItem {
   defaultValue: string;
   minVal: string;
   maxVal: string;
-  doeDefaultValue: string;
-  bayesianDefaultValue: string;
+  enumValues: string; // DOE专属枚举值（逗号分隔）
   sort: number;
 }
 
@@ -595,8 +592,7 @@ const GroupModal: React.FC<{
       defaultValue?: string;
       minVal?: number;
       maxVal?: number;
-      doeDefaultValue?: string;
-      bayesianDefaultValue?: string;
+      enumValues?: string;
       sort?: number;
     }>
   ) => void;
@@ -622,8 +618,7 @@ const GroupModal: React.FC<{
       defaultValue: p.defaultValue || '',
       minVal: p.minVal != null ? String(p.minVal) : '',
       maxVal: p.maxVal != null ? String(p.maxVal) : '',
-      doeDefaultValue: p.doeDefaultValue || '',
-      bayesianDefaultValue: p.bayesianDefaultValue || '',
+      enumValues: p.enumValues || '',
       sort: p.sort ?? idx * 10,
     }))
   );
@@ -652,8 +647,7 @@ const GroupModal: React.FC<{
         defaultValue: paramDef?.defaultVal || '',
         minVal: paramDef?.minVal != null ? String(paramDef.minVal) : '',
         maxVal: paramDef?.maxVal != null ? String(paramDef.maxVal) : '',
-        doeDefaultValue: '',
-        bayesianDefaultValue: '',
+        enumValues: '',
         sort: (prev.length + 1) * 10,
       },
     ]);
@@ -761,8 +755,7 @@ const GroupModal: React.FC<{
                       <th className="px-2 py-2 text-left">下限</th>
                       <th className="px-2 py-2 text-left">上限</th>
                       <th className="px-2 py-2 text-left">默认值</th>
-                      <th className="px-2 py-2 text-left">DOE默认</th>
-                      <th className="px-2 py-2 text-left">贝叶斯默认</th>
+                      <th className="px-2 py-2 text-left">枚举值(DOE)</th>
                       <th className="px-2 py-2 w-10"></th>
                     </tr>
                   </thead>
@@ -817,26 +810,11 @@ const GroupModal: React.FC<{
                           <td className="px-2 py-1">
                             <input
                               type="text"
-                              value={pc.doeDefaultValue}
+                              value={pc.enumValues}
                               onChange={e =>
-                                updateParamField(pc.paramDefId, 'doeDefaultValue', e.target.value)
+                                updateParamField(pc.paramDefId, 'enumValues', e.target.value)
                               }
-                              placeholder="留空"
-                              className={inputCls}
-                            />
-                          </td>
-                          <td className="px-2 py-1">
-                            <input
-                              type="text"
-                              value={pc.bayesianDefaultValue}
-                              onChange={e =>
-                                updateParamField(
-                                  pc.paramDefId,
-                                  'bayesianDefaultValue',
-                                  e.target.value
-                                )
-                              }
-                              placeholder="留空"
+                              placeholder="如: 0,15,30,45,60"
                               className={inputCls}
                             />
                           </td>
@@ -932,8 +910,7 @@ const GroupModal: React.FC<{
                   defaultValue: p.defaultValue || undefined,
                   minVal: p.minVal ? Number(p.minVal) : undefined,
                   maxVal: p.maxVal ? Number(p.maxVal) : undefined,
-                  doeDefaultValue: p.doeDefaultValue || undefined,
-                  bayesianDefaultValue: p.bayesianDefaultValue || undefined,
+                  enumValues: p.enumValues || undefined,
                   sort: p.sort,
                 }))
               )

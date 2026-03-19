@@ -36,15 +36,6 @@ const DEFAULT_RESP: Omit<OutputRespConfig, 'outputDefId'> = {
   sort: 100,
 };
 
-const ALG_TYPE_MAP: Record<number, { label: string; color: string }> = {
-  0: { label: '通用', color: 'bg-slate-100 text-slate-700 dark:bg-slate-600 dark:text-slate-200' },
-  1: {
-    label: '贝叶斯',
-    color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
-  },
-  2: { label: 'DOE', color: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300' },
-};
-
 interface TableRow {
   group: OutputGroup;
   output: OutputInGroup | null;
@@ -60,7 +51,6 @@ export const OutputGroupsManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterProjectId, setFilterProjectId] = useState<number | ''>('');
-  const [filterAlgType, setFilterAlgType] = useState<number | ''>('');
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Partial<OutputGroup> | null>(null);
 
@@ -109,20 +99,19 @@ export const OutputGroupsManagement: React.FC = () => {
     loadAllData();
   }, []);
 
-  // 计算表格数据：按组合分组，支持行合并 + 按项目/算法类型过滤
+  // 计算表格数据：按组合分组，支持行合并 + 按项目过滤
   const tableData = useMemo(() => {
     const rows: TableRow[] = [];
     const filteredGroups = groups.filter(g => {
       // 项目过滤
       if (filterProjectId !== '') {
+        const ids = g.projectIds || [];
         if (filterProjectId === -1) {
-          if (g.projectId != null) return false;
+          if (ids.length > 0) return false;
         } else {
-          if (g.projectId !== filterProjectId && g.projectId != null) return false;
+          if (ids.length > 0 && !ids.includes(filterProjectId as number)) return false;
         }
       }
-      // 算法类型过滤
-      if (filterAlgType !== '' && (g.algType ?? 0) !== filterAlgType) return false;
       // 关键词搜索
       if (searchTerm) {
         const term = searchTerm.toLowerCase();
@@ -162,7 +151,7 @@ export const OutputGroupsManagement: React.FC = () => {
     });
 
     return rows;
-  }, [groups, groupOutputsMap, searchTerm, filterProjectId, filterAlgType]);
+  }, [groups, groupOutputsMap, searchTerm, filterProjectId]);
 
   // 创建/更新工况输出组合
   const handleSaveGroup = async (data: Partial<OutputGroup>, outputConfigs: OutputRespConfig[]) => {
@@ -311,23 +300,10 @@ export const OutputGroupsManagement: React.FC = () => {
                 </option>
               ))}
             </select>
-            <select
-              value={filterAlgType}
-              onChange={e => setFilterAlgType(e.target.value === '' ? '' : Number(e.target.value))}
-              className="px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border text-sm"
-            >
-              <option value="">全部类型</option>
-              {Object.entries(ALG_TYPE_MAP).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v.label}
-                </option>
-              ))}
-            </select>
-            {(filterProjectId !== '' || filterAlgType !== '') && (
+            {filterProjectId !== '' && (
               <button
                 onClick={() => {
                   setFilterProjectId('');
-                  setFilterAlgType('');
                 }}
                 className="px-2 py-2 text-slate-400 hover:text-slate-600 rounded-lg"
                 title="清除过滤"
@@ -364,25 +340,17 @@ export const OutputGroupsManagement: React.FC = () => {
                   {row.rowSpan > 0 && (
                     <>
                       <td className="px-4 py-3" rowSpan={row.rowSpan}>
-                        <div className="font-medium flex items-center gap-2">
-                          {row.group.name}
-                          {(() => {
-                            const algInfo = ALG_TYPE_MAP[row.group.algType ?? 0];
-                            return algInfo && (row.group.algType ?? 0) !== 0 ? (
+                        <div className="font-medium">{row.group.name}</div>
+                        <div className="flex items-center gap-1 mt-1 flex-wrap">
+                          {(row.group.projectIds || []).length > 0 ? (
+                            (row.group.projectIds || []).map(pid => (
                               <span
-                                className={`px-1.5 py-0.5 text-xs rounded-md font-medium ${algInfo.color}`}
+                                key={pid}
+                                className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded"
                               >
-                                {algInfo.label}
+                                {projects.find(p => p.id === pid)?.name || `项目#${pid}`}
                               </span>
-                            ) : null;
-                          })()}
-                        </div>
-                        <div className="flex items-center gap-2 mt-1">
-                          {row.group.projectId != null ? (
-                            <span className="text-xs px-1.5 py-0.5 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400 rounded">
-                              {projects.find(p => p.id === row.group.projectId)?.name ||
-                                `项目#${row.group.projectId}`}
-                            </span>
+                            ))
                           ) : (
                             <span className="text-xs px-1.5 py-0.5 bg-slate-50 text-slate-500 dark:bg-slate-600/30 dark:text-slate-400 rounded">
                               全局
@@ -509,8 +477,7 @@ const GroupModal: React.FC<{
     () => ({
       name: group?.name || '',
       description: group?.description || '',
-      projectId: group?.projectId ?? null,
-      algType: group?.algType ?? 0,
+      projectIds: group?.projectIds ?? ([] as number[]),
       sort: group?.sort ?? 100,
     }),
     [group]
@@ -724,36 +691,38 @@ const GroupModal: React.FC<{
                 className="w-full px-3 py-2 border rounded-lg bg-background border-border"
               />
             </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">关联项目</label>
-              <select
-                value={formData.projectId ?? ''}
-                onChange={e =>
-                  updateField('projectId', e.target.value === '' ? null : Number(e.target.value))
-                }
-                className="w-full px-3 py-2 border rounded-lg bg-background border-border"
-              >
-                <option value="">全局</option>
-                {projects.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">算法类型</label>
-              <select
-                value={formData.algType ?? 0}
-                onChange={e => updateField('algType', Number(e.target.value))}
-                className="w-full px-3 py-2 border rounded-lg bg-background border-border"
-              >
-                {Object.entries(ALG_TYPE_MAP).map(([k, v]) => (
-                  <option key={k} value={k}>
-                    {v.label}
-                  </option>
-                ))}
-              </select>
+            <div className="col-span-2">
+              <label className="block text-xs font-medium mb-1">
+                关联项目（可多选，不选=全局）
+              </label>
+              <div className="border rounded-lg border-border max-h-[120px] overflow-y-auto p-2 space-y-1">
+                {projects.length === 0 ? (
+                  <span className="text-xs text-muted-foreground">暂无项目</span>
+                ) : (
+                  projects.map(p => (
+                    <label
+                      key={p.id}
+                      className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 px-1 py-0.5 rounded text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={(formData.projectIds || []).includes(p.id)}
+                        onChange={e => {
+                          const ids = formData.projectIds || [];
+                          updateField(
+                            'projectIds',
+                            e.target.checked
+                              ? [...ids, p.id]
+                              : ids.filter((id: number) => id !== p.id)
+                          );
+                        }}
+                        className="rounded"
+                      />
+                      {p.name}
+                    </label>
+                  ))
+                )}
+              </div>
             </div>
           </div>
 
