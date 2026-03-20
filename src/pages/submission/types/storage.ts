@@ -74,14 +74,13 @@ export const DRAFT_STORAGE_KEY = 'submission_draft:new';
  * 获取草稿存储 key
  * @param orderId 编辑态传入订单ID，新建态传 null/undefined
  */
-export const getDraftStorageKey = (orderId?: number | null): string => {
-  if (orderId != null) {
-    return `${DRAFT_STORAGE_PREFIX}:order:${orderId}`;
-  }
-  return `${DRAFT_STORAGE_PREFIX}:new`;
+export const getDraftStorageKey = (orderId?: number | null, scopeId?: string): string => {
+  const baseKey =
+    orderId != null ? `${DRAFT_STORAGE_PREFIX}:order:${orderId}` : `${DRAFT_STORAGE_PREFIX}:new`;
+  return scopeId ? `${baseKey}:scope:${scopeId}` : baseKey;
 };
 
 /**
  * 当前草稿版本号
  */
-export const DRAFT_VERSION = '2.1.0';
+export const DRAFT_VERSION = '2.2.0';

@@ -14,12 +14,16 @@ import {
 } from '@/features/config/queries';
 import { rbacApi } from '@/api/rbac';
 import { paramGroupsApi, outputGroupsApi } from '@/api/config/groups';
+import { AlgorithmType, TargetType } from '../types';
 import type {
   SimTypeConfig,
   GlobalSolverConfig,
   DrawerMode,
   CanvasTransform,
   SolverConfig,
+  ParamDomain,
+  OptParams,
+  RespDetail,
 } from '../types';
 import type { SimType, ConditionConfig } from '@/types/config';
 import type { ParamInGroup, OutputInGroup } from '@/types/configGroups';
@@ -296,6 +300,175 @@ export const useSubmissionState = (
     },
     [safeSimTypes, safeSolvers, getConditionConfig]
   );
+
+  const paramGroupPrefillRef = useRef<Set<string>>(new Set());
+  const outputGroupPrefillRef = useRef<Set<string>>(new Set());
+
+  const buildDoeCombinations = useCallback((domain: ParamDomain[]): Partial<OptParams> => {
+    const heads = domain.map(d => d.paramName.trim()).filter(Boolean);
+    if (heads.length !== domain.length) return {};
+
+    const valueLists = domain.map(d => {
+      if (d.rangeList && d.rangeList.length > 0) return d.rangeList;
+      if (d.range) {
+        return d.range
+          .split(',')
+          .map(v => Number(v.trim()))
+          .filter(v => !isNaN(v));
+      }
+      return [];
+    });
+    if (valueLists.some(list => list.length === 0)) return {};
+
+    const cartesian = (...arrays: number[][]): number[][] =>
+      arrays.reduce<number[][]>((acc, arr) => acc.flatMap(x => arr.map(y => [...x, y])), [[]]);
+    const combinations = cartesian(...valueLists);
+
+    const doeParamData: Record<string, number | string>[] = combinations.map(combo => {
+      const row: Record<string, number | string> = {};
+      heads.forEach((h, i) => {
+        row[h] = combo[i];
+      });
+      return row;
+    });
+
+    return { doeParamHeads: heads, doeParamData };
+  }, []);
+
+  useEffect(() => {
+    selectedSimTypes.forEach(item => {
+      const config = simTypeConfigs[item.conditionId];
+      if (!config) return;
+
+      const templateSetId = config.params.templateSetId;
+      const domain = config.params.optParams?.domain || [];
+      if (config.params.mode === 'template' && templateSetId && domain.length === 0) {
+        const prefillKey = `${item.conditionId}:${templateSetId}`;
+        if (!paramGroupPrefillRef.current.has(prefillKey)) {
+          paramGroupPrefillRef.current.add(prefillKey);
+          void (async () => {
+            try {
+              const params = await paramGroupsApi.getParamGroupParams(templateSetId);
+              const groupParams = (params.data as ParamInGroup[]) || [];
+              if (groupParams.length === 0) return;
+
+              const nextDomain: ParamDomain[] = groupParams.map(p => {
+                const paramDef = paramDefs.find(def => def.id === p.paramDefId);
+                const defaultValStr = p.defaultValue || paramDef?.defaultVal || '';
+                const defaultVal = parseFloat(defaultValStr);
+                const enumStr = p.enumValues || '';
+                const rangeStr = enumStr.trim().length > 0 ? enumStr : defaultValStr;
+                const rangeList = rangeStr
+                  .split(',')
+                  .map(v => Number(v.trim()))
+                  .filter(v => !isNaN(v));
+
+                return {
+                  paramName: paramDef?.key || p.paramKey || p.paramName || '',
+                  minValue: p.minVal ?? paramDef?.minVal ?? 0,
+                  maxValue: p.maxVal ?? paramDef?.maxVal ?? 100,
+                  initValue: isNaN(defaultVal) ? 50 : defaultVal,
+                  range: rangeStr,
+                  rangeList,
+                };
+              });
+
+              setSimTypeConfigs(prev => {
+                const current = prev[item.conditionId];
+                if (!current) return prev;
+                if ((current.params.optParams?.domain || []).length > 0) return prev;
+
+                const baseOpt: OptParams = current.params.optParams || {
+                  algType: AlgorithmType.DOE,
+                  domain: [],
+                  batchSize: [{ value: 5 }],
+                  maxIter: 1,
+                };
+                const doeExtras =
+                  (baseOpt.algType ?? AlgorithmType.DOE) === AlgorithmType.DOE
+                    ? buildDoeCombinations(nextDomain)
+                    : {};
+
+                return {
+                  ...prev,
+                  [item.conditionId]: {
+                    ...current,
+                    params: {
+                      ...current.params,
+                      optParams: {
+                        ...baseOpt,
+                        domain: nextDomain,
+                        ...doeExtras,
+                      },
+                    },
+                  },
+                };
+              });
+            } catch (error) {
+              console.error('自动加载参数组失败:', error);
+            }
+          })();
+        }
+      }
+
+      const outputSetId = config.output.outputSetId;
+      const respDetails = config.output.respDetails || [];
+      if (config.output.mode === 'template' && outputSetId && respDetails.length === 0) {
+        const prefillKey = `${item.conditionId}:${outputSetId}`;
+        if (!outputGroupPrefillRef.current.has(prefillKey)) {
+          outputGroupPrefillRef.current.add(prefillKey);
+          void (async () => {
+            try {
+              const outputs = await outputGroupsApi.getOutputGroupOutputs(outputSetId);
+              const groupOutputs = (outputs.data as OutputInGroup[]) || [];
+              if (groupOutputs.length === 0) return;
+
+              const mapTargetType = (value?: number): TargetType => {
+                if (value === 1) return TargetType.MAX;
+                if (value === 2) return TargetType.MIN;
+                if (value === 3) return TargetType.TARGET;
+                return TargetType.MAX;
+              };
+
+              const nextRespDetails: RespDetail[] = groupOutputs.map(o => ({
+                set: o.setName || 'push',
+                outputType: o.outputCode || 'RF3',
+                component: o.component || 'OTHER',
+                integrationPoint: o.sectionPoint || undefined,
+                stepName: o.stepName || undefined,
+                specialOutputSet: o.specialOutputSet || undefined,
+                description: o.description || o.outputName || '',
+                lowerLimit: o.lowerLimit ?? null,
+                upperLimit: o.upperLimit ?? null,
+                weight: o.weight ?? 1,
+                multiple: o.multiple ?? 1,
+                targetValue: o.targetValue ?? null,
+                targetType: mapTargetType(o.targetType),
+              }));
+
+              setSimTypeConfigs(prev => {
+                const current = prev[item.conditionId];
+                if (!current) return prev;
+                if ((current.output.respDetails || []).length > 0) return prev;
+                return {
+                  ...prev,
+                  [item.conditionId]: {
+                    ...current,
+                    output: {
+                      ...current.output,
+                      respDetails: nextRespDetails,
+                    },
+                  },
+                };
+              });
+            } catch (error) {
+              console.error('自动加载输出组失败:', error);
+            }
+          })();
+        }
+      }
+    });
+  }, [selectedSimTypes, simTypeConfigs, paramDefs, buildDoeCombinations]);
 
   // 初始化默认选中的仿真类型
   // 当姿态变化时：1. 移除被取消姿态的仿真类型 2. 为新增姿态自动选择默认仿真类型

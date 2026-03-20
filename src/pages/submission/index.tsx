@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useUIStore, useAuthStore } from '@/stores';
@@ -42,6 +42,26 @@ import {
 } from './components';
 import { CANVAS_LAYOUT } from '@/constants/submission';
 
+const DRAFT_SCOPE_SESSION_KEY = 'submission_draft_scope_id';
+const PROJECT_HABIT_STORAGE_KEY = 'submission_project_habits';
+
+const toNumber = (value: unknown): number | null => {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+};
+
+const DEFAULT_GLOBAL_SOLVER: GlobalSolverConfig = {
+  solverId: 1,
+  solverVersion: '2024',
+  cpuType: 1,
+  cpuCores: 16,
+  double: 0,
+  applyGlobal: null,
+  useGlobalConfig: 0,
+  resourceId: null,
+  applyToAll: true,
+};
+
 const Submission: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -62,6 +82,17 @@ const Submission: React.FC = () => {
   const isEditMode = orderId !== null;
   const hasInitializedRef = useRef(false);
   const isLoadingDraftRef = useRef(false); // 防止加载草稿期间保存空数据
+  const draftScopeIdRef = useRef('');
+  if (!draftScopeIdRef.current) {
+    const exist = sessionStorage.getItem(DRAFT_SCOPE_SESSION_KEY);
+    if (exist) {
+      draftScopeIdRef.current = exist;
+    } else {
+      const next = `tab_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      sessionStorage.setItem(DRAFT_SCOPE_SESSION_KEY, next);
+      draftScopeIdRef.current = next;
+    }
+  }
 
   const form = useForm<SubmissionFormValues>({
     resolver: zodResolver(submissionFormSchema),
@@ -119,104 +150,262 @@ const Submission: React.FC = () => {
     enabled: isEditMode && orderId !== null,
   });
 
+  const getProjectHabitIds = useCallback((): number[] => {
+    if (!user?.id) return [];
+    try {
+      const raw = localStorage.getItem(PROJECT_HABIT_STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as Record<string, number[]>;
+      return Array.isArray(parsed?.[String(user.id)]) ? parsed[String(user.id)] : [];
+    } catch {
+      return [];
+    }
+  }, [user?.id]);
+
+  const getPreferredProjectId = useCallback((): number | null => {
+    const projects = state.projects || [];
+    if (projects.length === 0) return null;
+    const preferredIds = getProjectHabitIds();
+    for (const id of preferredIds) {
+      if (projects.some(p => p.id === id)) return id;
+    }
+    return projects[0].id;
+  }, [getProjectHabitIds, state.projects]);
+
+  const updateProjectHabit = useCallback(
+    (projectId: number | null | undefined) => {
+      if (!user?.id || projectId == null) return;
+      try {
+        const raw = localStorage.getItem(PROJECT_HABIT_STORAGE_KEY);
+        const parsed = raw ? (JSON.parse(raw) as Record<string, number[]>) : {};
+        const key = String(user.id);
+        const current = Array.isArray(parsed[key]) ? parsed[key] : [];
+        parsed[key] = [projectId, ...current.filter(id => id !== projectId)].slice(0, 10);
+        localStorage.setItem(PROJECT_HABIT_STORAGE_KEY, JSON.stringify(parsed));
+      } catch {
+        // ignore
+      }
+    },
+    [user?.id]
+  );
+
+  const defaultFormValues = useMemo<SubmissionFormValues>(
+    () => ({
+      projectId: (getPreferredProjectId() as unknown as number) ?? (null as unknown as number),
+      issueTitle: '',
+      modelLevelId: 1,
+      originFile: { type: 1, path: '', name: '', verified: false },
+      originFoldTypeId: null,
+      participantIds: [],
+      foldTypeIds: state.safeFoldTypes.length > 0 ? [state.safeFoldTypes[0].id] : [],
+      remark: '',
+      simTypeIds: [],
+    }),
+    [getPreferredProjectId, state.safeFoldTypes]
+  );
+
+  const applyNewEntryDefaults = useCallback(() => {
+    state.clearInitializedConditionIds();
+    form.reset(defaultFormValues);
+    state.setSelectedSimTypes([]);
+    state.setSimTypeConfigs({});
+    state.setGlobalSolver(DEFAULT_GLOBAL_SOLVER);
+    setInpSets([]);
+  }, [defaultFormValues, form, state]);
+
+  const findConditionId = useCallback(
+    (foldTypeId: number, simTypeId: number) => {
+      const mapped = state.foldTypesWithSimTypes
+        .find(ft => ft.id === foldTypeId)
+        ?.simTypes.find(st => st.id === simTypeId)?.conditionId;
+      return mapped ?? -(foldTypeId * 10000 + simTypeId);
+    },
+    [state.foldTypesWithSimTypes]
+  );
+
+  const restoreOrderSnapshot = useCallback(
+    (order: Record<string, unknown>) => {
+      const rawInput = order.inputJson ?? order.input_json;
+      const inputJson =
+        typeof rawInput === 'string'
+          ? ((JSON.parse(rawInput) as Record<string, unknown>) ?? {})
+          : ((rawInput as Record<string, unknown>) ?? {});
+
+      const projectInfo =
+        ((inputJson.projectInfo || inputJson.project_info) as Record<string, unknown>) ?? {};
+      const rawConditions = inputJson.conditions;
+      const conditions = Array.isArray(rawConditions)
+        ? rawConditions
+        : rawConditions && typeof rawConditions === 'object'
+          ? Object.values(rawConditions as Record<string, unknown>)
+          : [];
+
+      const foldTypeIdsFromInput = conditions
+        .map(c =>
+          toNumber(
+            (c as Record<string, unknown>).foldTypeId ?? (c as Record<string, unknown>).fold_type_id
+          )
+        )
+        .filter((n): n is number => n != null);
+      const simTypeIdsFromInput = conditions
+        .map(c =>
+          toNumber(
+            (c as Record<string, unknown>).simTypeId ?? (c as Record<string, unknown>).sim_type_id
+          )
+        )
+        .filter((n): n is number => n != null);
+
+      const foldTypeIds =
+        (Array.isArray(order.foldTypeIds) ? order.foldTypeIds : order.fold_type_ids) ??
+        foldTypeIdsFromInput;
+      const simTypeIds =
+        (Array.isArray(order.simTypeIds) ? order.simTypeIds : order.sim_type_ids) ??
+        simTypeIdsFromInput;
+
+      form.reset({
+        projectId: toNumber(order.projectId ?? order.project_id) as unknown as number,
+        issueTitle: String(projectInfo.issueTitle ?? projectInfo.issue_title ?? ''),
+        modelLevelId: toNumber(order.modelLevelId ?? order.model_level_id) ?? 1,
+        originFile: {
+          type:
+            toNumber(
+              order.originFileType ??
+                order.origin_file_type ??
+                (order.originFile as Record<string, unknown> | undefined)?.type
+            ) ?? 1,
+          path: String(
+            (order.originFile as Record<string, unknown> | undefined)?.path ??
+              order.originFilePath ??
+              order.origin_file_path ??
+              ''
+          ),
+          name: String(
+            (order.originFile as Record<string, unknown> | undefined)?.name ??
+              order.originFileName ??
+              order.origin_file_name ??
+              ''
+          ),
+          verified: true,
+        },
+        originFoldTypeId: toNumber(order.originFoldTypeId ?? order.origin_fold_type_id),
+        participantIds: Array.isArray(order.participantIds)
+          ? (order.participantIds as number[])
+          : [],
+        foldTypeIds: Array.isArray(foldTypeIds) ? (foldTypeIds as number[]) : [],
+        remark: String(order.remark ?? projectInfo.remark ?? ''),
+        simTypeIds: Array.isArray(simTypeIds) ? (simTypeIds as number[]) : [],
+      });
+
+      const selected: Array<{ conditionId: number; foldTypeId: number; simTypeId: number }> = [];
+      const configs: Record<number, SimTypeConfig> = {};
+      const initializedConditionIds: number[] = [];
+
+      if (conditions.length > 0) {
+        conditions.forEach(item => {
+          const c = item as Record<string, unknown>;
+          const foldTypeId = toNumber(c.foldTypeId ?? c.fold_type_id);
+          const simTypeId = toNumber(c.simTypeId ?? c.sim_type_id);
+          if (foldTypeId == null || simTypeId == null) return;
+          const conditionId =
+            toNumber(c.conditionId ?? c.condition_id) ?? findConditionId(foldTypeId, simTypeId);
+          selected.push({ conditionId, foldTypeId, simTypeId });
+
+          if (c.params && c.output && c.solver) {
+            configs[conditionId] = {
+              conditionId,
+              foldTypeId,
+              simTypeId,
+              params: c.params as SimTypeConfig['params'],
+              output: c.output as SimTypeConfig['output'],
+              solver: c.solver as SimTypeConfig['solver'],
+              careDeviceIds: Array.isArray(c.careDeviceIds)
+                ? (c.careDeviceIds as string[])
+                : Array.isArray(c.care_device_ids)
+                  ? (c.care_device_ids as string[])
+                  : [],
+            };
+            initializedConditionIds.push(conditionId);
+          }
+        });
+      } else if (order.optParam && typeof order.optParam === 'object') {
+        const legacyOpt = order.optParam as Record<string, unknown>;
+        const foldIds = Array.isArray(foldTypeIds) ? (foldTypeIds as number[]) : [];
+        const simIds = Array.isArray(simTypeIds) ? (simTypeIds as number[]) : [];
+        foldIds.forEach(foldTypeId => {
+          simIds.forEach(simTypeId => {
+            const conditionId = findConditionId(foldTypeId, simTypeId);
+            selected.push({ conditionId, foldTypeId, simTypeId });
+            const oldCfg = legacyOpt[String(simTypeId)] as Record<string, unknown> | undefined;
+            if (oldCfg) {
+              configs[conditionId] = {
+                conditionId,
+                foldTypeId,
+                simTypeId,
+                params: (oldCfg.params as SimTypeConfig['params']) ?? {
+                  mode: 'template',
+                  templateSetId: null,
+                  templateItemId: null,
+                  algorithm: 'doe',
+                  customValues: {},
+                },
+                output: (oldCfg.output as SimTypeConfig['output']) ?? {
+                  mode: 'template',
+                  outputSetId: null,
+                  selectedConditionIds: [],
+                  conditionValues: {},
+                  selectedOutputIds: [],
+                },
+                solver: (oldCfg.solver as SimTypeConfig['solver']) ?? DEFAULT_GLOBAL_SOLVER,
+                careDeviceIds: [],
+              };
+              initializedConditionIds.push(conditionId);
+            }
+          });
+        });
+      }
+
+      state.clearInitializedConditionIds();
+      state.setSelectedSimTypes(selected);
+      if (initializedConditionIds.length > 0) {
+        state.markConditionIdsAsInitialized(initializedConditionIds);
+      }
+      state.setSimTypeConfigs(configs);
+      state.setGlobalSolver(
+        (inputJson.globalSolver as GlobalSolverConfig) || DEFAULT_GLOBAL_SOLVER
+      );
+      setInpSets(Array.isArray(inputJson.inpSets) ? (inputJson.inpSets as InpSetInfo[]) : []);
+    },
+    [findConditionId, form, state]
+  );
+
   // 数据初始化逻辑
   useEffect(() => {
     if (hasInitializedRef.current) return;
     if (state.isConfigLoading) return;
 
-    // 编辑模式：从后端加载数据
     if (isEditMode && orderDetail?.data) {
-      const order = orderDetail.data;
-
-      // 1. 设置表单基础数据
-      form.reset({
-        projectId: order.projectId,
-        modelLevelId: order.modelLevelId ?? 1,
-        originFile: {
-          type: order.originFile?.type ?? 1,
-          path: order.originFile?.path ?? '',
-          name: order.originFile?.name ?? '',
-          verified: true,
-        },
-        originFoldTypeId: order.originFoldTypeId ?? null,
-        participantIds: order.participantIds ?? [],
-        foldTypeIds: order.foldTypeIds ?? [],
-        remark: order.remark ?? '',
-        simTypeIds: order.simTypeIds ?? [],
-      });
-
-      // 2. 恢复选中的仿真类型（从 inputJson.conditions 重建 SelectedSimType[]）
-      if (order.inputJson?.conditions) {
-        const selectedSimTypes = order.inputJson.conditions.map(c => ({
-          conditionId: c.conditionId,
-          foldTypeId: c.foldTypeId,
-          simTypeId: c.simTypeId,
-        }));
-        state.setSelectedSimTypes(selectedSimTypes);
-
-        // 3. 恢复仿真配置（以 conditionId 为 key）
-        const conditionIds = order.inputJson.conditions.map(c => c.conditionId);
-        state.markConditionIdsAsInitialized(conditionIds);
-        const configs: Record<number, SimTypeConfig> = {};
-        order.inputJson.conditions.forEach(c => {
-          configs[c.conditionId] = {
-            conditionId: c.conditionId,
-            foldTypeId: c.foldTypeId,
-            simTypeId: c.simTypeId,
-            params: c.params,
-            output: c.output,
-            solver: c.solver,
-            careDeviceIds: c.careDeviceIds,
-          };
-        });
-        state.setSimTypeConfigs(configs);
-      } else if (order.optParam) {
-        // 兼容旧版数据（optParam 以 simTypeId 为 key）
-        const selectedSimTypes = (order.foldTypeIds ?? []).flatMap(foldTypeId =>
-          (order.simTypeIds ?? []).map(simTypeId => ({
-            conditionId: -(foldTypeId * 10000 + simTypeId),
-            foldTypeId,
-            simTypeId,
-          }))
-        );
-        state.setSelectedSimTypes(selectedSimTypes);
-        const conditionIds = selectedSimTypes.map(s => s.conditionId);
-        state.markConditionIdsAsInitialized(conditionIds);
-        state.setSimTypeConfigs(order.optParam as Record<number, SimTypeConfig>);
-      }
-
-      // 4. 恢复全局求解器配置
-      if (order.inputJson?.globalSolver) {
-        state.setGlobalSolver(order.inputJson.globalSolver as GlobalSolverConfig);
-      }
-
-      // 5. 恢复 INP Sets
-      if (order.inputJson?.inpSets) {
-        setInpSets(order.inputJson.inpSets as InpSetInfo[]);
-      }
-
+      restoreOrderSnapshot(orderDetail.data as unknown as Record<string, unknown>);
       hasInitializedRef.current = true;
       return;
     }
 
-    // 新建模式：尝试加载草稿
     if (!isEditMode) {
-      const draft = loadDraft(orderId);
+      const draft = loadDraft(orderId, 7 * 24 * 60 * 60 * 1000, draftScopeIdRef.current);
       if (draft) {
         isLoadingDraftRef.current = true;
-        // 先标记已初始化，防止 useEffect 用默认配置覆盖草稿数据
         const conditionIds = Object.keys(draft.simTypeConfigs).map(Number);
         state.markConditionIdsAsInitialized(conditionIds);
-        // 再设置状态
         form.reset(draft.formValues);
         state.setSelectedSimTypes(draft.selectedSimTypes);
         state.setSimTypeConfigs(draft.simTypeConfigs);
         state.setGlobalSolver(draft.globalSolver);
         setInpSets(draft.inpSets);
-        showToast('info', '已恢复上次编辑的草稿');
+        showToast('info', t('sub.draft_restored'));
         setTimeout(() => {
           isLoadingDraftRef.current = false;
         }, 100);
+      } else {
+        applyNewEntryDefaults();
       }
       hasInitializedRef.current = true;
     }
@@ -228,6 +417,12 @@ const Submission: React.FC = () => {
     const simTypeIds = [...new Set(state.selectedSimTypes.map(item => item.simTypeId))];
     form.setValue('simTypeIds', simTypeIds, { shouldValidate: isSubmitted });
   }, [form, state.selectedSimTypes, isSubmitted]);
+
+  useEffect(() => {
+    if (selectedProjectId != null) {
+      updateProjectHabit(selectedProjectId);
+    }
+  }, [selectedProjectId, updateProjectHabit]);
 
   useEffect(() => {
     if (state.safeFoldTypes.length === 0) return;
@@ -269,7 +464,8 @@ const Submission: React.FC = () => {
             globalSolver: data.globalSolver,
             inpSets: data.inpSets,
           },
-          orderId
+          orderId,
+          draftScopeIdRef.current
         );
       }
     };
@@ -289,7 +485,8 @@ const Submission: React.FC = () => {
             globalSolver: data.globalSolver,
             inpSets: data.inpSets,
           },
-          orderId
+          orderId,
+          draftScopeIdRef.current
         );
       }
     };
@@ -338,101 +535,21 @@ const Submission: React.FC = () => {
     state.setIsDrawerOpen(true);
   };
 
-  // 默认表单值（新建模式重置用）
-  const defaultFormValues: SubmissionFormValues = {
-    projectId: null as unknown as number,
-    issueTitle: '',
-    modelLevelId: 1,
-    originFile: { type: 1, path: '', name: '', verified: false },
-    originFoldTypeId: null,
-    participantIds: [],
-    foldTypeIds: [],
-    remark: '',
-    simTypeIds: [],
-  };
-
   // 重置处理（带确认对话框）
   const handleReset = () => {
-    const title = isEditMode ? '重置为原始数据' : '重置表单';
-    const message = isEditMode
-      ? '确定要将所有配置重置为原始订单数据吗？当前修改将丢失。'
-      : '确定要清空所有配置吗？当前编辑内容和草稿将被清除。';
+    const title = isEditMode ? t('sub.reset_title_edit') : t('sub.reset_title_new');
+    const message = isEditMode ? t('sub.reset_confirm_edit') : t('sub.reset_confirm_new');
 
     showConfirm(
       title,
       message,
       () => {
-        // 清除已初始化标记，确保重新选择仿真类型时会触发初始化
-        state.clearInitializedConditionIds();
-
         if (isEditMode && orderDetail?.data) {
-          // 编辑模式：重置为原始订单数据
-          const order = orderDetail.data;
-          form.reset({
-            projectId: order.projectId,
-            issueTitle: order.inputJson?.projectInfo?.issueTitle ?? '',
-            modelLevelId: order.modelLevelId ?? 1,
-            originFile: {
-              type: order.originFile?.type ?? 1,
-              path: order.originFile?.path ?? '',
-              name: order.originFile?.name ?? '',
-              verified: true,
-            },
-            originFoldTypeId: order.originFoldTypeId ?? null,
-            participantIds: order.participantIds ?? [],
-            foldTypeIds: order.foldTypeIds ?? [],
-            remark: order.remark ?? '',
-            simTypeIds: order.simTypeIds ?? [],
-          });
-          // 恢复仿真配置
-          if (order.inputJson?.conditions) {
-            const selectedSimTypes = order.inputJson.conditions.map(c => ({
-              conditionId: c.conditionId,
-              foldTypeId: c.foldTypeId,
-              simTypeId: c.simTypeId,
-            }));
-            state.setSelectedSimTypes(selectedSimTypes);
-            const conditionIds = order.inputJson.conditions.map(c => c.conditionId);
-            state.markConditionIdsAsInitialized(conditionIds);
-            const configs: Record<number, SimTypeConfig> = {};
-            order.inputJson.conditions.forEach(c => {
-              configs[c.conditionId] = {
-                conditionId: c.conditionId,
-                foldTypeId: c.foldTypeId,
-                simTypeId: c.simTypeId,
-                params: c.params,
-                output: c.output,
-                solver: c.solver,
-                careDeviceIds: c.careDeviceIds,
-              };
-            });
-            state.setSimTypeConfigs(configs);
-          }
-          if (order.inputJson?.globalSolver) {
-            state.setGlobalSolver(order.inputJson.globalSolver as GlobalSolverConfig);
-          }
-          if (order.inputJson?.inpSets) {
-            setInpSets(order.inputJson.inpSets as InpSetInfo[]);
-          }
+          restoreOrderSnapshot(orderDetail.data as unknown as Record<string, unknown>);
           showToast('info', t('sub.reset_to_original'));
         } else {
-          // 新建模式：重置为默认值并清除草稿
-          form.reset(defaultFormValues);
-          state.setSelectedSimTypes([]);
-          state.setSimTypeConfigs({});
-          state.setGlobalSolver({
-            applyToAll: false,
-            solverId: 0,
-            solverVersion: '',
-            cpuType: -1,
-            cpuCores: -1,
-            double: 0,
-            applyGlobal: null,
-            useGlobalConfig: 0,
-            resourceId: null,
-          });
-          setInpSets([]);
-          clearDraft(orderId);
+          clearDraft(orderId, draftScopeIdRef.current);
+          applyNewEntryDefaults();
           showToast('info', t('sub.reset_to_default'));
         }
       },
@@ -491,9 +608,9 @@ const Submission: React.FC = () => {
         // 构建工况概览（供列表页展示）: { "姿态A": ["静力学","模态"], "姿态B": ["热仿真"] }
         const conditionSummary: Record<string, string[]> = {};
         for (const c of conditions) {
-          const fName = c.foldTypeName || `姿态${c.foldTypeId}`;
+          const fName = c.foldTypeName || `${t('sub.fold_type_prefix')}${c.foldTypeId}`;
           if (!conditionSummary[fName]) conditionSummary[fName] = [];
-          const sName = c.simTypeName || `仿真${c.simTypeId}`;
+          const sName = c.simTypeName || `${t('sub.sim_type_prefix')}${c.simTypeId}`;
           if (!conditionSummary[fName].includes(sName)) {
             conditionSummary[fName].push(sName);
           }
@@ -532,20 +649,20 @@ const Submission: React.FC = () => {
         if (isEditMode && orderId) {
           // 编辑模式：调用更新 API
           await ordersApi.updateOrder(orderId, payload);
-          showToast('success', t('sub.update_success') || '更新成功');
+          showToast('success', t('sub.update_success'));
         } else {
           // 新建模式：调用创建 API
           await ordersApi.createOrder(payload);
-          showToast('success', t('sub.submit_success') || '提交成功');
+          showToast('success', t('sub.submit_success'));
           // 提交成功后清除草稿
-          clearDraft(orderId);
+          clearDraft(orderId, draftScopeIdRef.current);
         }
 
         queryClient.invalidateQueries({ queryKey: queryKeys.orders.list() });
         navigate('/orders');
       } catch (error) {
         console.error('提交订单失败:', error);
-        const message = (error as { message?: string })?.message || '提交失败，请稍后重试';
+        const message = (error as { message?: string })?.message || t('sub.submit_fail');
         showToast('error', message);
       }
     },
@@ -624,7 +741,7 @@ const Submission: React.FC = () => {
             <button
               onClick={canvas.zoomOut}
               className="p-2 hover:bg-white dark:hover:bg-slate-600 eyecare:hover:bg-card rounded"
-              title="缩小"
+              title={t('sub.zoom_out')}
             >
               <MagnifyingGlassMinusIcon className="w-5 h-5" />
             </button>
@@ -634,14 +751,14 @@ const Submission: React.FC = () => {
             <button
               onClick={canvas.zoomIn}
               className="p-2 hover:bg-white dark:hover:bg-slate-600 eyecare:hover:bg-card rounded"
-              title="放大"
+              title={t('sub.zoom_in')}
             >
               <MagnifyingGlassPlusIcon className="w-5 h-5" />
             </button>
             <button
               onClick={canvas.resetView}
               className="p-2 hover:bg-white dark:hover:bg-slate-600 eyecare:hover:bg-card rounded"
-              title="重置视图"
+              title={t('sub.reset_view')}
             >
               <ArrowsPointingOutIcon className="w-5 h-5" />
             </button>
@@ -651,7 +768,7 @@ const Submission: React.FC = () => {
             <button
               onClick={() => exportAsImage(canvasContainerRef.current, { scale: 3 })}
               className="p-2 hover:bg-white dark:hover:bg-slate-600 eyecare:hover:bg-card rounded"
-              title="导出高清图片"
+              title={t('sub.export_image')}
             >
               <CameraIcon className="w-5 h-5" />
             </button>
@@ -690,21 +807,21 @@ const Submission: React.FC = () => {
                 exportAsFlowData(flowData);
               }}
               className="p-2 hover:bg-white dark:hover:bg-slate-600 eyecare:hover:bg-card rounded"
-              title="导出流程数据"
+              title={t('sub.export_flow')}
             >
               <DocumentArrowDownIcon className="w-5 h-5" />
             </button>
           </div>
           {state.configError && (
             <div className="flex items-center gap-2 text-sm text-red-600">
-              <span>基础数据加载失败</span>
+              <span>{t('sub.config_load_failed')}</span>
               <Button
                 size="sm"
                 variant="outline"
                 onClick={state.retryConfig}
                 disabled={state.isConfigLoading}
               >
-                重试
+                {t('sub.retry')}
               </Button>
             </div>
           )}
@@ -776,13 +893,16 @@ const Submission: React.FC = () => {
                 {participantIds.length > 0 && (
                   <div className="flex justify-between">
                     <span>{t('sub.participants')}:</span>
-                    <span className="font-medium">{participantIds.length} 人</span>
+                    <span className="font-medium">
+                      {participantIds.length}
+                      {t('sub.person_unit')}
+                    </span>
                   </div>
                 )}
               </div>
             ) : (
               <div className="text-sm text-slate-400 eyecare:text-muted-foreground text-center italic py-2">
-                点击选择项目
+                {t('sub.click_select_project')}
               </div>
             )}
           </CanvasNode>
@@ -846,7 +966,7 @@ const Submission: React.FC = () => {
                           : 'bg-slate-100 dark:bg-slate-700 eyecare:bg-muted'
                       }`}
                     >
-                      {isFoldTypeSelected ? '已选择' : '点击选择'}
+                      {isFoldTypeSelected ? t('sub.selected') : t('sub.click_select')}
                     </span>
                   </div>
                 </CanvasNode>
@@ -895,7 +1015,7 @@ const Submission: React.FC = () => {
 
                           if (result === -1) {
                             // 这是最后一个仿真类型，不允许取消，显示提示
-                            showToast('warning', '至少需要选择一个目标姿态和一个仿真类型');
+                            showToast('warning', t('sub.keep_at_least_one_sim_type'));
                           } else if (result !== null) {
                             // 该姿态下所有仿真类型都被取消，取消该姿态的选中
                             // 注意：result 可能为 0（姿态ID为0的情况）
@@ -909,7 +1029,7 @@ const Submission: React.FC = () => {
                         <div className="text-xs text-slate-500 eyecare:text-muted-foreground text-center">
                           {simType.isDefault && (
                             <span className="px-1.5 py-0.5 mr-1 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded">
-                              默认
+                              {t('sub.default_tag')}
                             </span>
                           )}
                           <span
@@ -919,7 +1039,7 @@ const Submission: React.FC = () => {
                                 : 'bg-slate-100 dark:bg-slate-700 eyecare:bg-muted'
                             }`}
                           >
-                            {isSimTypeSelected ? '已选择' : '点击选择'}
+                            {isSimTypeSelected ? t('sub.selected') : t('sub.click_select')}
                           </span>
                         </div>
                       </CanvasNode>

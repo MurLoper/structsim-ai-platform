@@ -467,25 +467,23 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     const domain = config.params.optParams?.domain || [];
     if (domain.length === 0) {
       setVerifyStatus(false);
-      setVerifyMessage(t('sub.params.verify_empty') || '参数域为空，请先应用参数组或手动添加参数');
+      setVerifyMessage(t('sub.params.verify_empty'));
       return;
     }
 
     const errors: string[] = [];
     domain.forEach((d, idx) => {
       if (!d.paramName.trim()) {
-        errors.push(`#${idx + 1}: ${t('sub.params.verify_no_name') || '参数名为空'}`);
+        errors.push(`#${idx + 1}: ${t('sub.params.verify_no_name')}`);
       }
       if (currentAlgType === AlgType.DOE) {
         if (!d.range && (!d.rangeList || d.rangeList.length === 0)) {
-          errors.push(
-            `${d.paramName || '#' + (idx + 1)}: ${t('sub.params.verify_no_values') || '取值为空'}`
-          );
+          errors.push(`${d.paramName || '#' + (idx + 1)}: ${t('sub.params.verify_no_values')}`);
         }
       } else {
         // 贝叶斯模式检查 min < max
         if (d.minValue >= d.maxValue) {
-          errors.push(`${d.paramName}: ${t('sub.params.verify_range_error') || 'min >= max'}`);
+          errors.push(`${d.paramName}: ${t('sub.params.verify_range_error')}`);
         }
       }
     });
@@ -496,7 +494,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     } else {
       setVerifyStatus(true);
       setVerifyMessage(
-        `${t('sub.params.verify_pass') || '核验通过'}：${domain.length} ${t('sub.params.verify_params_count') || '个参数'}`
+        `${t('sub.params.verify_pass')}：${domain.length} ${t('sub.params.verify_params_count')}`
       );
     }
   };
@@ -517,7 +515,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                 setVerifyMessage('');
               }}
             >
-              <option value="">-- {t('sub.params.select_group') || '选择参数组'} --</option>
+              <option value="">-- {t('sub.params.select_group')} --</option>
               {filteredParamGroups.map(group => (
                 <option key={group.id} value={group.id}>
                   {group.name}
@@ -534,11 +532,11 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                 applyParamGroup(selectedGroupId);
               }}
             >
-              {loadingGroup ? t('sub.loading') || '加载中...' : t('sub.params.apply') || '应用'}
+              {loadingGroup ? t('sub.loading') : t('sub.params.apply')}
             </Button>
             <Button size="sm" variant="outline" onClick={verifyParams}>
               <CheckCircleIcon className="w-4 h-4 mr-1" />
-              {t('sub.params.verify') || '核验'}
+              {t('sub.params.verify')}
             </Button>
           </div>
           {/* 核验结果提示 */}

@@ -38,6 +38,7 @@ export const ParamGroupsManagement: React.FC = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Partial<ParamGroup> | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
+  const initializedRef = useRef(false);
 
   const { showToast } = useToast();
   const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
@@ -81,6 +82,8 @@ export const ParamGroupsManagement: React.FC = () => {
   };
 
   useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
     loadAllData();
   }, []);
 

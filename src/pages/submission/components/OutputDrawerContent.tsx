@@ -76,10 +76,10 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
   // 积分点选项（适用于体单元应力/应变输出）
   const integrationPointOptions = ['', 'CENTROID', 'MAX', 'MIN', 'INTERPOLATE'];
   const targetTypeOptions = [
-    { value: TargetType.MIN, label: t('sub.output.target_min') || '最小化' },
-    { value: TargetType.MAX, label: t('sub.output.target_max') || '最大化' },
-    { value: TargetType.TARGET, label: t('sub.output.target_value') || '靠近目标值' },
-    { value: TargetType.USER_DEFINED, label: t('sub.output.target_custom') || '自定义' },
+    { value: TargetType.MIN, label: t('sub.output.target_min') },
+    { value: TargetType.MAX, label: t('sub.output.target_max') },
+    { value: TargetType.TARGET, label: t('sub.output.target_value') },
+    { value: TargetType.USER_DEFINED, label: t('sub.output.target_custom') },
   ];
 
   return (
