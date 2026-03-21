@@ -1,416 +1,173 @@
-# 配置化开发指南
+# 配置驱动开发指南
 
-## 📋 概述
+面向当前前端实现维护，重点服务于配置中心、提单页和结果回显。
 
-本文档规定项目中配置数据的管理方式，明确哪些数据应该存储在数据库中，哪些应该作为常量。
+**最后更新**: 2026-03-21
 
-## 🎯 配置数据分类原则
+## 1. 目标
 
-### 1. 数据库配置（动态配置）
+当前项目中的“配置化”不是简单把表单字段存进数据库，而是通过配置数据驱动页面渲染、默认值装配、交互切换和提交流程。
 
-**适用场景：**
+配置驱动在本项目中的核心目标有四个：
 
-- 需要后端存储和管理
-- 需要在运行时修改
-- 需要在多个地方复用
-- 业务数据或用户数据
-- 需要持久化的数据
+1. 让提单页根据配置生成可操作界面
+2. 让用户在预设基础上快速调整，而不是从零填写
+3. 保证提交时能形成稳定快照
+4. 让订单详情和结果页可以回读同一套语义
 
-**示例：**
+## 2. 当前配置分层
 
-- 项目列表
+建议按以下三层理解项目配置：
+
+### 2.1 基础配置层
+
+定义原子能力：
+
+- 项目
 - 仿真类型
-- 参数模板
-- 工况配置
-- 输出模板
-- 求解器配置
-- 用户权限
-- 系统配置
+- 参数定义
+- 工况定义
+- 输出定义
+- 求解器
+- 姿态类型
 
-### 2. 常量配置（静态配置）
+### 2.2 组合配置层
 
-**适用场景：**
+定义可复用组合：
 
-- 前端独立使用
-- 纯数字或固定值
-- 不需要修改
-- UI 相关配置
-- 布局参数
+- 参数组
+- 工况输出组
+- 求解器资源
+- 关注器件等业务扩展配置
 
-**示例：**
+### 2.3 关系配置层
 
-- 画布布局常量
-- UI 尺寸参数
-- 颜色主题
-- 动画时长
-- HTTP 状态码
-- 分页默认值
+定义页面初始化和切换依据：
 
-## 📊 决策流程图
+- 项目与仿真类型关系
+- 仿真类型与参数组关系
+- 仿真类型与工况输出组关系
+- 仿真类型与求解器关系
+- 姿态类型与仿真类型关系
+
+## 3. 前端开发原则
+
+### 3.1 页面不直接解释数据库结构
+
+页面不应直接耦合后端原始结构。推荐模式：
 
 ```text
-数据需要存储吗？
-├─ 是 → 需要后端管理吗？
-│  ├─ 是 → 数据库配置
-│  └─ 否 → 本地存储（localStorage）
-└─ 否 → 需要修改吗？
-   ├─ 是 → 数据库配置
-   └─ 否 → 常量配置
+后端配置数据
+-> 领域适配器
+-> 页面字段模型
+-> React 组件渲染
 ```
 
-## 🗄️ 数据库配置实现
+### 3.2 页面不直接承担所有业务判断
 
-### 数据库设计
+避免在页面组件中大量散落：
 
-**完整 Schema 位置：** `database/schema.sql`
+- 是否默认
+- 是否可选
+- 哪些字段联动
+- 哪些字段必填
+- 哪些字段需要快照
 
-**核心配置表：**
+这些逻辑应尽量沉到：
 
-```sql
--- 项目表
-CREATE TABLE projects (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  project_id VARCHAR(50) NOT NULL UNIQUE,
-  project_name VARCHAR(100) NOT NULL,
-  created_at BIGINT NOT NULL,
-  updated_at BIGINT NOT NULL
-);
+- `features/*`
+- `pages/submission/hooks/*`
+- schema / adapter / serializer
 
--- 仿真类型表
-CREATE TABLE sim_types (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  sim_type_id INT NOT NULL UNIQUE,
-  sim_type_name VARCHAR(100) NOT NULL,
-  created_at BIGINT NOT NULL,
-  updated_at BIGINT NOT NULL
-);
+### 3.3 配置切换必须可回溯
 
--- 参数定义表
-CREATE TABLE param_defs (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  opt_param_id INT NOT NULL UNIQUE,
-  param_name VARCHAR(100) NOT NULL,
-  param_unit VARCHAR(20),
-  param_desc TEXT,
-  param_default_min DOUBLE,
-  param_default_max DOUBLE,
-  param_default_init DOUBLE,
-  created_at BIGINT NOT NULL,
-  updated_at BIGINT NOT NULL
-);
+用户切换参数组、工况输出组、求解器时，应明确：
+
+- 哪些字段被默认值覆盖
+- 哪些字段是用户手改
+- 哪些字段需要保留历史操作
+
+## 4. 提单页推荐数据流
+
+```text
+项目 / 仿真类型选择
+-> 获取初始化配置
+-> 适配成页面字段模型
+-> React Hook Form 管理输入
+-> 用户修改
+-> 序列化为 inputJson / optParam / submitCheck
+-> 创建或更新订单
 ```
 
-**字段命名规范：**
-
-- 数据库：使用下划线命名（`project_id`, `created_at`）
-- 前端：使用驼峰命名（`projectId`, `createdAt`）
-- 自动转换：在 API 层透明处理（见 `src/lib/api-transform.ts`）
-
-### 后端实现（如有）
-
-**API 接口示例：**
-
-```python
-# app/routes/config.py
-@app.route('/api/config/projects', methods=['GET'])
-def get_projects():
-    """获取项目列表"""
-    projects = db.session.query(Project).filter_by(valid=1).all()
-    return jsonify([{
-        'project_id': p.project_id,
-        'project_name': p.project_name,
-        'created_at': p.created_at,
-        'updated_at': p.updated_at
-    } for p in projects])
-```
-
-**注意：** 后端返回的字段使用下划线命名，前端 API Client 会自动转换为驼峰命名。
-
-### 前端实现
-
-**1. API 调用**
-
-```typescript
-// src/api/config/base.ts
-import { api } from '../client';
-
-export const baseConfigApi = {
-  // 获取项目列表
-  getProjects: () => api.get<Project[]>('/config/projects'),
-
-  // 获取仿真类型
-  getSimTypes: () => api.get<SimType[]>('/config/sim-types'),
-
-  // 获取参数定义
-  getParamDefs: () => api.get<ParamDef[]>('/config/param-defs'),
-};
-```
-
-**2. 类型定义**
-
-```typescript
-// src/types/config.ts
-export interface Project {
-  projectId: string; // 前端使用驼峰命名
-  projectName: string;
-  createdAt: number;
-  updatedAt: number;
-}
-
-export interface SimType {
-  simTypeId: number;
-  simTypeName: string;
-  createdAt: number;
-  updatedAt: number;
-}
-```
-
-**3. React Query Hook**
-
-```typescript
-// src/features/config/queries/useProjects.ts
-import { useQuery } from '@tanstack/react-query';
-import { baseConfigApi } from '@/api/config/base';
-import { queryKeys } from '@/lib/queryClient';
-
-export const useProjects = () => {
-  return useQuery({
-    queryKey: queryKeys.projects.list(),
-    queryFn: baseConfigApi.getProjects,
-  });
-};
-```
-
-**4. 组件使用**
-
-```typescript
-// src/pages/config/ProjectList.tsx
-import { useProjects } from '@/features/config/queries/useProjects';
-
-export function ProjectList() {
-  const { data: projects, isLoading } = useProjects();
-
-  if (isLoading) return <Loading />;
-
-  return (
-    <ul>
-      {projects?.map(p => (
-        <li key={p.projectId}>
-          {p.projectName}
-        </li>
-      ))}
-    </ul>
-  );
-}
-```
-
-## 🔧 API 自动转换
-
-前端 API Client 自动处理字段命名转换：
-
-```typescript
-// src/api/client.ts
-import { toSnakeCase, toCamelCase } from '@/lib/api-transform';
-
-class ApiClient {
-  async request<T>(config: RequestConfig): Promise<T> {
-    // 请求前：驼峰 → 下划线
-    if (config.data) {
-      config.data = toSnakeCase(config.data);
-    }
-
-    const response = await fetch(/* ... */);
-    const data = await response.json();
-
-    // 响应后：下划线 → 驼峰
-    return toCamelCase(data) as T;
-  }
-}Integer, primary_key=True)
-    key = db.Column(db.String(100), unique=True, nullable=False)
-    value = db.Column(db.Text, nullable=False)
-    type = db.Column(db.String(20))  # string, number, json, boolean
-    description = db.Column(db.String(255))
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)
-```
-
-**2. 配置 API**
-
-```python
-# app/api/v1/config/routes.py
-@bp.route('/system-configs', methods=['GET'])
-def get_system_configs():
-    """获取系统配置"""
-    configs = SystemConfig.query.all()
-    return success_response([{
-        'key': c.key,
-        'value': c.value,
-        'type': c.type,
-    } for c in configs])
-
-@bp.route('/system-configs/<key>', methods=['PUT'])
-@require_permission('MANAGE_CONFIG')
-def update_system_config(key):
-    """更新系统配置"""
-    data = request.get_json()
-    config = SystemConfig.query.filter_by(key=key).first_or_404()
-    config.value = data['value']
-    db.session.commit()
-    return success_response(config)
-```
-
-### 前端实现
-
-**1. API 调用**
-
-```typescript
-// src/api/config.ts
-export const configApi = {
-  getSystemConfigs: () => api.get<SystemConfig[]>('/system-configs'),
-  updateSystemConfig: (key: string, value: unknown) => api.put(`/system-configs/${key}`, { value }),
-};
-```
-
-**2. Store 管理**
-
-```typescript
-// src/stores/configStore.ts
-interface ConfigState {
-  systemConfigs: Record<string, unknown>;
-  fetchSystemConfigs: () => Promise<void>;
-}
-
-export const useConfigStore = create<ConfigState>(set => ({
-  systemConfigs: {},
-
-  fetchSystemConfigs: async () => {
-    const configs = await configApi.getSystemConfigs();
-    const configMap = configs.reduce(
-      (acc, c) => {
-        acc[c.key] = c.value;
-        return acc;
-      },
-      {} as Record<string, unknown>
-    );
-    set({ systemConfigs: configMap });
-  },
-}));
-```
-
-## 🔧 Redis 缓存集成
-
-### 后端缓存实现
-
-```python
-# app/common/cache.py
-from flask_caching import Cache
-
-cache = Cache()
-
-def init_cache(app):
-    cache.init_app(app, config={
-        'CACHE_TYPE': 'redis',
-        'CACHE_REDIS_URL': app.config['REDIS_URL'],
-        'CACHE_DEFAULT_TIMEOUT': 300,
-    })
-
-# 使用缓存
-@cache.cached(timeout=300, key_prefix='system_configs')
-def get_system_configs():
-    return SystemConfig.query.all()
-
-# 清除缓存
-def update_system_config(key, value):
-    config = SystemConfig.query.filter_by(key=key).first()
-    config.value = value
-    db.session.commit()
-    cache.delete('system_configs')  # 清除缓存
-    return config
-```
-
-## 📝 配置数据示例
-
-### 数据库配置示例
-
-```sql
--- 系统配置
-INSERT INTO system_configs (key, value, type, description) VALUES
-('max_upload_size', '104857600', 'number', '最大上传文件大小（字节）'),
-('default_solver', '1', 'number', '默认求解器ID'),
-('enable_notifications', 'true', 'boolean', '是否启用通知'),
-('api_rate_limit', '{"requests": 100, "period": 60}', 'json', 'API速率限制');
-```
-
-### 常量配置示例
-
-```typescript
-// src/constants/common.ts
-export const FILE_LIMITS = {
-  MAX_SIZE: 100 * 1024 * 1024, // 100MB
-  ALLOWED_TYPES: ['.zip', '.rar', '.7z'],
-} as const;
-
-export const UI_CONFIG = {
-  SIDEBAR_WIDTH: 240,
-  HEADER_HEIGHT: 64,
-  ANIMATION_DURATION: 300,
-} as const;
-```
-
-## 🔄 配置更新流程
-
-### 数据库配置更新
-
-1. 用户在配置页面修改
-2. 前端调用 API 更新
-3. 后端更新数据库
-4. 清除 Redis 缓存
-5. 返回更新结果
-6. 前端更新 Store
-
-### 常量配置更新
-
-1. 开发者修改常量文件
-2. 提交代码
-3. 部署新版本
-
-## 🚀 最佳实践
-
-1. **优先使用数据库配置**：如果不确定，优先选择数据库配置
-2. **使用 Redis 缓存**：减少数据库查询，提高性能
-3. **配置分组**：按模块或功能分组管理配置
-4. **配置验证**：更新配置时进行数据验证
-5. **配置历史**：记录配置变更历史
-6. **配置备份**：定期备份配置数据
-
-## 📋 配置清单
-
-### 需要数据库配置的数据
-
-- [ ] 项目列表
-- [ ] 仿真类型
-- [ ] 参数定义
-- [ ] 工况定义
-- [ ] 输出定义
-- [ ] 求解器配置
-- [ ] 参数模板
-- [ ] 工况输出集
-- [ ] 流程配置
-- [ ] 状态定义
-- [ ] 权限配置
-- [ ] 系统设置
-
-### 可以使用常量的数据
-
-- [ ] 画布布局参数
-- [ ] UI 尺寸
-- [ ] 动画时长
-- [ ] HTTP 状态码
-- [ ] 错误码
-- [ ] 分页默认值
-
-## 🔗 相关文档
-
-- [常量管理规范](./CONSTANTS_MANAGEMENT.md)
-- [后端开发规范](../../structsim-backend/docs/development/DEVELOPMENT.md)
-- [API 设计规范](../../structsim-backend/docs/architecture/API_DESIGN.md)
+## 5. 推荐的代码职责拆分
+
+### 5.1 取数层
+
+负责：
+
+- 从接口读取配置和订单数据
+- 做基础缓存和请求控制
+
+不负责：
+
+- 页面业务解释
+
+### 5.2 适配层
+
+负责：
+
+- 把后端配置结构转换成页面可渲染结构
+- 计算默认选项和候选项
+- 统一字段命名和显示语义
+
+### 5.3 表单层
+
+负责：
+
+- 管理用户输入
+- 管理校验状态
+- 管理交互反馈
+
+### 5.4 序列化层
+
+负责：
+
+- 把页面状态转换成提交结构
+- 生成订单快照字段
+
+## 6. 当前最需要统一的协议
+
+前端当前最需要和后端一起固定的是以下几个结构：
+
+- 提单初始化配置
+- `inputJson`
+- `optParam`
+- `submitCheck`
+- 编辑态订单回填结构
+
+如果这些结构不稳定，页面再精细的交互优化都会反复返工。
+
+## 7. 登录与配置化的关系
+
+登录和 SSO 不只是认证问题，也会影响配置化体验：
+
+- 不同登录模式会影响默认用户信息和参与人选择
+- SSO 场景下通常需要自动带入用户上下文
+- 如果登录链路不统一，提单页初始化上下文也会不稳定
+
+因此登录模式收口是配置驱动提单的一部分，不是独立问题。
+
+## 8. 近期建议
+
+### 必须优先完成
+
+- 固化提单初始化配置协议
+- 抽出配置解释层
+- 抽出订单快照序列化层
+- 统一登录模式输入到认证 store
+
+### 建议随后完成
+
+- 明确“默认值覆盖”和“用户修改”的交互规则
+- 为提单主链路补集成测试
+- 为复杂配置切换增加可视化反馈

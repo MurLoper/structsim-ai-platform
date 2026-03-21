@@ -1,18 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Card, useToast, useConfirmDialog } from '@/components/ui';
-import {
-  Plus,
-  Pencil,
-  Trash2,
-  Search,
-  Download,
-  Upload,
-  X,
-  Check,
-  RefreshCw,
-  Filter,
-} from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Download, X, RefreshCw, Filter } from 'lucide-react';
 import { configApi } from '@/api';
+import * as XLSX from 'xlsx';
 import { useFormState } from '@/hooks/useFormState';
 import type { ParamGroup, ParamInGroup, SearchParamResult } from '@/types/configGroups';
 import type { ParamDef } from '@/api';
@@ -35,7 +25,6 @@ export const ParamGroupsManagement: React.FC = () => {
 
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showParamModal, setShowParamModal] = useState(false);
-  const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Partial<ParamGroup> | null>(null);
   const [editingGroupId, setEditingGroupId] = useState<number | null>(null);
   const initializedRef = useRef(false);
@@ -161,7 +150,16 @@ export const ParamGroupsManagement: React.FC = () => {
         groupId = editingGroup.id;
       } else {
         const res = await configApi.createParamGroup(
-          data as { name: string; description?: string; sort?: number }
+          data as {
+            name: string;
+            description?: string;
+            projectIds?: number[];
+            algType?: number;
+            doeFileName?: string;
+            doeFileHeads?: string[];
+            doeFileData?: Array<Record<string, number | string>>;
+            sort?: number;
+          }
         );
         groupId = (res?.data as { id: number })?.id || 0;
       }
@@ -277,19 +275,10 @@ export const ParamGroupsManagement: React.FC = () => {
     );
   };
 
-  // 下载 Excel 模板
+  // 下载 DOE 模板（后端固定文件）
   const handleDownloadTemplate = () => {
-    const headers = ['参数Key(必填)', '参数名称', '默认值', '下限', '上限', '单位'];
-    const exampleRow = ['param_key_1', '参数名称示例', '0', '', '', 'mm'];
-    const csvContent = [headers.join(','), exampleRow.join(',')].join('\n');
-    const BOM = '\uFEFF';
-    const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = '参数组合模板.csv';
-    a.click();
-    URL.revokeObjectURL(url);
+    const url = configApi.getParamGroupDoeTemplateDownloadUrl();
+    window.open(url, '_blank');
   };
 
   return (
@@ -308,13 +297,6 @@ export const ParamGroupsManagement: React.FC = () => {
             >
               <Download className="w-4 h-4" />
               模板
-            </button>
-            <button
-              onClick={() => setShowUploadModal(true)}
-              className="px-3 py-2 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors flex items-center gap-1 text-sm"
-            >
-              <Upload className="w-4 h-4" />
-              导入
             </button>
             <button
               onClick={() => {
@@ -536,6 +518,7 @@ export const ParamGroupsManagement: React.FC = () => {
           projects={projects}
           existingParams={editingGroup?.id ? groupParamsMap.get(editingGroup.id) || [] : []}
           onSave={handleSaveGroup}
+          showToast={showToast}
           onClose={() => {
             setShowGroupModal(false);
             setEditingGroup(null);
@@ -557,14 +540,6 @@ export const ParamGroupsManagement: React.FC = () => {
           }}
           onRefresh={loadAllData}
           showToast={showToast}
-        />
-      )}
-      {showUploadModal && (
-        <UploadExcelModal
-          groups={groups}
-          allParamDefs={allParamDefs}
-          onSuccess={loadAllData}
-          onClose={() => setShowUploadModal(false)}
         />
       )}
       <ConfirmDialogComponent />
@@ -599,13 +574,18 @@ const GroupModal: React.FC<{
       sort?: number;
     }>
   ) => void;
+  showToast: (type: 'success' | 'error' | 'warning' | 'info', message: string) => void;
   onClose: () => void;
-}> = ({ group, paramDefs, projects, existingParams = [], onSave, onClose }) => {
+}> = ({ group, paramDefs, projects, existingParams = [], onSave, showToast, onClose }) => {
   const initialData = useMemo(
     () => ({
       name: group?.name || '',
       description: group?.description || '',
       projectIds: group?.projectIds ?? ([] as number[]),
+      algType: group?.algType ?? 2,
+      doeFileName: group?.doeFileName || '',
+      doeFileHeads: (group?.doeFileHeads || []) as string[],
+      doeFileData: (group?.doeFileData || []) as Array<Record<string, number | string>>,
       sort: group?.sort ?? 100,
     }),
     [group]
@@ -613,6 +593,8 @@ const GroupModal: React.FC<{
 
   const { formData, updateField } = useFormState(initialData);
   const [searchTerm, setSearchTerm] = useState('');
+  const [doePasteText, setDoePasteText] = useState('');
+  const doeFileInputRef = useRef<HTMLInputElement>(null);
 
   // 已选参数配置列表（有序，含默认值）
   const [paramConfigs, setParamConfigs] = useState<ParamConfigItem[]>(() =>
@@ -670,6 +652,254 @@ const GroupModal: React.FC<{
 
   // 查找参数定义
   const getParamDef = (paramDefId: number) => paramDefs.find(p => p.id === paramDefId);
+
+  const parseDelimitedLine = (line: string): string[] => {
+    const delimiter = line.includes('\t') ? '\t' : ',';
+    return line.split(delimiter).map(item => String(item).trim());
+  };
+
+  const toCamelKey = (key: string): string =>
+    key.replace(/_([a-zA-Z])/g, (_, ch: string) => ch.toUpperCase());
+
+  const getDoeCellValue = (row: Record<string, number | string>, head: string): string => {
+    const direct = row[head];
+    if (direct !== undefined && direct !== null) return String(direct);
+    const camel = row[toCamelKey(head)];
+    if (camel !== undefined && camel !== null) return String(camel);
+    return '';
+  };
+
+  const updateDoeCellValue = (rowIdx: number, head: string, value: string) => {
+    const currentHeads = (formData.doeFileHeads || []) as string[];
+    const currentData = (
+      (formData.doeFileData || []) as Array<Record<string, number | string>>
+    ).map(row => {
+      const normalized: Record<string, number | string> = {};
+      currentHeads.forEach(h => {
+        normalized[h] = getDoeCellValue(row, h);
+      });
+      return normalized;
+    });
+
+    const num = Number(value);
+    currentData[rowIdx] = {
+      ...(currentData[rowIdx] || {}),
+      [head]: value !== '' && Number.isFinite(num) ? num : value,
+    };
+    updateField('doeFileData', currentData);
+  };
+
+  const addDoeRoundRow = () => {
+    const currentHeads = (formData.doeFileHeads || []) as string[];
+    if (currentHeads.length === 0) return;
+    const currentData = (
+      (formData.doeFileData || []) as Array<Record<string, number | string>>
+    ).slice();
+    const newRow: Record<string, number | string> = {};
+    currentHeads.forEach(h => {
+      newRow[h] = '';
+    });
+    currentData.push(newRow);
+    updateField('doeFileData', currentData);
+  };
+
+  const removeDoeRoundRow = (rowIdx: number) => {
+    const currentData = (formData.doeFileData || []) as Array<Record<string, number | string>>;
+    updateField(
+      'doeFileData',
+      currentData.filter((_, idx) => idx !== rowIdx)
+    );
+  };
+
+  const handleDownloadDoeFile = () => {
+    if (!group?.id) {
+      showToast('warning', '请先保存参数组合后再下载DOE文件');
+      return;
+    }
+    const url = configApi.getParamGroupDoeDownloadUrl(group.id);
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
+
+  const normalizeDoeMatrix = (
+    matrix: Array<Array<string | number | null | undefined>>
+  ): { heads: string[]; data: Array<Record<string, number | string>> } | null => {
+    if (!matrix.length) return null;
+
+    const rawHeads = (matrix[0] || []).map(v => String(v ?? '').trim());
+    const heads = rawHeads.filter(Boolean);
+    if (!heads.length) return null;
+
+    const rows = matrix.slice(1).filter(row => row.some(cell => String(cell ?? '').trim() !== ''));
+    if (!rows.length) return null;
+
+    const data: Array<Record<string, number | string>> = rows.map(row => {
+      const item: Record<string, number | string> = {};
+      heads.forEach((head, idx) => {
+        const raw = String(row[idx] ?? '').trim();
+        const num = Number(raw);
+        item[head] = raw !== '' && Number.isFinite(num) ? num : raw;
+      });
+      return item;
+    });
+
+    return { heads, data };
+  };
+
+  const applyDoeToParamConfigs = (
+    source: 'upload' | 'paste',
+    doeName: string,
+    heads: string[],
+    data: Array<Record<string, number | string>>
+  ) => {
+    const missingKeys = heads.filter(key => !paramDefs.some(def => def.key === key));
+
+    setParamConfigs(prev => {
+      const next = [...prev];
+
+      heads.forEach((key, idx) => {
+        const paramDef = paramDefs.find(def => def.key === key);
+        if (!paramDef) {
+          return;
+        }
+
+        const values = data
+          .map(row => row[key])
+          .filter(v => v !== null && v !== undefined && String(v).trim() !== '');
+        const uniqueValues: string[] = [];
+        values.forEach(v => {
+          const text = String(v).trim();
+          if (text && !uniqueValues.includes(text)) {
+            uniqueValues.push(text);
+          }
+        });
+        const enumValues = uniqueValues.join(',');
+
+        const existingIndex = next.findIndex(item => item.paramDefId === paramDef.id);
+        if (existingIndex >= 0) {
+          next[existingIndex] = { ...next[existingIndex], enumValues };
+        } else {
+          next.push({
+            paramDefId: paramDef.id,
+            defaultValue: paramDef.defaultVal || '',
+            minVal: paramDef.minVal != null ? String(paramDef.minVal) : '',
+            maxVal: paramDef.maxVal != null ? String(paramDef.maxVal) : '',
+            enumValues,
+            sort: (prev.length + idx + 1) * 10,
+          });
+        }
+      });
+
+      return next;
+    });
+
+    updateField('algType', 5);
+    updateField('doeFileName', doeName);
+    updateField('doeFileHeads', heads);
+    updateField('doeFileData', data);
+
+    const sourceText = source === 'upload' ? '上传doe' : '粘贴doe';
+    const unknownText =
+      missingKeys.length > 0
+        ? `；未定义Key（${missingKeys.join(', ')}）已按自定义Key保留，不影响保存与提单`
+        : '';
+    showToast(
+      'info',
+      `识别到${sourceText}（已帮您自动保存成文件），自动帮您切换成默认算法：DOE文件${unknownText}`
+    );
+  };
+
+  const parseDoeCsvText = (text: string) => {
+    const lines = text
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+    if (lines.length < 2) {
+      showToast('warning', 'DOE 文件格式错误：至少需要表头和一行数据');
+      return;
+    }
+    const matrix = lines.map(parseDelimitedLine);
+    const parsed = normalizeDoeMatrix(matrix);
+    if (!parsed) {
+      showToast('warning', 'DOE 文件解析失败，请检查内容');
+      return;
+    }
+    applyDoeToParamConfigs(
+      'upload',
+      formData.doeFileName || `doe_${Date.now()}.csv`,
+      parsed.heads,
+      parsed.data
+    );
+  };
+
+  const handleDoeFileUpload = async (file: File) => {
+    const lowerName = file.name.toLowerCase();
+    try {
+      if (lowerName.endsWith('.xlsx') || lowerName.endsWith('.xls')) {
+        const buffer = await file.arrayBuffer();
+        const workbook = XLSX.read(buffer, { type: 'array' });
+        const firstSheetName = workbook.SheetNames[0];
+        if (!firstSheetName) {
+          showToast('warning', 'Excel 文件为空');
+          return;
+        }
+        const sheet = workbook.Sheets[firstSheetName];
+        const matrix = XLSX.utils.sheet_to_json<Array<string | number>>(sheet, {
+          header: 1,
+          raw: true,
+          defval: '',
+        });
+        const parsed = normalizeDoeMatrix(matrix);
+        if (!parsed) {
+          showToast('warning', 'Excel DOE 内容为空或格式不正确');
+          return;
+        }
+        applyDoeToParamConfigs('upload', file.name, parsed.heads, parsed.data);
+        return;
+      }
+
+      const text = await file.text();
+      updateField('doeFileName', file.name);
+      parseDoeCsvText(text);
+    } catch (error) {
+      console.error('解析 DOE 文件失败:', error);
+      showToast('error', '解析 DOE 文件失败');
+    }
+  };
+
+  const handleDoeTextareaPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const pastedText = e.clipboardData.getData('text');
+    if (!pastedText.trim()) return;
+
+    setDoePasteText(pastedText);
+    const lines = pastedText
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+    if (lines.length < 2) {
+      showToast('warning', '粘贴内容格式错误：至少需要表头和一行数据');
+      return;
+    }
+    const matrix = lines.map(parseDelimitedLine);
+    const parsed = normalizeDoeMatrix(matrix);
+    if (!parsed) {
+      showToast('warning', '粘贴内容解析失败，请检查');
+      return;
+    }
+    applyDoeToParamConfigs('paste', `pasted_doe_${Date.now()}.csv`, parsed.heads, parsed.data);
+  };
+
+  const clearDoeFile = () => {
+    updateField('doeFileName', '');
+    updateField('doeFileHeads', []);
+    updateField('doeFileData', []);
+    setDoePasteText('');
+    if (doeFileInputRef.current) {
+      doeFileInputRef.current.value = '';
+    }
+  };
+
+  const hasDoeFile =
+    Number(formData.algType ?? 2) === 5 && Boolean(String(formData.doeFileName || '').trim());
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -740,6 +970,147 @@ const GroupModal: React.FC<{
               />
             </div>
           </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">默认算法</label>
+              <select
+                value={formData.algType ?? 2}
+                onChange={e => updateField('algType', Number(e.target.value))}
+                className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
+              >
+                <option value={1}>贝叶斯</option>
+                <option value={2}>DOE枚举</option>
+                <option value={5}>DOE文件</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">DOE 文件导入 / 粘贴</label>
+              <input
+                ref={doeFileInputRef}
+                type="file"
+                accept=".csv,.xls,.xlsx"
+                className="hidden"
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    void handleDoeFileUpload(file);
+                  }
+                }}
+              />
+              {hasDoeFile ? (
+                <div className="px-3 py-2 border rounded-lg bg-slate-50 dark:bg-slate-700/60 flex items-center justify-between gap-2">
+                  <p className="text-xs text-slate-600 dark:text-slate-300 truncate">
+                    已保存DOE文件：{formData.doeFileName}
+                  </p>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={handleDownloadDoeFile}
+                      className="text-xs text-blue-600 hover:text-blue-700 underline disabled:opacity-50"
+                      disabled={!group?.id || !formData.doeFileName}
+                    >
+                      下载
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearDoeFile}
+                      className="text-xs text-red-600 hover:text-red-700 underline"
+                    >
+                      清除
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    onClick={() => doeFileInputRef.current?.click()}
+                    className="px-3 py-2 border rounded-lg text-sm hover:bg-slate-50 dark:hover:bg-slate-700"
+                  >
+                    上传Excel/CSV
+                  </button>
+                  <textarea
+                    value={doePasteText}
+                    onChange={e => setDoePasteText(e.target.value)}
+                    onPaste={handleDoeTextareaPaste}
+                    rows={4}
+                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border font-mono text-xs"
+                    placeholder="可直接粘贴Excel表格内容：首行为参数key，第二行开始为每轮DOE数值（粘贴后自动解析）"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {Number(formData.algType ?? 2) === 5 && (formData.doeFileHeads || []).length > 0 && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium">DOE轮次数据</label>
+                <button
+                  type="button"
+                  onClick={addDoeRoundRow}
+                  className="text-xs px-2 py-1 border rounded hover:bg-slate-50 dark:hover:bg-slate-700"
+                >
+                  新增轮次
+                </button>
+              </div>
+              <div className="border rounded-lg dark:border-slate-600 overflow-auto max-h-56">
+                <table className="w-full text-xs">
+                  <thead className="bg-slate-50 dark:bg-slate-700">
+                    <tr>
+                      <th className="px-2 py-1 text-left w-12">#</th>
+                      {((formData.doeFileHeads || []) as string[]).map(head => (
+                        <th key={head} className="px-2 py-1 text-left font-mono">
+                          {head}
+                        </th>
+                      ))}
+                      <th className="px-2 py-1 w-12"></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y dark:divide-slate-600">
+                    {((formData.doeFileData || []) as Array<Record<string, number | string>>).map(
+                      (row, rowIdx) => (
+                        <tr key={rowIdx}>
+                          <td className="px-2 py-1 text-slate-500">{rowIdx + 1}</td>
+                          {((formData.doeFileHeads || []) as string[]).map(head => (
+                            <td key={`${head}-${rowIdx}`} className="px-2 py-1">
+                              <input
+                                type="text"
+                                value={getDoeCellValue(row, head)}
+                                onChange={e => updateDoeCellValue(rowIdx, head, e.target.value)}
+                                className="w-full px-1.5 py-1 border rounded dark:bg-slate-600 dark:border-slate-500"
+                              />
+                            </td>
+                          ))}
+                          <td className="px-2 py-1">
+                            <button
+                              type="button"
+                              onClick={() => removeDoeRoundRow(rowIdx)}
+                              className="text-red-500 hover:text-red-600"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    )}
+                    {((formData.doeFileData || []) as Array<Record<string, number | string>>)
+                      .length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={((formData.doeFileHeads || []) as string[]).length + 2}
+                          className="px-3 py-3 text-center text-slate-400"
+                        >
+                          暂无DOE轮次数据
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           {/* 已选参数表格 */}
           <div>
@@ -907,7 +1278,22 @@ const GroupModal: React.FC<{
           <button
             onClick={() =>
               onSave(
-                formData,
+                {
+                  ...formData,
+                  algType: Number(formData.algType ?? 2),
+                  doeFileName:
+                    Number(formData.algType ?? 2) === 5
+                      ? (formData.doeFileName as string) || ''
+                      : '',
+                  doeFileHeads:
+                    Number(formData.algType ?? 2) === 5
+                      ? (formData.doeFileHeads as string[]) || []
+                      : [],
+                  doeFileData:
+                    Number(formData.algType ?? 2) === 5
+                      ? (formData.doeFileData as Array<Record<string, number | string>>) || []
+                      : [],
+                },
                 paramConfigs.map(p => ({
                   paramDefId: p.paramDefId,
                   defaultValue: p.defaultValue || undefined,
@@ -1221,199 +1607,6 @@ const AddParamsModal: React.FC<{
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             添加 ({selectedIds.size})
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// Excel 上传模态框组件
-const UploadExcelModal: React.FC<{
-  groups: ParamGroup[];
-  allParamDefs: ParamDef[];
-  onSuccess: () => void;
-  onClose: () => void;
-}> = ({ groups, allParamDefs, onSuccess, onClose }) => {
-  const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
-  const [file, setFile] = useState<File | null>(null);
-  const [parsedData, setParsedData] = useState<ParsedParam[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  interface ParsedParam {
-    key: string;
-    name: string;
-    defaultValue: string;
-    minValue: string;
-    maxValue: string;
-    unit: string;
-    exists: boolean;
-    paramDefId?: number;
-  }
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
-    setFile(selectedFile);
-    parseFile(selectedFile);
-  };
-
-  const parseFile = async (file: File) => {
-    const text = await file.text();
-    const lines = text.split('\n').filter(line => line.trim());
-    if (lines.length < 2) {
-      alert('文件格式错误，至少需要标题行和一行数据');
-      return;
-    }
-
-    const dataLines = lines.slice(1);
-    const parsed: ParsedParam[] = dataLines
-      .map(line => {
-        const cols = line.split(',').map(c => c.trim());
-        const key = cols[0] || '';
-        const existingParam = allParamDefs.find(p => p.key === key);
-        return {
-          key,
-          name: cols[1] || '',
-          defaultValue: cols[2] || '',
-          minValue: cols[3] || '',
-          maxValue: cols[4] || '',
-          unit: cols[5] || '',
-          exists: !!existingParam,
-          paramDefId: existingParam?.id,
-        };
-      })
-      .filter(p => p.key);
-
-    setParsedData(parsed);
-  };
-
-  const handleUpload = async () => {
-    if (!selectedGroupId || parsedData.length === 0) return;
-    setUploading(true);
-    try {
-      for (const param of parsedData) {
-        if (!param.exists) {
-          const res = await configApi.createParamDef({
-            key: param.key,
-            name: param.name || param.key,
-            defaultVal: param.defaultValue || undefined,
-            unit: param.unit || undefined,
-          });
-          param.paramDefId = res.data?.id;
-        }
-      }
-
-      for (const param of parsedData) {
-        if (param.paramDefId) {
-          await configApi.addParamToGroup(selectedGroupId, { paramDefId: param.paramDefId });
-        }
-      }
-
-      alert('导入成功');
-      onSuccess();
-      onClose();
-    } catch (error) {
-      console.error('导入失败:', error);
-      alert('导入失败');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
-        <div className="p-4 border-b dark:border-slate-700">
-          <h3 className="text-lg font-bold">导入参数组合</h3>
-          <p className="text-sm text-slate-500 mt-1">上传 CSV 文件，自动识别并创建参数</p>
-        </div>
-
-        <div className="p-4 space-y-4 flex-1 overflow-y-auto">
-          <div>
-            <label className="block text-sm font-medium mb-2">选择目标组合</label>
-            <select
-              value={selectedGroupId ?? ''}
-              onChange={e => setSelectedGroupId(e.target.value ? Number(e.target.value) : null)}
-              className="w-full p-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
-            >
-              <option value="">请选择...</option>
-              {groups.map(g => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">上传文件</label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={handleFileChange}
-              className="hidden"
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full p-4 border-2 border-dashed rounded-lg text-center hover:bg-slate-50 dark:hover:bg-slate-700 eyecare:hover:bg-muted"
-            >
-              {file ? file.name : '点击选择文件 (CSV)'}
-            </button>
-          </div>
-
-          {parsedData.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium mb-2">
-                预览 ({parsedData.length} 个参数)
-              </label>
-              <div className="border rounded-lg overflow-hidden max-h-60 overflow-y-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-slate-50 dark:bg-slate-700">
-                    <tr>
-                      <th className="px-3 py-2 text-left">Key</th>
-                      <th className="px-3 py-2 text-left">名称</th>
-                      <th className="px-3 py-2 text-left">状态</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y dark:divide-slate-700">
-                    {parsedData.map((p, i) => (
-                      <tr key={i}>
-                        <td className="px-3 py-2 font-mono text-xs">{p.key}</td>
-                        <td className="px-3 py-2">{p.name || '-'}</td>
-                        <td className="px-3 py-2">
-                          {p.exists ? (
-                            <span className="text-green-600 flex items-center gap-1">
-                              <Check className="w-4 h-4" /> 已存在
-                            </span>
-                          ) : (
-                            <span className="text-orange-500">将创建</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="flex justify-end gap-3 p-4 border-t dark:border-slate-700">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
-          >
-            取消
-          </button>
-          <button
-            onClick={handleUpload}
-            disabled={!selectedGroupId || parsedData.length === 0 || uploading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {uploading ? '导入中...' : '确认导入'}
           </button>
         </div>
       </div>

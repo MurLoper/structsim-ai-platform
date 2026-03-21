@@ -11,7 +11,7 @@ export interface OrderListItem {
   progress: number;
   /** 工况概览：姿态名 → 仿真类型名[] */
   conditionSummary?: Record<string, string[]>;
-  createdBy: number;
+  createdBy: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -35,7 +35,7 @@ export interface OrderDetail extends OrderListItem {
   originFile: OrderOriginFile;
   originFoldTypeId?: number | null;
   modelLevelId?: number;
-  participantIds?: number[];
+  participantIds?: string[];
   remark?: string | null;
   /** @deprecated 使用 inputJson 替代 */
   optParam?: Record<string, unknown>;
@@ -54,7 +54,7 @@ export interface OrderCreatePayload {
   originFile: OrderOriginFile;
   originFoldTypeId?: number | null;
   foldTypeIds?: number[];
-  participantIds?: number[];
+  participantIds?: string[];
   remark?: string;
   simTypeIds: number[];
   /** @deprecated 使用 inputJson 替代 */

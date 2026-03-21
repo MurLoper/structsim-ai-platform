@@ -8,7 +8,12 @@ import { act } from '@testing-library/react';
 vi.mock('@/api', () => ({
   authApi: {
     getAllUsers: vi.fn(),
+    getLoginMode: vi.fn(),
     login: vi.fn(),
+    ssoCallbackLogin: vi.fn(),
+    verifyToken: vi.fn(),
+    heartbeat: vi.fn(),
+    refreshToken: vi.fn(),
     logout: vi.fn(),
   },
 }));
@@ -146,7 +151,7 @@ describe('useAuthStore', () => {
       const { login } = useAuthStore.getState();
 
       await act(async () => {
-        await login('admin@example.com');
+        await login('z00012345', 'password');
       });
 
       const state = useAuthStore.getState();
@@ -166,7 +171,7 @@ describe('useAuthStore', () => {
       const { login } = useAuthStore.getState();
 
       await act(async () => {
-        await login('non-existent');
+        await login('z00000000', 'password');
       });
 
       const state = useAuthStore.getState();

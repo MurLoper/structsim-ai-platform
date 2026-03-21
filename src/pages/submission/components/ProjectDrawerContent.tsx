@@ -312,11 +312,13 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
           name="participantIds"
           label={t('sub.participants_select')}
           render={({ field }) => {
-            const selectedIds = field.value || [];
+            const selectedIds = (field.value || []) as string[];
             // 已选中的用户排在前面
             const sortedUsers = [...users].sort((a, b) => {
-              const aSelected = selectedIds.includes(a.id);
-              const bSelected = selectedIds.includes(b.id);
+              const aIdentity = a.domainAccount || String(a.id || '');
+              const bIdentity = b.domainAccount || String(b.id || '');
+              const aSelected = selectedIds.includes(aIdentity);
+              const bSelected = selectedIds.includes(bIdentity);
               if (aSelected && !bSelected) return -1;
               if (!aSelected && bSelected) return 1;
               return 0;
@@ -324,10 +326,12 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
             return (
               <div className="space-y-1 max-h-48 overflow-y-auto border border-input rounded-lg p-2">
                 {sortedUsers.map(user => {
-                  const isSelected = selectedIds.includes(user.id);
+                  const userIdentity = user.domainAccount || String(user.id || '');
+                  if (!userIdentity) return null;
+                  const isSelected = selectedIds.includes(userIdentity);
                   return (
                     <label
-                      key={user.id}
+                      key={userIdentity}
                       className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
                         isSelected ? 'bg-primary/5' : 'hover:bg-muted'
                       }`}
@@ -337,14 +341,16 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
                         checked={isSelected}
                         onChange={e => {
                           if (e.target.checked) {
-                            field.onChange([...selectedIds, user.id]);
+                            field.onChange([...selectedIds, userIdentity]);
                           } else {
-                            field.onChange(selectedIds.filter((id: number) => id !== user.id));
+                            field.onChange(selectedIds.filter(id => id !== userIdentity));
                           }
                         }}
                         className="w-4 h-4 rounded border-input"
                       />
-                      <span className="flex-1 text-sm">{user.name || user.username}</span>
+                      <span className="flex-1 text-sm">
+                        {user.name || user.username || userIdentity}
+                      </span>
                     </label>
                   );
                 })}

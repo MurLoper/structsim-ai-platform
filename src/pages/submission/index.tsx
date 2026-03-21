@@ -16,11 +16,9 @@ import {
   MagnifyingGlassPlusIcon,
   MagnifyingGlassMinusIcon,
   ArrowsPointingOutIcon,
-  CameraIcon,
-  DocumentArrowDownIcon,
 } from '@heroicons/react/24/outline';
 
-import { useSubmissionState, useCanvasInteraction, useCanvasExport } from './hooks';
+import { useSubmissionState, useCanvasInteraction } from './hooks';
 import {
   submissionFormSchema,
   type SubmissionFormValues,
@@ -137,7 +135,6 @@ const Submission: React.FC = () => {
     startPan: state.startPan,
     setStartPan: state.setStartPan,
   });
-  const { exportAsImage, exportAsFlowData } = useCanvasExport();
   const canvasContainerRef = useRef<HTMLDivElement>(null);
 
   // INP 文件解析出的 set 集合（用于关注器件选择）
@@ -151,16 +148,17 @@ const Submission: React.FC = () => {
   });
 
   const getProjectHabitIds = useCallback((): number[] => {
-    if (!user?.id) return [];
+    const userKey = user?.domainAccount || String(user?.id || '');
+    if (!userKey) return [];
     try {
       const raw = localStorage.getItem(PROJECT_HABIT_STORAGE_KEY);
       if (!raw) return [];
       const parsed = JSON.parse(raw) as Record<string, number[]>;
-      return Array.isArray(parsed?.[String(user.id)]) ? parsed[String(user.id)] : [];
+      return Array.isArray(parsed?.[userKey]) ? parsed[userKey] : [];
     } catch {
       return [];
     }
-  }, [user?.id]);
+  }, [user?.domainAccount, user?.id]);
 
   const getPreferredProjectId = useCallback((): number | null => {
     const projects = state.projects || [];
@@ -174,19 +172,19 @@ const Submission: React.FC = () => {
 
   const updateProjectHabit = useCallback(
     (projectId: number | null | undefined) => {
-      if (!user?.id || projectId == null) return;
+      const userKey = user?.domainAccount || String(user?.id || '');
+      if (!userKey || projectId == null) return;
       try {
         const raw = localStorage.getItem(PROJECT_HABIT_STORAGE_KEY);
         const parsed = raw ? (JSON.parse(raw) as Record<string, number[]>) : {};
-        const key = String(user.id);
-        const current = Array.isArray(parsed[key]) ? parsed[key] : [];
-        parsed[key] = [projectId, ...current.filter(id => id !== projectId)].slice(0, 10);
+        const current = Array.isArray(parsed[userKey]) ? parsed[userKey] : [];
+        parsed[userKey] = [projectId, ...current.filter(id => id !== projectId)].slice(0, 10);
         localStorage.setItem(PROJECT_HABIT_STORAGE_KEY, JSON.stringify(parsed));
       } catch {
         // ignore
       }
     },
-    [user?.id]
+    [user?.domainAccount, user?.id]
   );
 
   const defaultFormValues = useMemo<SubmissionFormValues>(
@@ -289,7 +287,7 @@ const Submission: React.FC = () => {
         },
         originFoldTypeId: toNumber(order.originFoldTypeId ?? order.origin_fold_type_id),
         participantIds: Array.isArray(order.participantIds)
-          ? (order.participantIds as number[])
+          ? (order.participantIds as string[])
           : [],
         foldTypeIds: Array.isArray(foldTypeIds) ? (foldTypeIds as number[]) : [],
         remark: String(order.remark ?? projectInfo.remark ?? ''),
@@ -761,55 +759,6 @@ const Submission: React.FC = () => {
               title={t('sub.reset_view')}
             >
               <ArrowsPointingOutIcon className="w-5 h-5" />
-            </button>
-          </div>
-          {/* 导出按钮组 */}
-          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-700 eyecare:bg-muted rounded-lg p-1">
-            <button
-              onClick={() => exportAsImage(canvasContainerRef.current, { scale: 3 })}
-              className="p-2 hover:bg-white dark:hover:bg-slate-600 eyecare:hover:bg-card rounded"
-              title={t('sub.export_image')}
-            >
-              <CameraIcon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => {
-                const flowData = {
-                  version: '1.0',
-                  exportTime: new Date().toISOString(),
-                  project: {
-                    id: selectedProjectId,
-                    name: state.selectedProject?.name || '',
-                  },
-                  foldTypes: foldTypeIds.map(ftId => ({
-                    id: ftId,
-                    name: state.safeFoldTypes.find(f => f.id === ftId)?.name || '',
-                  })),
-                  simTypes: state.selectedSimTypes.map(item => {
-                    const st = state.safeSimTypes.find(s => s.id === item.simTypeId);
-                    const config = state.simTypeConfigs[item.conditionId];
-                    return {
-                      id: item.simTypeId,
-                      conditionId: item.conditionId,
-                      foldTypeId: item.foldTypeId,
-                      name: st?.name || '',
-                      isDefault: (st as { isDefault?: boolean })?.isDefault || false,
-                      config: config
-                        ? {
-                            params: config.params,
-                            output: config.output,
-                            solver: config.solver,
-                          }
-                        : undefined,
-                    };
-                  }),
-                };
-                exportAsFlowData(flowData);
-              }}
-              className="p-2 hover:bg-white dark:hover:bg-slate-600 eyecare:hover:bg-card rounded"
-              title={t('sub.export_flow')}
-            >
-              <DocumentArrowDownIcon className="w-5 h-5" />
             </button>
           </div>
           {state.configError && (

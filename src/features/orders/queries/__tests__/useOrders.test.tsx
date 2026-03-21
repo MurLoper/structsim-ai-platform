@@ -20,7 +20,8 @@ const mockResponse: OrdersListResponse = {
       simTypeIds: [1, 2],
       status: 1,
       progress: 30,
-      createdBy: 1,
+      createdBy: 'z00000001',
+
       createdAt: 1700000000,
       updatedAt: 1700000000,
     },

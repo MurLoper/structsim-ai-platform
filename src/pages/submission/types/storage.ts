@@ -49,7 +49,7 @@ export interface OrderDetail {
     fileId?: number | null;
   };
   originFoldTypeId: number | null;
-  participantIds: number[];
+  participantIds: string[];
   foldTypeIds: number[];
   remark: string;
   simTypeIds: number[];

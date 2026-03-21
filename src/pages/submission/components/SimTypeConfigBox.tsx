@@ -45,17 +45,10 @@ export const SimTypeConfigBox: React.FC<SimTypeConfigBoxProps> = ({
     const batchSizeType = optParams.batchSizeType ?? 1;
     const customBatchSize = optParams.customBatchSize || [];
 
-    // DOE 模式：显示 DOE 数据的轮次数
+    // DOE / DOE文件：仅显示 DOE 数据轮次
     if (algType === AlgorithmType.DOE || algType === AlgorithmType.DOE_FILE) {
       const doeRounds = optParams.doeParamData?.length || 0;
-      if (doeRounds > 0) {
-        return `[${doeRounds}]`;
-      }
-      // 如果没有 DOE 数据，显示批次大小
-      if (batchSize.length > 0) {
-        return `[${batchSize[0]?.value || 0}]`;
-      }
-      return '-';
+      return `[${doeRounds}]`;
     }
 
     // 贝叶斯模式
@@ -100,7 +93,10 @@ export const SimTypeConfigBox: React.FC<SimTypeConfigBoxProps> = ({
   }, [config.params.optParams?.algType]);
 
   // 参数数量
-  const paramCount = config.params.optParams?.domain?.length || 0;
+  const paramCount =
+    config.params.optParams?.algType === AlgorithmType.DOE_FILE
+      ? config.params.optParams?.doeParamHeads?.length || 0
+      : config.params.optParams?.domain?.length || 0;
 
   const hasParams =
     config.params.mode === 'template'

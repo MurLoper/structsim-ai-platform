@@ -12,6 +12,10 @@ export const paramGroupsApi = {
     name: string;
     description?: string;
     projectIds?: number[];
+    algType?: number;
+    doeFileName?: string;
+    doeFileHeads?: string[];
+    doeFileData?: Array<Record<string, number | string>>;
     sort?: number;
   }) => api.post('/config/param-groups', data),
 
@@ -21,6 +25,10 @@ export const paramGroupsApi = {
       name?: string;
       description?: string;
       projectIds?: number[];
+      algType?: number;
+      doeFileName?: string;
+      doeFileHeads?: string[];
+      doeFileData?: Array<Record<string, number | string>>;
       sort?: number;
     }
   ) => api.put(`/config/param-groups/${id}`, data),
@@ -28,6 +36,12 @@ export const paramGroupsApi = {
   deleteParamGroup: (id: number) => api.delete(`/config/param-groups/${id}`),
 
   getParamGroupParams: (id: number) => api.get(`/config/param-groups/${id}/params`),
+
+  getParamGroupDoeDownloadUrl: (id: number) =>
+    `${import.meta.env.VITE_API_URL || '/api/v1'}/config/param-groups/${id}/doe-file/download`,
+
+  getParamGroupDoeTemplateDownloadUrl: () =>
+    `${import.meta.env.VITE_API_URL || '/api/v1'}/config/param-groups/doe-template/download`,
 
   addParamToGroup: (
     id: number,

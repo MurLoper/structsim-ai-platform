@@ -1,11 +1,13 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
+  DocumentArrowDownIcon,
   DocumentArrowUpIcon,
   PlusIcon,
   TrashIcon,
   CheckCircleIcon,
 } from '@heroicons/react/24/outline';
 import { FormItem, Alert, Button } from '@/components/ui';
+import { configApi } from '@/api';
 import type { SimTypeConfig, OptParams, ParamDomain, CustomBatchSize } from '../types';
 import { AlgorithmType as AlgType } from '../types';
 import type { ParamDef, ConditionConfig } from '@/types/config';
@@ -34,6 +36,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
 }) => {
   // DOE 文件上传状态
   const [doeFileName, setDoeFileName] = useState<string>('');
+  const [doePasteText, setDoePasteText] = useState('');
   const [loadingGroup, setLoadingGroup] = useState(false);
   // DOE 验证错误信息
   const [doeValidationError, setDoeValidationError] = useState<string | null>(null);
@@ -46,6 +49,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
   const [verifyMessage, setVerifyMessage] = useState<string>('');
   // 自动应用标记
   const autoAppliedRef = useRef(false);
+  const doeFileInputRef = useRef<HTMLInputElement>(null);
 
   // 获取当前算法类型
   const currentAlgType = config.params.optParams?.algType ?? AlgType.DOE;
@@ -77,6 +81,34 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
       },
     });
   };
+
+  const toCamelKey = (key: string): string =>
+    key.replace(/_([a-zA-Z])/g, (_, ch: string) => ch.toUpperCase());
+
+  const getDoeCellValue = (row: Record<string, number | string>, head: string): string => {
+    const direct = row[head];
+    if (direct !== undefined && direct !== null) return String(direct);
+    const camel = row[toCamelKey(head)];
+    if (camel !== undefined && camel !== null) return String(camel);
+    return '';
+  };
+
+  const normalizeDoeDataByHeads = (
+    heads: string[],
+    rows: Array<Record<string, number | string> | Array<string | number>>
+  ): Array<Record<string, number | string>> =>
+    rows.map(row => {
+      const normalized: Record<string, number | string> = {};
+      heads.forEach((head, idx) => {
+        if (Array.isArray(row)) {
+          const cell = row[idx];
+          normalized[head] = cell === undefined || cell === null ? '' : String(cell);
+          return;
+        }
+        normalized[head] = getDoeCellValue(row, head);
+      });
+      return normalized;
+    });
 
   // 更新参数域的辅助函数
   const updateDomain = (index: number, updates: Partial<ParamDomain>) => {
@@ -187,7 +219,8 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
 
   // DOE 表格操作
   const updateDoeCell = (rowIdx: number, head: string, value: string) => {
-    const data = [...(config.params.optParams?.doeParamData || [])];
+    const heads = config.params.optParams?.doeParamHeads || [];
+    const data = normalizeDoeDataByHeads(heads, [...(config.params.optParams?.doeParamData || [])]);
     const numVal = parseFloat(value);
     data[rowIdx] = { ...data[rowIdx], [head]: isNaN(numVal) ? value : numVal };
     updateOptParams({ doeParamData: data });
@@ -266,36 +299,59 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     updateOptParams({ customBatchSize: newList });
   };
 
+  const parseDoeText = (
+    text: string,
+    csvPath?: string
+  ): { heads: string[]; data: Array<Record<string, number | string>> } | null => {
+    const lines = text
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+    if (lines.length < 2) return null;
+
+    const splitLine = (line: string): string[] => {
+      const delimiter = line.includes('\t') ? '\t' : ',';
+      return line.split(delimiter).map(item => item.trim());
+    };
+
+    const heads = splitLine(lines[0]).filter(Boolean);
+    if (heads.length === 0) return null;
+
+    const data: Array<Record<string, number | string>> = lines.slice(1).map(line => {
+      const values = splitLine(line);
+      const row: Record<string, number | string> = {};
+      heads.forEach((head, idx) => {
+        const raw = values[idx] ?? '';
+        const num = Number(raw);
+        row[head] = raw !== '' && Number.isFinite(num) ? num : raw;
+      });
+      return row;
+    });
+
+    const normalized = normalizeDoeDataByHeads(heads, data);
+    setDoeFileName(csvPath || `pasted_doe_${Date.now()}.csv`);
+    updateOptParams({ doeParamHeads: heads, doeParamData: normalized, doeParamCsvPath: csvPath });
+    return { heads, data: normalized };
+  };
+
   // 解析 CSV 文件
   const parseCsvFile = (file: File) => {
     const reader = new FileReader();
     reader.onload = e => {
       const text = e.target?.result as string;
       if (!text) return;
-
-      const lines = text.trim().split('\n');
-      if (lines.length < 2) return;
-
-      // 解析表头
-      const heads = lines[0].split(',').map(h => h.trim());
-
-      // 解析数据行
-      const data: Record<string, number | string>[] = [];
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim());
-        const row: Record<string, number | string> = {};
-        heads.forEach((h, idx) => {
-          const numVal = parseFloat(values[idx]);
-          row[h] = isNaN(numVal) ? values[idx] : numVal;
-        });
-        data.push(row);
-      }
-
-      // 更新状态
-      setDoeFileName(file.name);
-      updateOptParams({ doeParamHeads: heads, doeParamData: data });
+      parseDoeText(text, file.name);
     };
     reader.readAsText(file);
+  };
+
+  const handleDoeTextareaPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const textarea = e.currentTarget;
+    setTimeout(() => {
+      const text = textarea.value;
+      setDoePasteText(text);
+      parseDoeText(text);
+    }, 0);
   };
 
   // 处理文件选择
@@ -305,6 +361,45 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
       parseCsvFile(file);
     }
   };
+
+  const doeFileDownloadUrl =
+    config.params.templateSetId && currentAlgType === AlgType.DOE_FILE
+      ? configApi.getParamGroupDoeDownloadUrl(config.params.templateSetId)
+      : '';
+
+  const doeFileDisplayName = useMemo(() => {
+    const raw = String(doeFileName || '').trim();
+    if (!raw) return '';
+    if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('/')) {
+      const selectedGroup = paramGroups.find(g => g.id === config.params.templateSetId);
+      if (selectedGroup?.doeFileName) return selectedGroup.doeFileName;
+      try {
+        const pathname = new URL(raw, window.location.origin).pathname;
+        const name = decodeURIComponent(pathname.split('/').pop() || '');
+        return name && name !== 'download' ? name : 'DOE文件.csv';
+      } catch {
+        return 'DOE文件.csv';
+      }
+    }
+    return raw;
+  }, [doeFileName, paramGroups, config.params.templateSetId]);
+
+  useEffect(() => {
+    if (config.params.optParams?.doeParamCsvPath) {
+      setDoeFileName(String(config.params.optParams.doeParamCsvPath));
+    }
+  }, [config.params.optParams?.doeParamCsvPath]);
+
+  const clearDoeFile = () => {
+    setDoeFileName('');
+    setDoePasteText('');
+    updateOptParams({ doeParamHeads: [], doeParamData: [], doeParamCsvPath: undefined });
+    if (doeFileInputRef.current) {
+      doeFileInputRef.current.value = '';
+    }
+  };
+
+  const hasDoeFile = Boolean(doeFileDisplayName);
 
   // 从 domain 列表生成 DOE 全组合数据（纯函数，不操作 state）
   const buildDoeCombinations = (domain: ParamDomain[]) => {
@@ -336,6 +431,52 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     return { doeParamHeads: heads, doeParamData: data };
   };
 
+  const mergeDomainWithGroup = (groupDomain: ParamDomain[], currentDomain: ParamDomain[]) => {
+    const groupKeySet = new Set(groupDomain.map(item => item.paramName.trim()).filter(Boolean));
+    const customDomain = currentDomain.filter(item => {
+      const key = item.paramName.trim();
+      return key && !groupKeySet.has(key);
+    });
+    return [...groupDomain, ...customDomain];
+  };
+
+  const mergeDoeFileByHeads = (
+    baseHeads: string[],
+    baseData: Array<Record<string, number | string>>,
+    currentHeads: string[],
+    currentData: Array<Record<string, number | string>>
+  ) => {
+    const normalizedBaseHeads = baseHeads.map(h => h.trim()).filter(Boolean);
+    const normalizedCurrentHeads = currentHeads.map(h => h.trim()).filter(Boolean);
+    const mergedHeads = [
+      ...normalizedBaseHeads,
+      ...normalizedCurrentHeads.filter(h => !normalizedBaseHeads.includes(h)),
+    ];
+    const rowCount = Math.max(baseData.length, currentData.length);
+    const mergedData: Array<Record<string, number | string>> = [];
+
+    for (let i = 0; i < rowCount; i += 1) {
+      const baseRow = baseData[i] || {};
+      const currentRow = currentData[i] || {};
+      const row: Record<string, number | string> = {};
+      mergedHeads.forEach(head => {
+        const hasBase = Object.prototype.hasOwnProperty.call(baseRow, head);
+        if (hasBase) {
+          row[head] = baseRow[head];
+          return;
+        }
+        if (Object.prototype.hasOwnProperty.call(currentRow, head)) {
+          row[head] = currentRow[head];
+          return;
+        }
+        row[head] = '';
+      });
+      mergedData.push(row);
+    }
+
+    return { mergedHeads, mergedData };
+  };
+
   // 应用参数组（从下拉选择的组），返回生成的 domain 供后续使用
   const applyParamGroup = async (
     groupId: number,
@@ -349,16 +490,26 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
       setVerifyMessage('');
     }
     try {
-      const params = await onFetchGroupParams(groupId);
+      const [params, groupResp] = await Promise.all([
+        onFetchGroupParams(groupId),
+        configApi
+          .getParamGroup(groupId)
+          .then(res => res?.data as ParamGroup)
+          .catch(() => undefined),
+      ]);
       if (params && params.length > 0) {
-        const algType = config.params.optParams?.algType ?? AlgType.DOE;
-        const domain: ParamDomain[] = params.map(p => {
+        const selectedGroup = groupResp || paramGroups.find(group => group.id === groupId);
+        const defaultAlgType =
+          selectedGroup?.algType === AlgType.BAYESIAN || selectedGroup?.algType === AlgType.DOE_FILE
+            ? selectedGroup.algType
+            : AlgType.DOE;
+        const groupDomain: ParamDomain[] = params.map(p => {
           const paramDef = paramDefs.find(def => def.id === p.paramDefId);
           const defaultValStr = p.defaultValue || paramDef?.defaultVal || '';
           const defaultVal = parseFloat(defaultValStr);
           // DOE模式：优先使用枚举值，否则用默认值
           const enumStr = p.enumValues || '';
-          const useEnum = algType === AlgType.DOE && enumStr.trim().length > 0;
+          const useEnum = defaultAlgType === AlgType.DOE && enumStr.trim().length > 0;
           const rangeStr = useEnum ? enumStr : defaultValStr;
           const rangeList = rangeStr
             .split(',')
@@ -375,33 +526,72 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
           };
         });
 
+        const currentDomain = config.params.optParams?.domain || [];
+        const mergedDomain = mergeDomainWithGroup(groupDomain, currentDomain);
+
         // DOE 模式下一次性生成全组合，和 domain 一起写入，避免 stale closure
         let doeExtras: Partial<OptParams> = {};
-        if (algType === AlgType.DOE) {
-          const result = buildDoeCombinations(domain);
+        if (defaultAlgType === AlgType.DOE) {
+          const result = buildDoeCombinations(mergedDomain);
           if (result) {
             doeExtras = result;
           }
         }
+
+        const doeFileExtras: Partial<OptParams> =
+          defaultAlgType === AlgType.DOE_FILE
+            ? (() => {
+                const groupDoeHeads = selectedGroup?.doeFileHeads || [];
+                const groupDoeData = normalizeDoeDataByHeads(
+                  groupDoeHeads,
+                  (selectedGroup?.doeFileData || []) as Array<
+                    Record<string, number | string> | Array<string | number>
+                  >
+                );
+                const mergedDoe = mergeDoeFileByHeads(
+                  groupDoeHeads,
+                  groupDoeData,
+                  config.params.optParams?.doeParamHeads || [],
+                  config.params.optParams?.doeParamData || []
+                );
+                const normalizedData = normalizeDoeDataByHeads(
+                  mergedDoe.mergedHeads,
+                  mergedDoe.mergedData
+                );
+                return {
+                  doeParamHeads: mergedDoe.mergedHeads,
+                  doeParamData: normalizedData,
+                  doeParamCsvPath:
+                    selectedGroup?.doeFileName || config.params.optParams?.doeParamCsvPath,
+                };
+              })()
+            : {
+                doeParamHeads: undefined,
+                doeParamData: undefined,
+                doeParamCsvPath: undefined,
+              };
 
         // 一次性更新 templateSetId + domain + DOE数据
         onUpdate({
           params: {
             ...config.params,
             templateSetId: groupId,
+            algorithm: defaultAlgType === AlgType.BAYESIAN ? 'bayesian' : 'doe',
             optParams: {
               ...(config.params.optParams || {
-                algType: AlgType.DOE,
+                algType: defaultAlgType,
                 domain: [],
                 batchSize: [{ value: 5 }],
                 maxIter: 1,
               }),
-              domain,
+              algType: defaultAlgType,
+              domain: mergedDomain,
               ...doeExtras,
+              ...doeFileExtras,
             },
           },
         });
-        return domain;
+        return mergedDomain;
       }
     } catch (error) {
       console.error('Failed to fetch param group:', error);
@@ -453,8 +643,11 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     if ((config.params.optParams?.domain || []).length > 0) return;
 
     autoAppliedRef.current = true;
-    // 选择第一个参数组作为默认
-    const defaultGroup = filteredParamGroups[0];
+    // 优先使用当前已选参数组，否则取第一个
+    const defaultGroup =
+      filteredParamGroups.find(
+        group => group.id === (selectedGroupId || config.params.templateSetId)
+      ) || filteredParamGroups[0];
     setSelectedGroupId(defaultGroup.id);
 
     // applyParamGroup 内部已一次性完成 domain + DOE 组合生成
@@ -777,7 +970,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                                   <input
                                     type="text"
                                     className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-ring rounded text-center"
-                                    value={row[h] ?? ''}
+                                    value={getDoeCellValue(row, h)}
                                     onChange={e => updateDoeCell(rowIdx, h, e.target.value)}
                                   />
                                 </div>
@@ -805,21 +998,75 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
       {/* DOE 文件上传 - 仅 DOE_FILE 模式显示 */}
       {currentAlgType === AlgType.DOE_FILE && (
         <FormItem label={t('sub.params.doe_file_upload')}>
-          <label className="block border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors">
-            <input type="file" accept=".csv" className="hidden" onChange={handleFileChange} />
-            <DocumentArrowUpIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">{t('sub.params.doe_file_hint')}</p>
-            {doeFileName && <p className="text-sm text-primary mt-2">{doeFileName}</p>}
-          </label>
+          <input
+            ref={doeFileInputRef}
+            type="file"
+            accept=".csv"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
+          {hasDoeFile ? (
+            <div className="border rounded-lg px-3 py-2 bg-muted/30">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-primary break-all">{doeFileDisplayName}</p>
+                <div className="flex items-center gap-2 shrink-0">
+                  {doeFileDownloadUrl ? (
+                    <a
+                      href={doeFileDownloadUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 underline"
+                    >
+                      <DocumentArrowDownIcon className="w-3 h-3" />
+                      下载
+                    </a>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={clearDoeFile}
+                    className="text-xs text-destructive hover:text-destructive/80 underline"
+                  >
+                    清除
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => doeFileInputRef.current?.click()}
+                className="w-full border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors"
+              >
+                <DocumentArrowUpIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">{t('sub.params.doe_file_hint')}</p>
+              </button>
+
+              <div className="mt-2">
+                <textarea
+                  value={doePasteText}
+                  onChange={e => setDoePasteText(e.target.value)}
+                  onPaste={handleDoeTextareaPaste}
+                  rows={4}
+                  className="w-full px-2 py-2 text-xs font-mono border rounded-lg bg-background border-input"
+                  placeholder="支持直接粘贴DOE表格：首行为key，第二行起为每轮数据（粘贴后自动解析）"
+                />
+              </div>
+            </>
+          )}
+
+          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {t('sub.params.doe_total')}: {config.params.optParams?.doeParamData?.length || 0}{' '}
+              {t('sub.params.doe_rounds')}
+            </span>
+          </div>
 
           {/* DOE 文件解析表格 - 只读显示 */}
           {config.params.optParams?.doeParamData &&
             config.params.optParams?.doeParamData.length > 0 && (
               <div className="mt-3 space-y-2">
-                <div className="text-sm text-primary">
-                  {t('sub.params.doe_total')}: {config.params.optParams?.doeParamData.length}{' '}
-                  {t('sub.params.doe_rounds')}
-                </div>
                 <div className="border border-border rounded-lg overflow-hidden">
                   <div className="max-h-[300px] overflow-auto custom-scrollbar">
                     <div
@@ -828,7 +1075,6 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                         gridTemplateColumns: `50px repeat(${config.params.optParams?.doeParamHeads?.length || 0}, minmax(80px, 1fr))`,
                       }}
                     >
-                      {/* 表头 */}
                       <div className="bg-muted px-2 py-2 text-xs font-medium text-center">#</div>
                       {(config.params.optParams?.doeParamHeads || []).map(h => (
                         <div key={h} className="bg-muted px-2 py-2 text-xs font-medium text-center">
@@ -836,7 +1082,6 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                         </div>
                       ))}
 
-                      {/* 数据行 - 只读 */}
                       {config.params.optParams?.doeParamData.map((row, rowIdx) => (
                         <React.Fragment key={rowIdx}>
                           <div className="bg-card px-2 py-1 text-xs text-center text-muted-foreground">
@@ -844,7 +1089,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                           </div>
                           {(config.params?.optParams?.doeParamHeads || []).map(h => (
                             <div key={h} className="bg-card px-2 py-1 text-xs text-center">
-                              {row[h]}
+                              {getDoeCellValue(row, h)}
                             </div>
                           ))}
                         </React.Fragment>

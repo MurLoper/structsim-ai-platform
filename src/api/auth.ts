@@ -2,8 +2,8 @@ import { api } from './client';
 import { User, MenuItem } from '@/types';
 
 export interface LoginRequest {
-  email: string;
-  password?: string;
+  domainAccount: string;
+  password: string;
 }
 
 export interface LoginResponse {
@@ -22,11 +22,32 @@ export interface HeartbeatResponse {
   shouldRefresh: boolean;
 }
 
+export interface LoginModeResponse {
+  ssoEnabled: boolean;
+  ssoRedirectUrl: string;
+  uidExpireSeconds: number;
+}
+
+export interface SsoCallbackRequest {
+  uid: string;
+}
+
 export const authApi = {
   /**
-   * User login
+   * User login by domain account
    */
   login: (data: LoginRequest) => api.post<LoginResponse>('/auth/login', data),
+
+  /**
+   * Get login mode (SSO on/off)
+   */
+  getLoginMode: () => api.get<LoginModeResponse>('/auth/login-mode'),
+
+  /**
+   * SSO callback exchange
+   */
+  ssoCallbackLogin: (data: SsoCallbackRequest) =>
+    api.post<LoginResponse>('/auth/sso/callback', data),
 
   /**
    * User logout
@@ -39,12 +60,12 @@ export const authApi = {
   getCurrentUser: () => api.get<User>('/auth/me'),
 
   /**
-   * Verify token and get user info + menus (for SSO callback)
+   * Verify token and get user info + menus
    */
   verifyToken: () => api.get<VerifyResponse>('/auth/verify'),
 
   /**
-   * Get all users (for demo login)
+   * Get all users
    */
   getAllUsers: () => api.get<User[]>('/auth/users'),
 

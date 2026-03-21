@@ -4,6 +4,10 @@ export interface ParamGroup {
   name: string;
   description?: string;
   projectIds?: number[];
+  algType?: number;
+  doeFileName?: string;
+  doeFileHeads?: string[];
+  doeFileData?: Array<Record<string, number | string>>;
   sort: number;
   valid: number;
   createdAt: number;

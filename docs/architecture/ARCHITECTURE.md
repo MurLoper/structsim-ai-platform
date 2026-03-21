@@ -1,69 +1,76 @@
 # 前端架构设计文档
 
-> **版本**: v2.0
-> **最后更新**: 2025-01-19
-> **状态**: ✅ 生产就绪
+面向当前仓库结构维护。
+
+**最后更新**: 2026-03-21
 
 ## 1. 架构总览
 
 ### 1.1 技术栈
 
 #### 核心框架
-| 技术 | 版本 | 用途 | 状态 |
-|------|------|------|------|
-| React | 19.2.0 | UI 框架 | ✅ |
-| TypeScript | 5.8 | 类型安全 | ✅ |
-| Vite | 6.2 | 构建工具 | ✅ |
+
+| 技术       | 版本   | 用途     | 状态 |
+| ---------- | ------ | -------- | ---- |
+| React      | 19.2.0 | UI 框架  | ✅   |
+| TypeScript | 5.8    | 类型安全 | ✅   |
+| Vite       | 6.2    | 构建工具 | ✅   |
 
 #### 状态管理
-| 技术 | 版本 | 用途 | 状态 |
-|------|------|------|------|
-| Zustand | 5.0 | 客户端状态 | ✅ |
-| TanStack Query | 5.60 | 服务端状态 | ✅ |
+
+| 技术           | 版本 | 用途       | 状态 |
+| -------------- | ---- | ---------- | ---- |
+| Zustand        | 5.0  | 客户端状态 | ✅   |
+| TanStack Query | 5.60 | 服务端状态 | ✅   |
 
 #### UI 与样式
-| 技术 | 版本 | 用途 | 状态 |
-|------|------|------|------|
-| Tailwind CSS | 3.4 | 样式框架 | ✅ |
-| Shadcn/ui | - | 基础组件库 (Radix UI) | ✅ |
-| Lucide React | 0.460 | 图标库 | ✅ |
-| Framer Motion | 11.12 | 动画库 | ✅ |
-| class-variance-authority | 0.7 | 组件变体 | ✅ |
+
+| 技术                     | 版本  | 用途         | 状态 |
+| ------------------------ | ----- | ------------ | ---- |
+| Tailwind CSS             | 3.4   | 样式框架     | ✅   |
+| 自研组件 + Radix UI      | -     | 基础组件能力 | ✅   |
+| Lucide React             | 0.460 | 图标库       | ✅   |
+| Framer Motion            | 11.12 | 动画库       | ✅   |
+| class-variance-authority | 0.7   | 组件变体     | ✅   |
 
 #### 表单与验证
-| 技术 | 版本 | 用途 | 状态 |
-|------|------|------|------|
-| React Hook Form | 7.53 | 表单管理 | ✅ |
-| Zod | 3.23 | Schema 验证 | ✅ |
-| @hookform/resolvers | 3.9 | RHF + Zod 集成 | ✅ |
+
+| 技术                | 版本 | 用途           | 状态 |
+| ------------------- | ---- | -------------- | ---- |
+| React Hook Form     | 7.53 | 表单管理       | ✅   |
+| Zod                 | 3.23 | Schema 验证    | ✅   |
+| @hookform/resolvers | 3.9  | RHF + Zod 集成 | ✅   |
 
 #### 数据可视化
-| 技术 | 版本 | 用途 | 状态 |
-|------|------|------|------|
-| ECharts | 5.5 | 2D 图表 | ✅ |
-| echarts-for-react | 3.0 | ECharts React 封装 | ✅ |
-| Recharts | 3.6 | 简单图表 | ✅ |
-| React Flow (@xyflow/react) | 12.3 | 流程图/画布 | ✅ |
+
+| 技术                       | 版本 | 用途               | 状态 |
+| -------------------------- | ---- | ------------------ | ---- |
+| ECharts                    | 5.5  | 2D 图表            | ✅   |
+| echarts-for-react          | 3.0  | ECharts React 封装 | ✅   |
+| React Flow (@xyflow/react) | 12.3 | 流程图/画布        | ✅   |
 
 #### 表格与虚拟化
-| 技术 | 版本 | 用途 | 状态 |
-|------|------|------|------|
-| TanStack Table | 8.20 | 表格管理 | ✅ |
-| TanStack Virtual | 3.10 | 虚拟滚动 | ✅ |
+
+| 技术             | 版本 | 用途     | 状态 |
+| ---------------- | ---- | -------- | ---- |
+| TanStack Table   | 8.20 | 表格管理 | ✅   |
+| TanStack Virtual | 3.10 | 虚拟滚动 | ✅   |
 
 #### 路由与网络
-| 技术 | 版本 | 用途 | 状态 |
-|------|------|------|------|
-| React Router | 7.12 | 路由管理 | ✅ |
-| Axios | 1.7 | HTTP 客户端 | ✅ |
+
+| 技术         | 版本 | 用途        | 状态 |
+| ------------ | ---- | ----------- | ---- |
+| React Router | 7.12 | 路由管理    | ✅   |
+| Axios        | 1.7  | HTTP 客户端 | ✅   |
 
 #### 监控与质量
-| 技术 | 版本 | 用途 | 状态 |
-|------|------|------|------|
-| Sentry | 8.0 | 错误监控 | ✅ |
-| Vitest | 2.1 | 单元测试 | ✅ |
-| Testing Library | 16.0 | 组件测试 | ✅ |
-| MSW | 2.6 | API Mock | ✅ |
+
+| 技术            | 版本 | 用途     | 状态 |
+| --------------- | ---- | -------- | ---- |
+| Sentry          | 8.0  | 错误监控 | ✅   |
+| Vitest          | 2.1  | 单元测试 | ✅   |
+| Testing Library | 16.0 | 组件测试 | ✅   |
+| MSW             | 2.6  | API Mock | ✅   |
 
 ### 1.2 分层架构
 
@@ -76,7 +83,7 @@
 │      config/queries / config/schemas / orders/queries       │
 ├─────────────────────────────────────────────────────────────┤
 │                     Components (组件层)                      │
-│    UI (Shadcn) / Layout / Forms / Tables / Charts          │
+│    UI / Layout / Forms / Tables / Charts                   │
 ├─────────────────────────────────────────────────────────────┤
 │                       Hooks (逻辑层)                         │
 │   useFormState / useTheme / useStableCallback              │
@@ -109,9 +116,10 @@ src/
 ├── api/                        # API 调用层
 │   ├── client.ts               # Axios 客户端配置
 │   ├── auth.ts                 # 认证 API
-│   ├── projects.ts             # 项目 API
 │   ├── orders.ts               # 订单 API
+│   ├── projects.ts             # 项目 API
 │   ├── rbac.ts                 # 权限 API
+│   ├── results.ts              # 结果 API
 │   ├── simulations.ts          # 仿真 API
 │   └── config/                 # 配置 API 模块
 │       ├── base.ts             # 基础配置 API
@@ -119,7 +127,7 @@ src/
 │       └── index.ts
 │
 ├── components/                 # 组件层
-│   ├── ui/                     # 通用 UI 组件 (Shadcn/ui 风格)
+│   ├── ui/                     # 通用 UI 组件
 │   │   ├── Button.tsx
 │   │   ├── Input.tsx
 │   │   ├── Modal.tsx
@@ -175,20 +183,25 @@ src/
 ├── pages/                      # 页面组件
 │   ├── auth/                   # 认证页面
 │   │   └── Login.tsx
-│   ├── dashboard/              # 仪表盘
-│   │   └── Dashboard.tsx
+│   ├── dashboard/              # 工作台与结果
+│   │   ├── Dashboard.tsx
+│   │   └── Results.tsx
 │   ├── configuration/          # 配置管理
-│   │   ├── Configuration.tsx
-│   │   └── hooks/
-│   │       └── useConfigurationState.ts
-│   ├── submission/             # 申请单
-│   │   └── Submission.tsx
+│   │   ├── BasicConfig.tsx
+│   │   ├── GroupsConfig.tsx
+│   │   ├── RelationsConfig.tsx
+│   │   ├── SystemConfig.tsx
+│   │   └── PermissionsConfig.tsx
+│   ├── orders/                 # 订单页面
+│   │   └── OrderList.tsx
+│   ├── submission/             # 提单
+│   │   └── index.tsx
 │   └── access/                 # 权限管理
-│       └── AccessManagement.tsx
+│       └── AccessControl.tsx
 │
 ├── stores/                     # Zustand 状态管理
 │   ├── authStore.ts            # 认证状态
-│   ├── configStore.ts          # 配置状态 (迁移中)
+│   ├── configStore.ts          # 配置状态
 │   ├── uiStore.ts              # UI 状态 (主题/侧边栏)
 │   └── index.ts
 │
@@ -225,9 +238,6 @@ src/
 │   ├── setup.ts
 │   └── test-utils.tsx
 │
-├── routes/                     # 路由入口
-│   └── index.tsx
-│
 ├── App.tsx                     # 应用入口
 ├── main.tsx                    # 渲染入口
 └── index.css                   # 全局样式
@@ -241,11 +251,11 @@ src/
 
 **职责划分**:
 
-| 状态类型 | 管理工具 | 示例 | 状态 |
-|----------|----------|------|------|
-| 服务端状态 | TanStack Query | 项目列表、配置数据、订单数据 | ✅ 已实现 |
-| 客户端状态 | Zustand | 主题、语言、侧边栏展开状态 | ✅ 已实现 |
-| 表单状态 | React Hook Form + Zod | 提单表单、配置编辑表单 | ✅ 已实现 |
+| 状态类型   | 管理工具              | 示例                         | 状态      |
+| ---------- | --------------------- | ---------------------------- | --------- |
+| 服务端状态 | TanStack Query        | 项目列表、配置数据、订单数据 | ✅ 已实现 |
+| 客户端状态 | Zustand               | 主题、语言、侧边栏展开状态   | ✅ 已实现 |
+| 表单状态   | React Hook Form + Zod | 提单表单、配置编辑表单       | ✅ 已实现 |
 
 **数据流**:
 
@@ -310,11 +320,11 @@ interface UiState {
 
 export const useUiStore = create<UiState>()(
   persist(
-    (set) => ({
+    set => ({
       theme: 'light',
       sidebarCollapsed: false,
-      setTheme: (theme) => set({ theme }),
-      toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
+      setTheme: theme => set({ theme }),
+      toggleSidebar: () => set(s => ({ sidebarCollapsed: !s.sidebarCollapsed })),
     }),
     { name: 'ui-storage' }
   )
@@ -384,10 +394,10 @@ invalidateQueries 刷新列表
 
 ```typescript
 interface ApiResponse<T> {
-  code: number;      // 0 成功, 其他失败
-  msg: string;       // 提示信息
-  data: T;           // 响应数据
-  trace_id: string;  // 追踪ID
+  code: number; // 0 成功, 其他失败
+  msg: string; // 提示信息
+  data: T; // 响应数据
+  trace_id: string; // 追踪ID
 }
 
 interface PaginatedResponse<T> {
@@ -405,12 +415,12 @@ interface PaginatedResponse<T> {
 
 ### 4.1 组件分类
 
-| 类型     | 目录                 | 描述                 | 示例                    |
-| -------- | -------------------- | -------------------- | ----------------------- |
-| UI 组件  | `components/ui/`     | 无业务逻辑的通用组件 | Button, Modal, Table    |
-| 布局组件 | `components/layout/` | 页面布局相关         | Layout, Sidebar, Header |
-| 业务组件 | `components/config/` | 特定业务功能         | ConfigTable, ConfigForm |
-| 页面组件 | `pages/`             | 路由对应的页面       | Dashboard, Submission   |
+| 类型     | 目录                                  | 描述                 | 示例                    |
+| -------- | ------------------------------------- | -------------------- | ----------------------- |
+| UI 组件  | `components/ui/`                      | 无业务逻辑的通用组件 | Button, Modal, Table    |
+| 布局组件 | `components/layout/`                  | 页面布局相关         | Layout, Sidebar, Header |
+| 业务组件 | `pages/`、`features/`、`components/*` | 业务页面和领域组件   | Submission、OrderList   |
+| 页面组件 | `pages/`                              | 路由对应的页面       | Dashboard, Submission   |
 
 ### 4.2 组件规范
 
@@ -442,25 +452,28 @@ interface PaginatedResponse<T> {
 const routes = [
   {
     path: '/',
-    element: <Layout />,
+    element: <ProtectedLayout />,
     children: [
       { index: true, element: <Dashboard /> },
       { path: 'submission', element: <Submission /> },
+      { path: 'create', element: <Submission /> },
       { path: 'orders', element: <OrderList /> },
-      { path: 'orders/:id', element: <OrderDetail /> },
       { path: 'results/:id', element: <Results /> },
       {
-        path: 'configuration',
+        path: 'config',
         children: [
-          { path: 'basic/:type', element: <BasicConfig /> },
-          { path: 'composite/:type', element: <CompositeConfig /> },
-          { path: 'relations/:type', element: <RelationConfig /> },
+          { path: 'basic', element: <BasicConfig /> },
+          { path: 'groups', element: <GroupsConfig /> },
+          { path: 'relations', element: <RelationsConfig /> },
+          { path: 'system', element: <SystemConfig /> },
+          { path: 'permissions', element: <PermissionsConfig /> },
         ]
       },
-      { path: 'admin/*', element: <AdminRoutes /> },
+      { path: 'access', element: <AccessControl /> },
     ]
   },
   { path: '/login', element: <Login /> },
+  { path: '/no-permission', element: <NoPermission /> },
 ];
 ```
 
@@ -498,13 +511,11 @@ client.interceptors.response.use(
   error => {
     const { code, msg } = error.response?.data || {};
 
-    if (code === 401001) {
-      // Token 过期，尝试刷新
-      return refreshTokenAndRetry(error.config);
+    if (error.response?.status === 401) {
+      localStorage.removeItem('auth_token');
+      window.location.href = '/#/login';
     }
 
-    // 显示错误提示
-    toast.error(msg || '请求失败');
     return Promise.reject(error);
   }
 );
@@ -554,7 +565,7 @@ class ErrorBoundary extends Component {
 - 大型组件动态导入
 - 第三方库按需加载
 
-### 7.2 虚拟滚动 (计划)
+### 7.2 虚拟滚动
 
 ```typescript
 // 使用 TanStack Virtual 处理大数据列表
@@ -572,7 +583,7 @@ const VirtualList = ({ items }) => {
 
 ### 7.3 缓存策略
 
-**TanStack Query 缓存配置** (计划):
+**TanStack Query 缓存配置**:
 
 ```typescript
 const queryClient = new QueryClient({
@@ -588,9 +599,9 @@ const queryClient = new QueryClient({
 
 ### 7.4 渲染优化
 
-- 使用 `React.memo` 避免不必要渲染
-- 使用 `useMemo` / `useCallback` 缓存计算结果和回调
-- 避免在渲染函数中创建对象/数组
+- 优先通过查询分层、组件拆分和虚拟滚动解决性能问题
+- 谨慎使用 `useMemo` / `useCallback`
+- 避免在页面层堆积过重的状态和派生逻辑
 
 ---
 
@@ -599,10 +610,8 @@ const queryClient = new QueryClient({
 - [代码规范](../development/CODE_STANDARDS.md)
 - [配置化指南](../development/CONFIGURATION_GUIDE.md)
 - [常量管理](../development/CONSTANTS_MANAGEMENT.md)
-- [技术升级路线图](./TECH_ROADMAP.md)
+- [前端现状与开发计划](./CURRENT_STATUS_AND_PLAN.md)
 - [React 闭包陷阱](../best-practices/react-closure-trap.md)
 - [React 19.2 升级指南](../best-practices/react-19.2-upgrade-guide.md)
 
 ---
-
-**最后更新**: 2024-01-18

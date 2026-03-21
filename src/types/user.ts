@@ -36,6 +36,11 @@ export interface User {
   avatar?: string;
   permissions?: Permission[];
   username?: string;
+  userName?: string;
+  realName?: string;
+  domainAccount?: string;
+  userId?: string;
+  lcUserId?: string;
   password?: string;
   role?: string;
   status?: string;

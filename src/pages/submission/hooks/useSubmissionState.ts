@@ -246,6 +246,34 @@ export const useSubmissionState = (
     [safeConditionConfigs]
   );
 
+  const resolveGroupAlgorithmType = (algType?: number) => {
+    if (algType === AlgorithmType.BAYESIAN || algType === AlgorithmType.DOE_FILE) {
+      return algType;
+    }
+    return AlgorithmType.DOE;
+  };
+
+  const toCamelKey = (key: string) =>
+    key.replace(/_([a-zA-Z])/g, (_, ch: string) => ch.toUpperCase());
+
+  const normalizeDoeDataByHeads = (
+    heads: string[],
+    rows: Array<Record<string, number | string>>
+  ): Array<Record<string, number | string>> =>
+    rows.map(row => {
+      const normalized: Record<string, number | string> = {};
+      heads.forEach(head => {
+        if (row[head] !== undefined) {
+          normalized[head] = row[head];
+        } else if (row[toCamelKey(head)] !== undefined) {
+          normalized[head] = row[toCamelKey(head)];
+        } else {
+          normalized[head] = '';
+        }
+      });
+      return normalized;
+    });
+
   // 初始化仿真类型配置（以 conditionId 为 key）
   const initSimTypeConfig = useCallback(
     (conditionId: number, simTypeId: number, foldTypeId: number) => {
@@ -263,6 +291,8 @@ export const useSubmissionState = (
       const defaultSolverId = conditionConfig?.defaultSolverId || simType.defaultSolverId;
 
       const defaultSolver = safeSolvers.find(s => s.id === defaultSolverId) || safeSolvers[0];
+      const defaultParamGroup = safeParamGroups.find(g => g.id === defaultParamGroupId);
+      const defaultAlgType = resolveGroupAlgorithmType(defaultParamGroup?.algType);
 
       setSimTypeConfigs(prev => ({
         ...prev,
@@ -274,8 +304,29 @@ export const useSubmissionState = (
             mode: 'template',
             templateSetId: defaultParamGroupId || null,
             templateItemId: null,
-            algorithm: 'doe',
+            algorithm: defaultAlgType === AlgorithmType.BAYESIAN ? 'bayesian' : 'doe',
             customValues: {},
+            optParams: {
+              algType: defaultAlgType,
+              domain: [],
+              doeParamHeads:
+                defaultAlgType === AlgorithmType.DOE_FILE
+                  ? defaultParamGroup?.doeFileHeads || []
+                  : [],
+              doeParamData:
+                defaultAlgType === AlgorithmType.DOE_FILE
+                  ? normalizeDoeDataByHeads(
+                      defaultParamGroup?.doeFileHeads || [],
+                      defaultParamGroup?.doeFileData || []
+                    )
+                  : [],
+              doeParamCsvPath:
+                defaultAlgType === AlgorithmType.DOE_FILE
+                  ? defaultParamGroup?.doeFileName || undefined
+                  : undefined,
+              batchSize: [{ value: 5 }],
+              maxIter: 1,
+            },
           },
           output: {
             mode: 'template',
@@ -298,7 +349,7 @@ export const useSubmissionState = (
         },
       }));
     },
-    [safeSimTypes, safeSolvers, getConditionConfig]
+    [safeSimTypes, safeSolvers, safeParamGroups, getConditionConfig]
   );
 
   const paramGroupPrefillRef = useRef<Set<string>>(new Set());
@@ -352,6 +403,9 @@ export const useSubmissionState = (
               const groupParams = (params.data as ParamInGroup[]) || [];
               if (groupParams.length === 0) return;
 
+              const groupMeta = safeParamGroups.find(g => g.id === templateSetId);
+              const groupAlgType = resolveGroupAlgorithmType(groupMeta?.algType);
+
               const nextDomain: ParamDomain[] = groupParams.map(p => {
                 const paramDef = paramDefs.find(def => def.id === p.paramDefId);
                 const defaultValStr = p.defaultValue || paramDef?.defaultVal || '';
@@ -379,14 +433,24 @@ export const useSubmissionState = (
                 if ((current.params.optParams?.domain || []).length > 0) return prev;
 
                 const baseOpt: OptParams = current.params.optParams || {
-                  algType: AlgorithmType.DOE,
+                  algType: groupAlgType,
                   domain: [],
                   batchSize: [{ value: 5 }],
                   maxIter: 1,
                 };
+                const finalAlgType = baseOpt.algType ?? groupAlgType;
                 const doeExtras =
-                  (baseOpt.algType ?? AlgorithmType.DOE) === AlgorithmType.DOE
-                    ? buildDoeCombinations(nextDomain)
+                  finalAlgType === AlgorithmType.DOE ? buildDoeCombinations(nextDomain) : {};
+                const doeFileExtras =
+                  finalAlgType === AlgorithmType.DOE_FILE
+                    ? {
+                        doeParamHeads: groupMeta?.doeFileHeads || [],
+                        doeParamData: normalizeDoeDataByHeads(
+                          groupMeta?.doeFileHeads || [],
+                          groupMeta?.doeFileData || []
+                        ),
+                        doeParamCsvPath: groupMeta?.doeFileName || undefined,
+                      }
                     : {};
 
                 return {
@@ -395,10 +459,13 @@ export const useSubmissionState = (
                     ...current,
                     params: {
                       ...current.params,
+                      algorithm: finalAlgType === AlgorithmType.BAYESIAN ? 'bayesian' : 'doe',
                       optParams: {
                         ...baseOpt,
+                        algType: finalAlgType,
                         domain: nextDomain,
                         ...doeExtras,
+                        ...doeFileExtras,
                       },
                     },
                   },
@@ -468,7 +535,14 @@ export const useSubmissionState = (
         }
       }
     });
-  }, [selectedSimTypes, simTypeConfigs, paramDefs, buildDoeCombinations]);
+  }, [
+    selectedSimTypes,
+    simTypeConfigs,
+    paramDefs,
+    safeParamGroups,
+    buildDoeCombinations,
+    normalizeDoeDataByHeads,
+  ]);
 
   // 初始化默认选中的仿真类型
   // 当姿态变化时：1. 移除被取消姿态的仿真类型 2. 为新增姿态自动选择默认仿真类型

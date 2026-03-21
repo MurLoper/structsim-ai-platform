@@ -13,22 +13,28 @@ const isAdminUser = (user: User | null): boolean => {
   return roleCodes.includes('ADMIN');
 };
 
+interface LoginMode {
+  ssoEnabled: boolean;
+  ssoRedirectUrl: string;
+  uidExpireSeconds: number;
+}
+
 interface AuthState {
   user: User | null;
   token: string | null;
   menus: MenuItem[];
   isLoading: boolean;
   users: User[];
-  /** 是否已认证（派生状态：user 不为 null 时为 true） */
+  loginMode: LoginMode;
   isAuthenticated: boolean;
-  /** 上次心跳检查时间 */
   lastHeartbeat: number;
 
-  // Actions
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
   setMenus: (menus: MenuItem[]) => void;
-  login: (email: string, password?: string) => Promise<void>;
+  fetchLoginMode: () => Promise<LoginMode>;
+  login: (domainAccount: string, password: string) => Promise<void>;
+  loginBySsoUid: (uid: string) => Promise<void>;
   verifyToken: () => Promise<boolean>;
   checkHeartbeat: () => Promise<boolean>;
   refreshToken: () => Promise<boolean>;
@@ -45,6 +51,11 @@ export const useAuthStore = create<AuthState>()(
       menus: [],
       isLoading: false,
       users: [],
+      loginMode: {
+        ssoEnabled: false,
+        ssoRedirectUrl: '',
+        uidExpireSeconds: 1800,
+      },
       isAuthenticated: false,
       lastHeartbeat: 0,
 
@@ -61,10 +72,22 @@ export const useAuthStore = create<AuthState>()(
 
       setMenus: menus => set({ menus }),
 
-      login: async (email: string, password?: string) => {
+      fetchLoginMode: async () => {
+        const response = await authApi.getLoginMode();
+        const payload = response?.data;
+        const mode: LoginMode = {
+          ssoEnabled: !!payload?.ssoEnabled,
+          ssoRedirectUrl: payload?.ssoRedirectUrl || '',
+          uidExpireSeconds: payload?.uidExpireSeconds || 1800,
+        };
+        set({ loginMode: mode });
+        return mode;
+      },
+
+      login: async (domainAccount: string, password: string) => {
         set({ isLoading: true });
         try {
-          const response = await authApi.login({ email, password });
+          const response = await authApi.login({ domainAccount, password });
           const payload = response?.data;
           if (payload?.token) {
             get().setToken(payload.token);
@@ -82,9 +105,35 @@ export const useAuthStore = create<AuthState>()(
           }
         } catch (error: unknown) {
           set({ isLoading: false });
-          // 提取错误信息
           const err = error as { response?: { data?: { message?: string } }; message?: string };
           const message = err.response?.data?.message || err.message || '登录失败';
+          throw new Error(message);
+        }
+      },
+
+      loginBySsoUid: async (uid: string) => {
+        set({ isLoading: true });
+        try {
+          const response = await authApi.ssoCallbackLogin({ uid });
+          const payload = response?.data;
+          if (payload?.token) {
+            get().setToken(payload.token);
+          }
+          if (payload?.user) {
+            const userData = payload.user as User;
+            const perms = normalizePermissions(userData);
+            set({
+              user: { ...userData, permissions: perms },
+              isLoading: false,
+              isAuthenticated: true,
+            });
+          } else {
+            set({ isLoading: false });
+          }
+        } catch (error: unknown) {
+          set({ isLoading: false });
+          const err = error as { response?: { data?: { message?: string } }; message?: string };
+          const message = err.response?.data?.message || err.message || 'SSO登录失败';
           throw new Error(message);
         }
       },
@@ -133,7 +182,6 @@ export const useAuthStore = create<AuthState>()(
           const payload = response?.data;
           if (payload?.valid) {
             set({ lastHeartbeat: Date.now() });
-            // 如果需要刷新token，自动刷新
             if (payload.shouldRefresh) {
               await get().refreshToken();
             }
@@ -187,7 +235,6 @@ export const useAuthStore = create<AuthState>()(
       name: 'auth-storage',
       partialize: state => ({ user: state.user, token: state.token, menus: state.menus }),
       onRehydrateStorage: () => state => {
-        // 恢复时根据 user 设置 isAuthenticated
         if (state) {
           state.isAuthenticated = !!state.user;
         }

@@ -1,4 +1,5 @@
 import { api } from '@/api/client';
+import * as CryptoJS from 'crypto-js';
 import type {
   CheckFileResponse,
   InitUploadResponse,
@@ -14,16 +15,14 @@ const MAX_RETRIES = 3;
 export class ChunkedUploadService {
   async calculateFileHash(file: File): Promise<string> {
     const buffer = await file.arrayBuffer();
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    const wordArray = CryptoJS.lib.WordArray.create(buffer as unknown as number[]);
+    return CryptoJS.SHA256(wordArray).toString(CryptoJS.enc.Hex);
   }
 
   async calculateChunkHash(chunk: Blob): Promise<string> {
     const buffer = await chunk.arrayBuffer();
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    const wordArray = CryptoJS.lib.WordArray.create(buffer as unknown as number[]);
+    return CryptoJS.SHA256(wordArray).toString(CryptoJS.enc.Hex);
   }
 
   async checkFile(fileHash: string, fileName: string, fileSize: number) {

@@ -134,7 +134,7 @@ export interface InputProjectInfo {
   modelLevelId: number;
   originFile: OriginFile;
   originFoldTypeId?: number | null;
-  participantIds: number[];
+  participantIds: string[];
   issueTitle?: string;
   remark?: string;
 }
@@ -249,7 +249,7 @@ export const submissionFormSchema = z.object({
       }
     }),
   originFoldTypeId: z.number().nullable().optional(),
-  participantIds: z.array(z.number().int()).optional().default([]),
+  participantIds: z.array(z.string()).optional().default([]),
   foldTypeIds: z.array(z.number().int()).min(1, { message: '请至少选择一个目标姿态' }),
   remark: z.string().max(500, { message: '备注不能超过500字' }).optional().default(''),
   simTypeIds: z.array(z.number().int()).min(1, { message: '请至少选择一个仿真类型' }),

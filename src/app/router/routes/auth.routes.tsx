@@ -6,6 +6,7 @@ import type { RouteObject } from 'react-router-dom';
 
 // 懒加载页面
 const Login = lazy(() => import('@/pages/auth/Login'));
+const SsoCallback = lazy(() => import('@/pages/auth/SsoCallback'));
 const NoPermission = lazy(() => import('@/pages/auth/NoPermission'));
 
 /**
@@ -17,6 +18,14 @@ export const authRoutes: RouteObject[] = [
     element: <Login />,
     handle: {
       title: '登录',
+      public: true,
+    },
+  },
+  {
+    path: '/callback',
+    element: <SsoCallback />,
+    handle: {
+      title: 'SSO回调',
       public: true,
     },
   },
