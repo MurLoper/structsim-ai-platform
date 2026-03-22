@@ -13,6 +13,27 @@ const isAdminUser = (user: User | null): boolean => {
   return roleCodes.includes('ADMIN');
 };
 
+const normalizeUser = (user: User): User => {
+  const permissions = normalizePermissions(user);
+  const roleIds = user.roleIds ?? user.roleIdList ?? [];
+  const domainAccount = user.domainAccount || user.id;
+  const displayName = user.realName || user.userName || user.displayName || domainAccount;
+  return {
+    ...user,
+    id: domainAccount,
+    domainAccount,
+    displayName,
+    permissions,
+    roleIds,
+    roleIdList: roleIds,
+    maxCpuCores: user.maxCpuCores ?? 192,
+    maxBatchSize: user.maxBatchSize ?? 200,
+    dailyRoundLimitDefault: user.dailyRoundLimitDefault ?? 500,
+    dailyRoundLimit: user.dailyRoundLimit ?? user.dailyRoundLimitDefault ?? 500,
+    nodeList: user.nodeList ?? [],
+  };
+};
+
 interface LoginMode {
   ssoEnabled: boolean;
   ssoRedirectUrl: string;
@@ -93,10 +114,9 @@ export const useAuthStore = create<AuthState>()(
             get().setToken(payload.token);
           }
           if (payload?.user) {
-            const userData = payload.user as User;
-            const perms = normalizePermissions(userData);
+            const userData = normalizeUser(payload.user as User);
             set({
-              user: { ...userData, permissions: perms },
+              user: userData,
               isLoading: false,
               isAuthenticated: true,
             });
@@ -120,10 +140,9 @@ export const useAuthStore = create<AuthState>()(
             get().setToken(payload.token);
           }
           if (payload?.user) {
-            const userData = payload.user as User;
-            const perms = normalizePermissions(userData);
+            const userData = normalizeUser(payload.user as User);
             set({
-              user: { ...userData, permissions: perms },
+              user: userData,
               isLoading: false,
               isAuthenticated: true,
             });
@@ -153,10 +172,9 @@ export const useAuthStore = create<AuthState>()(
           const response = await authApi.verifyToken();
           const payload = response?.data;
           if (payload?.user) {
-            const userData = payload.user as User;
-            const perms = normalizePermissions(userData);
+            const userData = normalizeUser(payload.user as User);
             set({
-              user: { ...userData, permissions: perms },
+              user: userData,
               menus: payload.menus || [],
               isLoading: false,
               isAuthenticated: true,
@@ -212,10 +230,7 @@ export const useAuthStore = create<AuthState>()(
       fetchUsers: async () => {
         try {
           const response = await authApi.getAllUsers();
-          const users = (response.data || []).map((user: User) => ({
-            ...user,
-            permissions: normalizePermissions(user),
-          }));
+          const users = (response.data || []).map((user: User) => normalizeUser(user));
           set({ users });
         } catch (error) {
           console.error('Failed to fetch users:', error);

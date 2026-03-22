@@ -1,7 +1,7 @@
 # 前端文档目录
 
 面向 `structsim-ai-platform` 当前代码实现的前端文档索引。
-**最后更新**: 2026-03-21
+**最后更新**: 2026-03-22
 
 ## 1. 首先阅读
 
@@ -11,7 +11,8 @@
 2. [配置驱动开发指南](./development/CONFIGURATION_GUIDE.md)
 3. [后端提单协议](../../structsim-backend/docs/architecture/SUBMISSION_PROTOCOL.md)
 4. [后端提单字段清单与联调清单](../../structsim-backend/docs/architecture/SUBMISSION_FIELD_CHECKLIST.md)
-5. [登录与 SSO 说明](../../structsim-backend/docs/SSO.md)
+5. [结果页与详情页快照消费迁移清单](../../structsim-backend/docs/architecture/RESULTS_AND_DETAIL_MIGRATION.md)
+6. [登录与 SSO 说明](../../structsim-backend/docs/SSO.md)
 
 ## 2. 架构与规范
 
@@ -40,3 +41,4 @@
 - [登录与 SSO 说明](../../structsim-backend/docs/SSO.md)
 - [提单初始化与订单快照协议](../../structsim-backend/docs/architecture/SUBMISSION_PROTOCOL.md)
 - [提单主链路字段清单与联调清单](../../structsim-backend/docs/architecture/SUBMISSION_FIELD_CHECKLIST.md)
+- [结果页与详情页快照消费迁移清单](../../structsim-backend/docs/architecture/RESULTS_AND_DETAIL_MIGRATION.md)

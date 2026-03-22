@@ -120,7 +120,12 @@ export function captureError(error: Error, context?: Record<string, unknown>) {
 /**
  * 设置用户信息用于错误追踪
  */
-export function setUser(user: { id: string; email?: string; username?: string }) {
+export function setUser(user: {
+  id: string;
+  email?: string;
+  domainAccount?: string;
+  userName?: string;
+}) {
   Sentry.setUser(user);
 }
 

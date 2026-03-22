@@ -37,7 +37,7 @@ export const generateRoutesFromMenus = (menus: MenuItem[]): RouteObject[] => {
   const routes: RouteObject[] = [];
 
   const processMenu = (menu: MenuItem) => {
-    if (menu.component) {
+    if (menu.component && menu.path) {
       const Component = getLazyComponent(menu.component);
       if (Component) {
         routes.push({

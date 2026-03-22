@@ -1,32 +1,101 @@
 import { useMemo, useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSimTypes, useOutputDefs, useParamDefs } from '@/features/config/queries';
+import { useOutputDefs, useParamDefs } from '@/features/config/queries';
 import { ordersApi, resultsApi } from '@/api';
 import { queryKeys } from '@/lib/queryClient';
 import { RESULTS_PAGE_SIZE, RESULTS_CHART_MAX_POINTS, PAGINATION } from '@/constants';
-import type { RoundItem } from '@/api/results';
+import type {
+  ModuleDetail,
+  OrderConditionRoundsResponse,
+  OrderConditionSummary,
+  RoundItem,
+  SimTypeResult,
+} from '@/api/results';
+import type { WorkflowNode } from '../components/ProcessFlowView';
 
 export interface ResultRecord {
   iteration: number;
-  simTypeId: number;
-  metricId: number;
+  schemeId: number;
+  metricKey: string;
   value: number;
   group: string;
 }
 
 interface RoundsGroup {
-  simTypeId: number;
+  schemeId: number;
   rounds: RoundItem[];
+  orderCondition: OrderConditionSummary;
+  resultSource: string;
+  statistics?: OrderConditionRoundsResponse['statistics'];
 }
+
+interface ResultsOverviewStats {
+  schemeCount: number;
+  totalRounds: number;
+  completedRounds: number;
+  failedRounds: number;
+  runningRounds: number;
+  resultSource: string;
+  runningModules: string[];
+}
+
+const buildConditionLabel = (condition: OrderConditionSummary) => {
+  const fold = condition.foldTypeName || `姿态-${condition.foldTypeId ?? '-'}`;
+  const sim = condition.simTypeName || `方案-${condition.simTypeId}`;
+  return `${fold} / ${sim} · C${condition.conditionId}`;
+};
+
+const buildModuleProgress = (moduleDetails?: ModuleDetail[]) => {
+  if (!moduleDetails?.length) return null;
+  return moduleDetails.reduce<Record<string, number>>((acc, item, index) => {
+    acc[item.moduleCode || `node_${index + 1}`] = Number(item.progress ?? 0);
+    return acc;
+  }, {});
+};
+
+const mapMockRoundToLegacyRound = (
+  groupId: number,
+  item: OrderConditionRoundsResponse['items'][number]
+): RoundItem => ({
+  id: item.id,
+  simTypeResultId: groupId,
+  roundIndex: item.roundIndex,
+  status: item.status,
+  progress: Math.round(Number(item.process ?? 0)),
+  paramValues: item.params ?? null,
+  outputResults: item.outputs ?? null,
+  errorMsg: item.status === 3 ? 'mock 轮次执行失败' : undefined,
+  runningModule: item.runningModule,
+  finalResult: item.finalResult ?? null,
+  moduleDetails: item.moduleDetails,
+  flowNodeProgress: buildModuleProgress(item.moduleDetails),
+});
+
+const buildWorkflowNodesFromRounds = (groups: RoundsGroup[]): WorkflowNode[] => {
+  const seen = new Set<string>();
+  const nodes: WorkflowNode[] = [];
+
+  groups.forEach(group => {
+    group.rounds.forEach(round => {
+      round.moduleDetails?.forEach(detail => {
+        const nodeId = detail.moduleCode || detail.moduleName;
+        if (!nodeId || seen.has(nodeId)) return;
+        seen.add(nodeId);
+        nodes.push({
+          id: nodeId,
+          moduleId: nodes.length + 1,
+          name: detail.moduleName || detail.moduleCode,
+        });
+      });
+    });
+  });
+
+  return nodes;
+};
 
 export const useResultsData = (orderId: number | null) => {
   const resolvedOrderId = orderId && Number.isFinite(orderId) ? orderId : null;
-  const {
-    data: simTypes = [],
-    error: simTypesError,
-    isLoading: simTypesLoading,
-    refetch: refetchSimTypes,
-  } = useSimTypes();
+
   const {
     data: outputDefs = [],
     error: outputDefsError,
@@ -58,15 +127,15 @@ export const useResultsData = (orderId: number | null) => {
   });
 
   const {
-    data: simTypeResults = [],
-    isLoading: simTypeResultsLoading,
-    error: simTypeResultsError,
-    refetch: refetchSimTypeResults,
+    data: orderConditions = [],
+    isLoading: orderConditionsLoading,
+    error: orderConditionsError,
+    refetch: refetchOrderConditions,
   } = useQuery({
-    queryKey: ['results', 'simTypes', resolvedOrderId],
+    queryKey: ['results', 'orderConditions', resolvedOrderId],
     queryFn: async () => {
-      if (!resolvedOrderId) return [];
-      const response = await resultsApi.getOrderSimTypeResults(resolvedOrderId);
+      if (!resolvedOrderId) return [] as OrderConditionSummary[];
+      const response = await resultsApi.getOrderConditions(resolvedOrderId);
       return response.data || [];
     },
     enabled: !!resolvedOrderId,
@@ -76,129 +145,223 @@ export const useResultsData = (orderId: number | null) => {
   const displayOrderId = orderDetail?.orderNo || (resolvedOrderId ? `#${resolvedOrderId}` : '-');
 
   const [metric, setMetric] = useState('');
-  const [selectedSimTypes, setSelectedSimTypes] = useState<number[]>([]);
+  const [selectedSchemeIds, setSelectedSchemeIds] = useState<number[]>([]);
   const [minValue, setMinValue] = useState('');
   const [maxValue, setMaxValue] = useState('');
   const [minIteration, setMinIteration] = useState('');
   const [maxIteration, setMaxIteration] = useState('');
 
   useEffect(() => {
-    if (!metric && outputDefs.length > 0) {
-      setMetric(String(outputDefs[0].id));
-    }
-  }, [metric, outputDefs]);
-
-  useEffect(() => {
-    if (selectedSimTypes.length > 0) return;
-    const fromOrder = orderDetail?.simTypeIds?.length ? orderDetail.simTypeIds : [];
-    const fallback = simTypeResults.map(result => result.simTypeId);
-    const defaults = fromOrder.length > 0 ? fromOrder : fallback;
+    if (selectedSchemeIds.length > 0) return;
+    const fromConditions = orderConditions.map(item => item.id);
+    const fromOrder = Array.isArray(orderDetail?.conditions)
+      ? orderDetail.conditions.map((item: { id: number }) => item.id)
+      : [];
+    const defaults = fromConditions.length > 0 ? fromConditions : fromOrder;
     if (defaults.length > 0) {
-      setSelectedSimTypes(defaults);
+      setSelectedSchemeIds(defaults);
     }
-  }, [orderDetail, simTypeResults, selectedSimTypes.length]);
+  }, [orderConditions, orderDetail, selectedSchemeIds.length]);
 
-  const availableSimTypeIds = useMemo(() => {
-    if (orderDetail?.simTypeIds?.length) return orderDetail.simTypeIds;
-    if (simTypeResults.length) return simTypeResults.map(result => result.simTypeId);
-    return simTypes.map(simType => simType.id);
-  }, [orderDetail, simTypeResults, simTypes]);
-
-  const availableSimTypes = useMemo(
-    () => simTypes.filter(simType => availableSimTypeIds.includes(simType.id)),
-    [simTypes, availableSimTypeIds]
+  const availableSchemes = useMemo(
+    () =>
+      orderConditions.map(condition => ({
+        id: condition.id,
+        name: buildConditionLabel(condition),
+      })),
+    [orderConditions]
   );
 
-  const selectedSimTypeResults = useMemo(
-    () => simTypeResults.filter(result => selectedSimTypes.includes(result.simTypeId)),
-    [simTypeResults, selectedSimTypes]
+  const availableSchemeIds = useMemo(
+    () => availableSchemes.map(item => item.id),
+    [availableSchemes]
+  );
+
+  const schemeLabelMap = useMemo(
+    () => new Map(availableSchemes.map(item => [item.id, item.name])),
+    [availableSchemes]
+  );
+
+  const selectedConditions = useMemo(
+    () => orderConditions.filter(condition => selectedSchemeIds.includes(condition.id)),
+    [orderConditions, selectedSchemeIds]
   );
 
   const {
-    data: roundsBySimType = [],
+    data: schemeRoundGroups = [],
     isLoading: roundsLoading,
     error: roundsError,
     refetch: refetchRounds,
   } = useQuery({
-    queryKey: ['results', 'rounds', resolvedOrderId, selectedSimTypes],
+    queryKey: ['results', 'conditionRounds', resolvedOrderId, selectedSchemeIds],
     queryFn: async () => {
-      if (!resolvedOrderId || selectedSimTypeResults.length === 0) return [] as RoundsGroup[];
+      if (!resolvedOrderId || selectedConditions.length === 0) return [] as RoundsGroup[];
       const responses = await Promise.all(
-        selectedSimTypeResults.map(async result => {
-          const response = await resultsApi.getRounds(result.id, {
+        selectedConditions.map(async condition => {
+          const response = await resultsApi.getOrderConditionRounds(condition.id, {
             page: PAGINATION.DEFAULT_PAGE,
             pageSize: RESULTS_PAGE_SIZE,
           });
+
           return {
-            simTypeId: result.simTypeId,
-            rounds: response.data?.items || [],
-          };
+            schemeId: condition.id,
+            orderCondition: condition,
+            resultSource: response.data?.resultSource || 'mock',
+            statistics: response.data?.statistics,
+            rounds: (response.data?.items || []).map(item =>
+              mapMockRoundToLegacyRound(condition.id, item)
+            ),
+          } as RoundsGroup;
         })
       );
       return responses;
     },
-    enabled: !!resolvedOrderId && selectedSimTypeResults.length > 0,
+    enabled: !!resolvedOrderId && selectedConditions.length > 0,
     staleTime: 30 * 1000,
   });
 
-  const simTypeLabelMap = useMemo(
-    () => new Map(availableSimTypes.map(simType => [simType.id, simType.name])),
-    [availableSimTypes]
+  const workflowNodes = useMemo(
+    () => buildWorkflowNodesFromRounds(schemeRoundGroups),
+    [schemeRoundGroups]
   );
 
-  const metricLabelMap = useMemo(
-    () => new Map(outputDefs.map(def => [def.id, def.name])),
-    [outputDefs]
-  );
+  const metricLabelMap = useMemo(() => {
+    const map = new Map<string, string>();
+
+    schemeRoundGroups.forEach(({ rounds }) => {
+      rounds.forEach(round => {
+        Object.keys(round.outputResults || {}).forEach(key => {
+          if (!map.has(key)) {
+            map.set(key, key);
+          }
+        });
+      });
+    });
+
+    outputDefs.forEach(def => {
+      const key = String(def.id);
+      if (!map.has(key)) {
+        map.set(key, def.name);
+      }
+    });
+
+    return map;
+  }, [schemeRoundGroups, outputDefs]);
 
   const metricOptions = useMemo(
-    () => outputDefs.map(def => ({ value: String(def.id), label: def.name })),
-    [outputDefs]
+    () =>
+      Array.from(metricLabelMap.entries()).map(([value, label]) => ({
+        value,
+        label,
+      })),
+    [metricLabelMap]
   );
 
-  const results = useMemo(() => {
-    const metricId = Number(metric);
-    if (!metricId || roundsBySimType.length === 0) return [] as ResultRecord[];
+  useEffect(() => {
+    if (!metricOptions.length) return;
+    if (!metric || !metricLabelMap.has(metric)) {
+      setMetric(metricOptions[0].value);
+    }
+  }, [metric, metricLabelMap, metricOptions]);
 
-    return roundsBySimType.flatMap(({ simTypeId, rounds }) =>
+  const schemeResults = useMemo<SimTypeResult[]>(
+    () =>
+      orderConditions.map(condition => ({
+        id: condition.id,
+        orderId: condition.orderId,
+        simTypeId: condition.id,
+        simTypeName: buildConditionLabel(condition),
+        status: condition.status,
+        progress: Math.round(Number(condition.process ?? 0)),
+        totalRounds: Number(condition.roundTotal ?? 0),
+        completedRounds: 0,
+        failedRounds: 0,
+        bestRoundIndex: null,
+        createdAt: condition.createdAt,
+        updatedAt: condition.updatedAt,
+      })),
+    [orderConditions]
+  );
+
+  const overviewStats = useMemo<ResultsOverviewStats>(() => {
+    const runningModuleSet = new Set<string>();
+    const stats = schemeRoundGroups.reduce<ResultsOverviewStats>(
+      (acc, group) => {
+        const summary = group.statistics;
+        acc.totalRounds += Number(summary?.totalRounds ?? group.rounds.length);
+        acc.completedRounds += Number(
+          summary?.completedRounds ?? group.rounds.filter(round => round.status === 2).length
+        );
+        acc.failedRounds += Number(
+          summary?.failedRounds ?? group.rounds.filter(round => round.status === 3).length
+        );
+        acc.runningRounds += Number(
+          summary?.runningRounds ?? group.rounds.filter(round => round.status === 1).length
+        );
+        if (!acc.resultSource && group.resultSource) {
+          acc.resultSource = group.resultSource;
+        }
+        if (group.orderCondition.status === 1 && group.orderCondition.runningModule) {
+          runningModuleSet.add(group.orderCondition.runningModule);
+        }
+        return acc;
+      },
+      {
+        schemeCount: orderConditions.length,
+        totalRounds: 0,
+        completedRounds: 0,
+        failedRounds: 0,
+        runningRounds: 0,
+        resultSource: '',
+        runningModules: [],
+      }
+    );
+
+    return {
+      ...stats,
+      resultSource: stats.resultSource || 'mock',
+      runningModules: Array.from(runningModuleSet),
+    };
+  }, [orderConditions.length, schemeRoundGroups]);
+
+  const results = useMemo(() => {
+    if (!metric || schemeRoundGroups.length === 0) return [] as ResultRecord[];
+
+    return schemeRoundGroups.flatMap(({ schemeId, rounds, orderCondition }) =>
       rounds
         .map(round => {
-          // 后端返回 outputResults，兼容旧字段名 outputs
           const outputs = round.outputResults || {};
-          const rawValue =
-            outputs[String(metricId)] ??
-            (outputs as Record<string, number | string>)[metricId as unknown as string];
+          const rawValue = outputs[metric];
           if (rawValue === undefined || rawValue === null) return null;
           const value = typeof rawValue === 'number' ? rawValue : Number(rawValue);
           if (!Number.isFinite(value)) return null;
           return {
             iteration: round.roundIndex,
-            simTypeId,
-            metricId,
+            schemeId,
+            metricKey: metric,
             value,
-            group: `S-${simTypeId}`,
+            group: buildConditionLabel(orderCondition),
           } as ResultRecord;
         })
         .filter((item): item is ResultRecord => Boolean(item))
     );
-  }, [metric, roundsBySimType]);
+  }, [metric, schemeRoundGroups]);
 
   const filteredResults = useMemo(() => {
     const minVal = minValue ? Number(minValue) : Number.NEGATIVE_INFINITY;
     const maxVal = maxValue ? Number(maxValue) : Number.POSITIVE_INFINITY;
     const minIter = minIteration ? Number(minIteration) : Number.NEGATIVE_INFINITY;
     const maxIter = maxIteration ? Number(maxIteration) : Number.POSITIVE_INFINITY;
-    const metricId = Number(metric);
-    const simTypeSet = new Set(selectedSimTypes);
+    const schemeSet = new Set(selectedSchemeIds);
 
     return results.filter(record => {
-      if (metricId && record.metricId !== metricId) return false;
-      if (simTypeSet.size > 0 && !simTypeSet.has(record.simTypeId)) return false;
+      if (metric && record.metricKey !== metric) return false;
+      if (schemeSet.size > 0 && !schemeSet.has(record.schemeId)) return false;
       if (record.value < minVal || record.value > maxVal) return false;
       if (record.iteration < minIter || record.iteration > maxIter) return false;
       return true;
     });
-  }, [results, metric, selectedSimTypes, minValue, maxValue, minIteration, maxIteration]);
+  }, [results, metric, selectedSchemeIds, minValue, maxValue, minIteration, maxIteration]);
 
   const chartResults = useMemo(() => {
     if (filteredResults.length <= RESULTS_CHART_MAX_POINTS) {
@@ -212,33 +375,33 @@ export const useResultsData = (orderId: number | null) => {
     () =>
       chartResults.map(record => ({
         iteration: record.iteration,
-        simType: simTypeLabelMap.get(record.simTypeId) || String(record.simTypeId),
+        schemeName: schemeLabelMap.get(record.schemeId) || String(record.schemeId),
         value: record.value,
       })),
-    [chartResults, simTypeLabelMap]
+    [chartResults, schemeLabelMap]
   );
 
-  const avgBySimType = useMemo(() => {
+  const avgByScheme = useMemo(() => {
     const map = new Map<number, { total: number; count: number }>();
     filteredResults.forEach(record => {
-      const current = map.get(record.simTypeId) || { total: 0, count: 0 };
-      map.set(record.simTypeId, { total: current.total + record.value, count: current.count + 1 });
+      const current = map.get(record.schemeId) || { total: 0, count: 0 };
+      map.set(record.schemeId, { total: current.total + record.value, count: current.count + 1 });
     });
-    return Array.from(map.entries()).map(([simTypeId, stats]) => ({
-      simType: simTypeLabelMap.get(simTypeId) || String(simTypeId),
+    return Array.from(map.entries()).map(([schemeId, stats]) => ({
+      schemeName: schemeLabelMap.get(schemeId) || String(schemeId),
       value: stats.count ? Math.round((stats.total / stats.count) * 100) / 100 : 0,
     }));
-  }, [filteredResults, simTypeLabelMap]);
+  }, [filteredResults, schemeLabelMap]);
 
-  const toggleSimType = (value: number) => {
-    setSelectedSimTypes(prev =>
+  const toggleScheme = (value: number) => {
+    setSelectedSchemeIds(prev =>
       prev.includes(value) ? prev.filter(item => item !== value) : [...prev, value]
     );
   };
 
   const handleReset = () => {
     setMetric(metricOptions[0]?.value || '');
-    setSelectedSimTypes(availableSimTypeIds);
+    setSelectedSchemeIds(availableSchemeIds);
     setMinValue('');
     setMaxValue('');
     setMinIteration('');
@@ -246,19 +409,14 @@ export const useResultsData = (orderId: number | null) => {
   };
 
   const resultsError =
-    simTypesError ||
-    outputDefsError ||
-    paramDefsError ||
-    orderError ||
-    simTypeResultsError ||
-    roundsError;
+    outputDefsError || paramDefsError || orderError || orderConditionsError || roundsError;
+
   const retryResults = () => {
-    void refetchSimTypes();
     void refetchOutputDefs();
     void refetchParamDefs();
     if (resolvedOrderId) {
       void refetchOrder();
-      void refetchSimTypeResults();
+      void refetchOrderConditions();
       void refetchRounds();
     }
   };
@@ -269,9 +427,9 @@ export const useResultsData = (orderId: number | null) => {
     setMetric,
     metricOptions,
     metricLabelMap,
-    simTypeLabelMap,
-    selectedSimTypes,
-    toggleSimType,
+    schemeLabelMap,
+    selectedSchemeIds,
+    toggleScheme,
     minValue,
     setMinValue,
     maxValue,
@@ -280,22 +438,22 @@ export const useResultsData = (orderId: number | null) => {
     setMinIteration,
     maxIteration,
     setMaxIteration,
-    availableSimTypes,
-    availableSimTypeIds,
+    availableSchemes,
+    availableSchemeIds,
     filteredResults,
     trendData,
-    avgBySimType,
-    // 新增：概览 Tab 需要的数据
-    simTypeResults,
-    roundsBySimType,
+    avgByScheme,
+    schemeResults,
+    schemeRoundGroups,
+    overviewStats,
     paramDefs,
     outputDefs,
+    workflowNodes,
     isResultsLoading:
-      simTypesLoading ||
       outputDefsLoading ||
       paramDefsLoading ||
       orderLoading ||
-      simTypeResultsLoading ||
+      orderConditionsLoading ||
       roundsLoading,
     resultsError,
     retryResults,

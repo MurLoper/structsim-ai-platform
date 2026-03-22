@@ -136,6 +136,9 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
                           const childLabel = child.titleI18nKey
                             ? t(child.titleI18nKey)
                             : child.name;
+                          if (!child.path) {
+                            return null;
+                          }
                           return (
                             <Link
                               key={child.id}
@@ -156,6 +159,10 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
                   )}
                 </div>
               );
+            }
+
+            if (!menu.path) {
+              return null;
             }
 
             return (
@@ -209,7 +216,7 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
                       : 'text-slate-900 dark:text-white'
                   )}
                 >
-                  {user?.name}
+                  {user?.realName || user?.userName || user?.displayName || user?.domainAccount}
                 </div>
                 <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
               </div>

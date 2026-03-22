@@ -27,7 +27,7 @@ export enum TargetType {
 export interface SolverConfig {
   solverId: number;
   solverVersion?: string;
-  cpuType: number; // 0: 不并行, 1: 并行
+  cpuType: number; // -1: 单节点, 1: 并行
   cpuCores: number; // -1: 使用节点全部核数, 其他值为指定核数
   double: number; // 双精度设置: 0: 关闭, 1: 开启
   applyGlobal: number | null; // 是否应用全局设置: 1: 应用, 0: 不应用
@@ -87,7 +87,7 @@ export interface RespDetail {
   set: string; // 输出集名称
   outputType: string; // 输出类型: RF3, LEP2, LEP1, S33等
   integrationPoint?: string; // 积分点(integration point)，如 CENTROID, MAX, MIN
-  component: string; // 组件ID
+  component: string; // 后处理方式编码（接口字段名仍为 component）
   stepName?: string; // 分析步名称，特殊输出才需要
   specialOutputSet?: string; // 特殊输出set，仅component为特殊值时需要
   description?: string; // 描述
@@ -118,6 +118,7 @@ export interface SimTypeConfig {
   output: OutputConfig;
   solver: SolverConfig;
   careDeviceIds: string[]; // 关注器件ID列表
+  conditionRemark?: string; // 当前姿态+仿真类型工况备注
 }
 
 // 全局求解器配置（可应用到所有仿真类型）
@@ -150,6 +151,7 @@ export interface InputConditionEntry {
   output: OutputConfig;
   solver: SolverConfig;
   careDeviceIds: string[];
+  remark?: string;
 }
 
 /** input_json 顶层结构 */

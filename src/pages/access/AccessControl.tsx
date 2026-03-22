@@ -27,6 +27,22 @@ const permissionTypeOptions = [
   { value: 'OTHER', label: '其他' },
 ];
 
+type UserFormState = {
+  domainAccount: string;
+  email: string;
+  userName: string;
+  realName: string;
+  password: string;
+  roleIds: number[];
+  valid: number;
+};
+
+const getUserIdentity = (user: Pick<User, 'domainAccount' | 'id'>) => user.domainAccount || user.id;
+
+const getUserDisplayName = (
+  user: Pick<User, 'realName' | 'userName' | 'displayName' | 'domainAccount' | 'id' | 'email'>
+) => user.realName || user.userName || user.displayName || getUserIdentity(user) || user.email;
+
 const AccessControl: React.FC = () => {
   const [activeTab, setActiveTab] = useState('users');
   const [keyword, setKeyword] = useState('');
@@ -41,10 +57,11 @@ const AccessControl: React.FC = () => {
 
   const [isUserModalOpen, setUserModalOpen] = useState(false);
   const [editingUserForm, setEditingUserForm] = useState<User | null>(null);
-  const [userForm, setUserForm] = useState({
-    username: '',
+  const [userForm, setUserForm] = useState<UserFormState>({
+    domainAccount: '',
     email: '',
-    name: '',
+    userName: '',
+    realName: '',
     password: '',
     roleIds: [] as number[],
     valid: 1,
@@ -112,7 +129,7 @@ const AccessControl: React.FC = () => {
     const key = keyword.trim().toLowerCase();
     if (!key) return users;
     return users.filter(u => {
-      const name = u.name || u.username || '';
+      const name = u.realName || u.userName || u.domainAccount || '';
       return [name, u.email, u.roleNames?.join(' '), u.roleCodes?.join(' ')]
         .filter(Boolean)
         .some(v => String(v).toLowerCase().includes(key));
@@ -137,9 +154,10 @@ const AccessControl: React.FC = () => {
   const openUserModal = (user?: User) => {
     setEditingUserForm(user || null);
     setUserForm({
-      username: user?.username || '',
+      domainAccount: user ? getUserIdentity(user) : '',
       email: user?.email || '',
-      name: user?.name || '',
+      userName: user?.userName || '',
+      realName: user?.realName || '',
       password: '',
       roleIds: user?.roleIds || [],
       valid: user?.valid ?? 1,
@@ -154,24 +172,19 @@ const AccessControl: React.FC = () => {
   };
 
   const saveUser = async () => {
+    const payload = {
+      domain_account: userForm.domainAccount.trim(),
+      email: userForm.email.trim(),
+      user_name: userForm.userName.trim() || null,
+      real_name: userForm.realName.trim() || null,
+      password: userForm.password || undefined,
+      role_ids: userForm.roleIds,
+      valid: userForm.valid,
+    };
     if (editingUserForm) {
-      await rbacApi.updateUser(Number(editingUserForm.id), {
-        username: userForm.username,
-        email: userForm.email,
-        name: userForm.name,
-        password: userForm.password || undefined,
-        roleIds: userForm.roleIds,
-        valid: userForm.valid,
-      });
+      await rbacApi.updateUser(getUserIdentity(editingUserForm), payload);
     } else {
-      await rbacApi.createUser({
-        username: userForm.username,
-        email: userForm.email,
-        name: userForm.name,
-        password: userForm.password || undefined,
-        roleIds: userForm.roleIds,
-        valid: userForm.valid,
-      });
+      await rbacApi.createUser(payload);
     }
     setUserModalOpen(false);
     setEditingUserForm(null);
@@ -180,14 +193,14 @@ const AccessControl: React.FC = () => {
 
   const saveUserRoles = async () => {
     if (!editingUser) return;
-    await rbacApi.updateUser(Number(editingUser.id), { roleIds: selectedRoleIds });
+    await rbacApi.updateUser(getUserIdentity(editingUser), { role_ids: selectedRoleIds });
     setEditingUser(null);
     await loadData();
   };
 
   const savePassword = async () => {
     if (!passwordTarget) return;
-    await rbacApi.updateUser(Number(passwordTarget.id), { password: passwordValue });
+    await rbacApi.updateUser(getUserIdentity(passwordTarget), { password: passwordValue });
     setPasswordTarget(null);
     setPasswordValue('');
     setPasswordModalOpen(false);
@@ -265,19 +278,21 @@ const AccessControl: React.FC = () => {
   const userColumns: ColumnDef<User>[] = [
     {
       header: '用户',
-      accessorKey: 'name',
+      accessorKey: 'domainAccount',
       cell: ({ row }) => {
         const record = row.original;
         return (
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full bg-brand-100 dark:bg-brand-900/30 text-brand-600 flex items-center justify-center font-semibold">
-              {(record.name || record.username || record.email || 'U').charAt(0)}
+              {getUserDisplayName(record).charAt(0)}
             </div>
             <div>
               <div className="font-medium text-slate-900 dark:text-white">
-                {record.name || record.username || '未命名用户'}
+                {getUserDisplayName(record)}
               </div>
-              <div className="text-xs text-slate-500">{record.email}</div>
+              <div className="text-xs text-slate-500">
+                {getUserIdentity(record)} {record.email ? `· ${record.email}` : ''}
+              </div>
             </div>
           </div>
         );
@@ -719,7 +734,7 @@ const AccessControl: React.FC = () => {
       <Modal isOpen={!!editingUser} onClose={() => setEditingUser(null)} title="分配角色" size="lg">
         <div className="space-y-4">
           <div className="text-sm text-slate-500">
-            {editingUser?.name || editingUser?.username} ({editingUser?.email})
+            {editingUser ? getUserDisplayName(editingUser) : ''} ({editingUser?.email})
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {roles.map(role => {
@@ -771,9 +786,11 @@ const AccessControl: React.FC = () => {
       >
         <div className="space-y-4">
           <Input
-            label="用户名"
-            value={userForm.username}
-            onChange={event => setUserForm(prev => ({ ...prev, username: event.target.value }))}
+            label="域账号"
+            value={userForm.domainAccount}
+            onChange={event =>
+              setUserForm(prev => ({ ...prev, domainAccount: event.target.value }))
+            }
           />
           <Input
             label="邮箱"
@@ -781,9 +798,14 @@ const AccessControl: React.FC = () => {
             onChange={event => setUserForm(prev => ({ ...prev, email: event.target.value }))}
           />
           <Input
-            label="姓名"
-            value={userForm.name}
-            onChange={event => setUserForm(prev => ({ ...prev, name: event.target.value }))}
+            label="显示名"
+            value={userForm.userName}
+            onChange={event => setUserForm(prev => ({ ...prev, userName: event.target.value }))}
+          />
+          <Input
+            label="真实姓名"
+            value={userForm.realName}
+            onChange={event => setUserForm(prev => ({ ...prev, realName: event.target.value }))}
           />
           <Input
             label={editingUserForm ? '重置密码' : '初始密码'}
@@ -861,7 +883,7 @@ const AccessControl: React.FC = () => {
       >
         <div className="space-y-4">
           <div className="text-sm text-slate-500">
-            {passwordTarget?.name || passwordTarget?.username} ({passwordTarget?.email})
+            {passwordTarget ? getUserDisplayName(passwordTarget) : ''} ({passwordTarget?.email})
           </div>
           <Input
             label="新密码"

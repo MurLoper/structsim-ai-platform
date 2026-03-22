@@ -9,6 +9,7 @@ export * from './useParamDefs';
 export * from './useSolvers';
 export * from './useConditionDefs';
 export * from './useOutputDefs';
+export * from './usePostProcessModes';
 export * from './useFoldTypes';
 export * from './useCareDevices';
 export * from './useSolverResources';

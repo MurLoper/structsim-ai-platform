@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import clsx from 'clsx';
 import { Badge } from '@/components/ui';
-import type { Role, PermissionItem } from '@/types';
+import type { PermissionItem, Role } from '@/types';
 
 interface PermissionMatrixProps {
   roles: Role[];
@@ -27,13 +27,13 @@ export const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
   }, [roles, rolePermissionMap]);
 
   return (
-    <div className="border border-slate-200 dark:border-slate-700 rounded-lg overflow-auto">
+    <div className="overflow-auto rounded-lg border border-slate-200 dark:border-slate-700">
       <table className="min-w-full text-sm">
         <thead>
-          <tr className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-            <th className="text-left px-4 py-3 font-semibold">权限</th>
+          <tr className="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+            <th className="px-4 py-3 text-left font-semibold">权限</th>
             {roles.map(role => (
-              <th key={role.id} className="px-4 py-3 font-semibold text-center">
+              <th key={role.id} className="px-4 py-3 text-center font-semibold">
                 <div className="flex flex-col items-center gap-1">
                   <span>{role.name}</span>
                   {role.code && <Badge size="sm">{role.code}</Badge>}
@@ -54,16 +54,16 @@ export const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
                 return (
                   <td key={role.id} className="px-4 py-3 text-center">
                     <button
+                      type="button"
                       className={clsx(
-                        'w-5 h-5 rounded-full border transition-colors',
+                        'h-5 w-5 rounded-full border transition-colors',
                         checked
-                          ? 'bg-brand-600 border-brand-600'
+                          ? 'border-brand-600 bg-brand-600'
                           : 'border-slate-300 dark:border-slate-600',
                         readOnly && 'cursor-not-allowed opacity-60'
                       )}
                       onClick={() => !readOnly && onToggle?.(role.id, permission.id)}
                       aria-label={`${role.name}-${permission.name}`}
-                      type="button"
                     />
                   </td>
                 );

@@ -602,39 +602,6 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
   };
 
   // DOE 全组合生成（可接受外部 domain 参数，用于自动应用场景）
-  const generateDoeCombinationsFromDomain = (domainInput?: ParamDomain[]) => {
-    setDoeValidationError(null);
-    const domain = domainInput || config.params.optParams?.domain || [];
-    if (domain.length === 0) return;
-
-    const heads = domain.map(d => d.paramName.trim()).filter(Boolean);
-    if (heads.length !== domain.length) return;
-
-    const valueLists = domain.map(d => {
-      if (d.rangeList && d.rangeList.length > 0) return d.rangeList;
-      if (d.range) {
-        return d.range
-          .split(',')
-          .map(v => Number(v.trim()))
-          .filter(v => !isNaN(v));
-      }
-      return [];
-    });
-    if (valueLists.some(list => list.length === 0)) return;
-
-    const cartesian = (...arrays: number[][]): number[][] =>
-      arrays.reduce<number[][]>((acc, arr) => acc.flatMap(x => arr.map(y => [...x, y])), [[]]);
-    const combinations = cartesian(...valueLists);
-    const data: Record<string, number | string>[] = combinations.map(combo => {
-      const row: Record<string, number | string> = {};
-      heads.forEach((h, i) => {
-        row[h] = combo[i];
-      });
-      return row;
-    });
-    updateOptParams({ doeParamHeads: heads, doeParamData: data });
-  };
-
   // 自动应用默认参数组（首次加载时）
   useEffect(() => {
     if (autoAppliedRef.current) return;

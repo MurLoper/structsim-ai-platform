@@ -1,23 +1,35 @@
-import React, { useState } from 'react';
-import { Alert, FormItem, Tag, Button } from '@/components/ui';
+import React, { useMemo, useState } from 'react';
+import { Alert, Button, FormItem, Input, Tag, Textarea } from '@/components/ui';
 import type { CareDevice } from '@/types/config';
 
 interface CareDevicesDrawerContentProps {
-  configCareDevices: CareDevice[]; // 配置数据源
+  configCareDevices: CareDevice[];
   selectedDeviceIds: string[];
+  conditionRemark?: string;
   onUpdate: (deviceIds: string[]) => void;
+  onRemarkChange?: (remark: string) => void;
   t?: (key: string) => string;
 }
 
 export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> = ({
   configCareDevices,
   selectedDeviceIds,
+  conditionRemark = '',
   onUpdate,
+  onRemarkChange,
   t = (key: string) => key,
 }) => {
-  const [manualInput, setManualInput] = useState('');
+  const [customDeviceInput, setCustomDeviceInput] = useState('');
 
-  // 切换器件选择
+  const mergedCareDevices = useMemo(
+    () =>
+      configCareDevices.map(device => ({
+        ...device,
+        code: device.code || device.name,
+      })),
+    [configCareDevices]
+  );
+
   const toggleDevice = (deviceCode: string) => {
     if (selectedDeviceIds.includes(deviceCode)) {
       onUpdate(selectedDeviceIds.filter(id => id !== deviceCode));
@@ -26,39 +38,36 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
     }
   };
 
-  // 添加手动输入的器件
-  const handleAddManual = () => {
-    const trimmed = manualInput.trim();
-    if (trimmed && !selectedDeviceIds.includes(trimmed)) {
-      onUpdate([...selectedDeviceIds, trimmed]);
-      setManualInput('');
-    }
-  };
-
-  // 移除单个器件
   const handleRemoveDevice = (deviceId: string) => {
     onUpdate(selectedDeviceIds.filter(id => id !== deviceId));
   };
 
-  // 全选配置器件
   const selectAllConfig = () => {
-    const codes = configCareDevices.map(d => d.code || d.name);
-    const newIds = [...new Set([...selectedDeviceIds, ...codes])];
-    onUpdate(newIds);
+    const codes = mergedCareDevices.map(d => d.code || d.name);
+    onUpdate([...new Set([...selectedDeviceIds, ...codes])]);
   };
 
-  // 清除配置器件选择
   const clearConfigSelection = () => {
-    const configCodes = new Set(configCareDevices.map(d => d.code || d.name));
+    const configCodes = new Set(mergedCareDevices.map(d => d.code || d.name));
     onUpdate(selectedDeviceIds.filter(id => !configCodes.has(id)));
+  };
+
+  const addCustomDevices = () => {
+    const customIds = customDeviceInput
+      .split(/[\s,，;；\n]+/)
+      .map(item => item.trim())
+      .filter(Boolean);
+    if (customIds.length === 0) {
+      return;
+    }
+    onUpdate(Array.from(new Set([...selectedDeviceIds, ...customIds])));
+    setCustomDeviceInput('');
   };
 
   return (
     <div className="space-y-5">
-      {/* 说明文字 */}
       <Alert type="info">{t('sub.care_devices_config_desc')}</Alert>
 
-      {/* 已选择数量 */}
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-foreground">
           {t('sub.care_devices_selected')}: {selectedDeviceIds.length}
@@ -73,12 +82,11 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
         )}
       </div>
 
-      {/* 配置器件列表 */}
-      {configCareDevices.length > 0 && (
+      {mergedCareDevices.length > 0 && (
         <div>
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-bold text-foreground">
-              {t('sub.care_devices_from_config')} ({configCareDevices.length})
+              {t('sub.care_devices_from_config')} ({mergedCareDevices.length})
             </span>
             <div className="flex gap-2">
               <button
@@ -95,8 +103,8 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
               </button>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto custom-scrollbar">
-            {configCareDevices.map(device => {
+          <div className="grid grid-cols-2 gap-2 max-h-[220px] overflow-y-auto custom-scrollbar">
+            {mergedCareDevices.map(device => {
               const deviceKey = device.code || device.name;
               const isSelected = selectedDeviceIds.includes(deviceKey);
               return (
@@ -131,24 +139,41 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
         </div>
       )}
 
-      {/* 手动输入区域 */}
       <FormItem label={t('sub.care_devices_manual_input')}>
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={manualInput}
-            onChange={e => setManualInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleAddManual()}
-            placeholder={t('sub.care_devices_input_placeholder')}
-            className="flex-1 px-3 py-2 text-sm border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-          <Button onClick={handleAddManual} disabled={!manualInput.trim()}>
-            {t('sub.add')}
-          </Button>
+        <div className="space-y-3">
+          <div className="text-sm text-muted-foreground">{t('sub.care_devices_manual_desc')}</div>
+          <div className="flex gap-2">
+            <Input
+              value={customDeviceInput}
+              onChange={e => setCustomDeviceInput(e.target.value)}
+              placeholder={t('sub.care_devices_input_placeholder')}
+              onKeyDown={event => {
+                if (event.key === 'Enter') {
+                  event.preventDefault();
+                  addCustomDevices();
+                }
+              }}
+            />
+            <Button type="button" variant="outline" onClick={addCustomDevices}>
+              {t('sub.add')}
+            </Button>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            支持输入一个或多个自定义器件 ID，多个 ID 可用逗号、空格或换行分隔。
+          </div>
         </div>
       </FormItem>
 
-      {/* 已选择的器件列表 */}
+      <FormItem label={t('sub.condition_remark')}>
+        <Textarea
+          value={conditionRemark}
+          onChange={e => onRemarkChange?.(e.target.value)}
+          rows={3}
+          maxLength={500}
+          placeholder={t('sub.condition_remark_placeholder')}
+        />
+      </FormItem>
+
       {selectedDeviceIds.length > 0 && (
         <FormItem label={t('sub.care_devices_selected_list')}>
           <div className="flex flex-wrap gap-2">

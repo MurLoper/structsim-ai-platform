@@ -1,17 +1,13 @@
 /**
- * 仿真类型结果表格组件
- *
- * 展示单个仿真类型的轮次数据矩阵
- * 列结构: 轮次 | param1...param8 | output1...output6 | 状态 | 最优结果
+ * 历史文件名沿用 SimTypeResultTable，当前实际展示的是工况方案结果表。
  */
 import { useMemo } from 'react';
 import { VirtualTable } from '@/components/tables/VirtualTable';
 import { Badge } from '@/components/ui';
 import type { ColumnDef } from '@tanstack/react-table';
-import type { RoundItem } from '@/api/results';
+import type { OrderConditionSummary, RoundItem } from '@/api/results';
 import type { ParamDef, OutputDef } from '@/types/config';
 
-/** 状态映射 */
 const STATUS_MAP: Record<
   number,
   { label: string; variant: 'default' | 'success' | 'warning' | 'error' }
@@ -23,27 +19,23 @@ const STATUS_MAP: Record<
 };
 
 export interface SimTypeResultTableProps {
-  /** 仿真类型ID */
-  simTypeId: number;
-  /** 仿真类型名称 */
-  simTypeName: string;
-  /** 轮次数据 */
+  schemeId: number;
+  schemeName: string;
+  condition?: OrderConditionSummary;
+  resultSource?: string;
   rounds: RoundItem[];
-  /** 参数定义列表 */
   paramDefs: ParamDef[];
-  /** 输出定义列表 */
   outputDefs: OutputDef[];
-  /** 最优轮次索引 */
   bestRoundIndex?: number | null;
-  /** 是否加载中 */
   loading?: boolean;
-  /** 表格高度 */
   height?: number;
 }
 
 export const SimTypeResultTable: React.FC<SimTypeResultTableProps> = ({
-  simTypeId,
-  simTypeName,
+  schemeId,
+  schemeName,
+  condition,
+  resultSource = 'mock',
   rounds,
   paramDefs,
   outputDefs,
@@ -51,17 +43,16 @@ export const SimTypeResultTable: React.FC<SimTypeResultTableProps> = ({
   loading = false,
   height = 400,
 }) => {
-  // 从轮次数据中提取实际使用的参数和输出 key
   const { usedParamKeys, usedOutputKeys } = useMemo(() => {
     const paramKeys = new Set<string>();
     const outputKeys = new Set<string>();
 
     rounds.forEach(round => {
       if (round.paramValues) {
-        Object.keys(round.paramValues).forEach(k => paramKeys.add(k));
+        Object.keys(round.paramValues).forEach(key => paramKeys.add(key));
       }
       if (round.outputResults) {
-        Object.keys(round.outputResults).forEach(k => outputKeys.add(k));
+        Object.keys(round.outputResults).forEach(key => outputKeys.add(key));
       }
     });
 
@@ -71,30 +62,31 @@ export const SimTypeResultTable: React.FC<SimTypeResultTableProps> = ({
     };
   }, [rounds]);
 
-  // 构建参数和输出的 ID -> 定义映射
-  const paramDefMap = useMemo(() => new Map(paramDefs.map(p => [String(p.id), p])), [paramDefs]);
+  const paramDefMap = useMemo(
+    () => new Map(paramDefs.map(item => [String(item.id), item])),
+    [paramDefs]
+  );
+  const outputDefMap = useMemo(
+    () => new Map(outputDefs.map(item => [String(item.id), item])),
+    [outputDefs]
+  );
 
-  const outputDefMap = useMemo(() => new Map(outputDefs.map(o => [String(o.id), o])), [outputDefs]);
-
-  // 动态生成列定义
   const columns = useMemo<ColumnDef<RoundItem>[]>(() => {
-    const cols: ColumnDef<RoundItem>[] = [];
+    const cols: ColumnDef<RoundItem>[] = [
+      {
+        id: 'roundIndex',
+        header: '轮次',
+        accessorKey: 'roundIndex',
+        size: 70,
+        cell: ({ row }) => (
+          <span className="font-medium tabular-nums">{row.original.roundIndex}</span>
+        ),
+      },
+    ];
 
-    // 1. 轮次列
-    cols.push({
-      id: 'roundIndex',
-      header: '轮次',
-      accessorKey: 'roundIndex',
-      size: 70,
-      cell: ({ row }) => (
-        <span className="font-medium tabular-nums">{row.original.roundIndex}</span>
-      ),
-    });
-
-    // 2. 参数列 (动态)
     usedParamKeys.forEach(key => {
       const def = paramDefMap.get(key);
-      const headerName = def?.name || def?.key || `P${key}`;
+      const headerName = def?.name || def?.key || (/^\d+$/.test(key) ? `P${key}` : key);
       const unit = def?.unit;
 
       cols.push({
@@ -102,22 +94,21 @@ export const SimTypeResultTable: React.FC<SimTypeResultTableProps> = ({
         header: unit ? `${headerName} (${unit})` : headerName,
         size: 100,
         cell: ({ row }) => {
-          const val = row.original.paramValues?.[key];
-          if (val === undefined || val === null) return '-';
-          const num = typeof val === 'number' ? val : Number(val);
+          const value = row.original.paramValues?.[key];
+          if (value === undefined || value === null) return '-';
+          const numberValue = typeof value === 'number' ? value : Number(value);
           return (
             <span className="tabular-nums">
-              {Number.isFinite(num) ? num.toFixed(2) : String(val)}
+              {Number.isFinite(numberValue) ? numberValue.toFixed(2) : String(value)}
             </span>
           );
         },
       });
     });
 
-    // 3. 输出列 (动态)
     usedOutputKeys.forEach(key => {
       const def = outputDefMap.get(key);
-      const headerName = def?.name || def?.code || `O${key}`;
+      const headerName = def?.name || def?.code || (/^\d+$/.test(key) ? `O${key}` : key);
       const unit = def?.unit;
 
       cols.push({
@@ -125,26 +116,24 @@ export const SimTypeResultTable: React.FC<SimTypeResultTableProps> = ({
         header: unit ? `${headerName} (${unit})` : headerName,
         size: 100,
         cell: ({ row }) => {
-          const val = row.original.outputResults?.[key];
-          if (val === undefined || val === null) return '-';
-          const num = typeof val === 'number' ? val : Number(val);
+          const value = row.original.outputResults?.[key];
+          if (value === undefined || value === null) return '-';
+          const numberValue = typeof value === 'number' ? value : Number(value);
           return (
             <span className="tabular-nums text-blue-600 dark:text-blue-400">
-              {Number.isFinite(num) ? num.toFixed(4) : String(val)}
+              {Number.isFinite(numberValue) ? numberValue.toFixed(4) : String(value)}
             </span>
           );
         },
       });
     });
 
-    // 4. 状态列
     cols.push({
       id: 'status',
       header: '状态',
       size: 90,
       cell: ({ row }) => {
-        const status = row.original.status;
-        const config = STATUS_MAP[status] || STATUS_MAP[0];
+        const config = STATUS_MAP[row.original.status] || STATUS_MAP[0];
         return (
           <Badge variant={config.variant} size="sm">
             {config.label}
@@ -153,11 +142,10 @@ export const SimTypeResultTable: React.FC<SimTypeResultTableProps> = ({
       },
     });
 
-    // 5. 最优结果列
     cols.push({
       id: 'isBest',
       header: '最优',
-      size: 70,
+      size: 80,
       cell: ({ row }) => {
         const isBest = bestRoundIndex === row.original.roundIndex;
         return isBest ? (
@@ -169,21 +157,47 @@ export const SimTypeResultTable: React.FC<SimTypeResultTableProps> = ({
     });
 
     return cols;
-  }, [usedParamKeys, usedOutputKeys, paramDefMap, outputDefMap, bestRoundIndex]);
+  }, [bestRoundIndex, outputDefMap, paramDefMap, usedOutputKeys, usedParamKeys]);
+
+  const metaItems = [
+    condition?.conditionId ? `Condition #${condition.conditionId}` : null,
+    condition?.algorithmType ? `算法 ${condition.algorithmType}` : null,
+    condition?.solverId ? `求解器 ${condition.solverId}` : null,
+    condition?.roundTotal ? `计划轮次 ${condition.roundTotal}` : null,
+    condition?.runningModule ? `当前模块 ${condition.runningModule}` : null,
+    `数据源 ${String(resultSource).toUpperCase()}`,
+  ].filter(Boolean);
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold text-slate-900 dark:text-white eyecare:text-foreground">
-          {simTypeName}
-          <span className="ml-2 text-sm font-normal text-slate-500">(共 {rounds.length} 轮)</span>
-        </h3>
-        {bestRoundIndex && (
-          <Badge variant="success" size="sm">
-            最优轮次: #{bestRoundIndex}
-          </Badge>
-        )}
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div className="space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white eyecare:text-foreground">
+              {schemeName}
+            </h3>
+            <Badge variant={resultSource === 'mock' ? 'warning' : 'success'} size="sm">
+              {String(resultSource).toUpperCase()}
+            </Badge>
+            {bestRoundIndex ? (
+              <Badge variant="success" size="sm">
+                最优轮次 #{bestRoundIndex}
+              </Badge>
+            ) : null}
+          </div>
+          <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+            {metaItems.map(item => (
+              <span key={item} className="rounded-full bg-slate-100 px-2.5 py-1 dark:bg-slate-800">
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+        <span className="text-sm text-slate-500 dark:text-slate-400">
+          共 {rounds.length} 条轮次
+        </span>
       </div>
+
       <VirtualTable
         data={rounds}
         columns={columns}
@@ -193,7 +207,7 @@ export const SimTypeResultTable: React.FC<SimTypeResultTableProps> = ({
         striped
         enableSorting
         emptyText="暂无轮次数据"
-        getRowId={row => `${simTypeId}-${row.id}`}
+        getRowId={row => `${schemeId}-${row.id}`}
       />
     </div>
   );

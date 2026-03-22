@@ -26,9 +26,11 @@ import type { User, Permission } from '@/types';
 // Mock user data
 const mockUsers: User[] = [
   {
-    id: 'user-1',
-    username: 'admin',
-    name: '管理员',
+    id: 'admin',
+    domainAccount: 'admin',
+    userName: 'admin',
+    realName: '管理员',
+    displayName: '管理员',
     email: 'admin@example.com',
     role: 'admin',
     permissions: ['VIEW_DASHBOARD', 'MANAGE_CONFIG', 'MANAGE_USERS'] as Permission[],
@@ -37,9 +39,11 @@ const mockUsers: User[] = [
     updated_at: '2024-01-01T00:00:00Z',
   },
   {
-    id: 'user-2',
-    username: 'engineer',
-    name: '工程师',
+    id: 'engineer',
+    domainAccount: 'engineer',
+    userName: 'engineer',
+    realName: '工程师',
+    displayName: '工程师',
     email: 'engineer@example.com',
     role: 'engineer',
     permissions: ['VIEW_DASHBOARD', 'CREATE_ORDER'] as Permission[],

@@ -10,7 +10,6 @@ import { VirtualTable } from '@/components/tables/VirtualTable';
 import { useResultsData, type ResultRecord } from './hooks/useResultsData';
 import { SimTypeResultTable } from './components/SimTypeResultTable';
 import { ProcessFlowView } from './components/ProcessFlowView';
-import { useWorkflows } from '@/features/config/queries';
 import type { ColumnDef } from '@tanstack/react-table';
 
 const Results: React.FC = () => {
@@ -27,9 +26,9 @@ const Results: React.FC = () => {
     setMetric,
     metricOptions,
     metricLabelMap,
-    simTypeLabelMap,
-    selectedSimTypes,
-    toggleSimType,
+    schemeLabelMap,
+    selectedSchemeIds,
+    toggleScheme,
     minValue,
     setMinValue,
     maxValue,
@@ -38,29 +37,26 @@ const Results: React.FC = () => {
     setMinIteration,
     maxIteration,
     setMaxIteration,
-    availableSimTypes,
+    availableSchemes,
     filteredResults,
     trendData,
-    avgBySimType,
-    // 概览 Tab 数据
-    simTypeResults,
-    roundsBySimType,
+    avgByScheme,
+    schemeResults,
+    schemeRoundGroups,
+    overviewStats,
     paramDefs,
     outputDefs,
+    workflowNodes,
     isResultsLoading,
     resultsError,
     retryResults,
     handleReset,
   } = useResultsData(resolvedOrderId);
 
-  // 获取工作流配置
-  const { data: workflows = [] } = useWorkflows();
-
   const [activeTab, setActiveTab] = useState('overview');
   const invalidOrderId = resolvedOrderId === null;
   const resultsErrorMessage = resultsError ? String(resultsError) : undefined;
 
-  // 定义所有需要的函数和变量（在 early return 之前）
   const tabs = useMemo(
     () => [
       { key: 'overview', label: t('res.tab.overview') },
@@ -85,10 +81,10 @@ const Results: React.FC = () => {
       if (format === 'json') {
         const payload = filteredResults.map(record => ({
           iteration: record.iteration,
-          simTypeId: record.simTypeId,
-          simType: simTypeLabelMap.get(record.simTypeId) || String(record.simTypeId),
-          metricId: record.metricId,
-          metric: metricLabelMap.get(record.metricId) || String(record.metricId),
+          schemeId: record.schemeId,
+          schemeName: schemeLabelMap.get(record.schemeId) || String(record.schemeId),
+          metricKey: record.metricKey,
+          metric: metricLabelMap.get(record.metricKey) || String(record.metricKey),
           value: record.value,
           group: record.group,
         }));
@@ -109,20 +105,20 @@ const Results: React.FC = () => {
       ];
       const rows = filteredResults.map(record => [
         record.iteration,
-        simTypeLabelMap.get(record.simTypeId) || record.simTypeId,
-        metricLabelMap.get(record.metricId) || record.metricId,
+        schemeLabelMap.get(record.schemeId) || record.schemeId,
+        metricLabelMap.get(record.metricKey) || record.metricKey,
         record.value,
         record.group,
       ]);
       const csvContent = [header, ...rows].map(row => row.join(',')).join('\n');
       downloadFile(csvContent, `results_${id || 'detail'}.csv`, 'text/csv');
     },
-    [filteredResults, simTypeLabelMap, metricLabelMap, t, id, downloadFile]
+    [filteredResults, schemeLabelMap, metricLabelMap, t, id, downloadFile]
   );
 
   const selectedLabel = useMemo(
-    () => t('res.filters.selected').replace('{count}', String(selectedSimTypes.length)),
-    [t, selectedSimTypes.length]
+    () => t('res.filters.selected').replace('{count}', String(selectedSchemeIds.length)),
+    [t, selectedSchemeIds.length]
   );
 
   const tableCountLabel = useMemo(
@@ -137,16 +133,16 @@ const Results: React.FC = () => {
         accessorKey: 'iteration',
       },
       {
-        header: t('res.table.sim_type'),
-        accessorKey: 'simTypeId',
+        header: '工况方案',
+        accessorKey: 'schemeId',
         cell: ({ row }) =>
-          simTypeLabelMap.get(row.original.simTypeId) || String(row.original.simTypeId),
+          schemeLabelMap.get(row.original.schemeId) || String(row.original.schemeId),
       },
       {
         header: t('res.table.metric'),
-        accessorKey: 'metricId',
+        accessorKey: 'metricKey',
         cell: ({ row }) =>
-          metricLabelMap.get(row.original.metricId) || String(row.original.metricId),
+          metricLabelMap.get(row.original.metricKey) || String(row.original.metricKey),
       },
       {
         header: t('res.table.value'),
@@ -154,14 +150,13 @@ const Results: React.FC = () => {
         cell: ({ row }) => row.original.value.toFixed(2),
       },
       {
-        header: t('res.table.group'),
+        header: '分组',
         accessorKey: 'group',
       },
     ],
-    [metricLabelMap, simTypeLabelMap, t]
+    [metricLabelMap, schemeLabelMap, t]
   );
 
-  // Early return 必须在所有 hooks 之后
   if (invalidOrderId) {
     return (
       <div className="space-y-6 animate-fade-in">
@@ -177,7 +172,7 @@ const Results: React.FC = () => {
               订单不存在
             </h1>
             <p className="text-slate-500 eyecare:text-muted-foreground text-sm">
-              无效的订单ID，请返回订单列表
+              无效的订单 ID，请返回订单列表
             </p>
           </div>
         </div>
@@ -208,7 +203,9 @@ const Results: React.FC = () => {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white eyecare:text-foreground">
             {t('res.title')}: {displayOrderId}
           </h1>
-          <p className="text-slate-500 eyecare:text-muted-foreground text-sm">{t('res.report')}</p>
+          <p className="text-slate-500 eyecare:text-muted-foreground text-sm">
+            当前页面优先展示工况方案级结果，开发环境由正式接口返回 mock 数据。
+          </p>
         </div>
       </div>
 
@@ -230,63 +227,87 @@ const Results: React.FC = () => {
 
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          {/* 概览统计卡片 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
             <Card>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-brand-600">{simTypeResults.length}</div>
+              <div className="text-center space-y-2">
+                <div className="text-3xl font-bold text-brand-600">{overviewStats.schemeCount}</div>
                 <div className="text-sm text-slate-500 eyecare:text-muted-foreground">
-                  {t('res.sim_types_count')}
+                  工况方案数
                 </div>
               </div>
             </Card>
             <Card>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-green-600">
-                  {roundsBySimType.reduce((sum, g) => sum + g.rounds.length, 0)}
-                </div>
-                <div className="text-sm text-slate-500 eyecare:text-muted-foreground">
-                  {t('res.iterations')}
-                </div>
+              <div className="text-center space-y-2">
+                <div className="text-3xl font-bold text-green-600">{overviewStats.totalRounds}</div>
+                <div className="text-sm text-slate-500 eyecare:text-muted-foreground">轮次总数</div>
               </div>
             </Card>
             <Card>
-              <div className="text-center">
-                <Badge variant="success" size="md">
-                  {t('res.status.success')}
+              <div className="text-center space-y-2">
+                <div className="text-3xl font-bold text-red-600">{overviewStats.failedRounds}</div>
+                <div className="text-sm text-slate-500 eyecare:text-muted-foreground">失败轮次</div>
+              </div>
+            </Card>
+            <Card>
+              <div className="text-center space-y-2">
+                <Badge
+                  variant={overviewStats.resultSource === 'mock' ? 'warning' : 'success'}
+                  size="md"
+                >
+                  {overviewStats.resultSource.toUpperCase()}
                 </Badge>
-                <div className="text-sm text-slate-500 eyecare:text-muted-foreground mt-2">
-                  {t('res.status')}
+                <div className="text-sm text-slate-500 eyecare:text-muted-foreground">
+                  当前结果源
                 </div>
               </div>
             </Card>
           </div>
 
-          {/* 各仿真类型结果表格 */}
-          {roundsBySimType.map(group => {
-            const simTypeResult = simTypeResults.find(r => r.simTypeId === group.simTypeId);
-            const simTypeName =
-              simTypeLabelMap.get(group.simTypeId) || `SimType-${group.simTypeId}`;
+          <Card>
+            <div className="flex flex-wrap items-center gap-3">
+              <Badge variant="success" size="sm">
+                已完成 {overviewStats.completedRounds}
+              </Badge>
+              <Badge variant="warning" size="sm">
+                运行中 {overviewStats.runningRounds}
+              </Badge>
+              <Badge variant="error" size="sm">
+                失败 {overviewStats.failedRounds}
+              </Badge>
+              {overviewStats.runningModules.length > 0 && (
+                <span className="text-sm text-slate-500 eyecare:text-muted-foreground">
+                  当前运行模块：{overviewStats.runningModules.join(' / ')}
+                </span>
+              )}
+            </div>
+          </Card>
+
+          {schemeRoundGroups.map(group => {
+            const schemeId = group.schemeId;
+            const schemeResult = schemeResults.find(result => result.simTypeId === schemeId);
+            const schemeName = schemeLabelMap.get(schemeId) || `方案-${schemeId}`;
             return (
-              <Card key={group.simTypeId}>
+              <Card key={schemeId}>
                 <SimTypeResultTable
-                  simTypeId={group.simTypeId}
-                  simTypeName={simTypeName}
+                  schemeId={schemeId}
+                  schemeName={schemeName}
+                  condition={group.orderCondition}
+                  resultSource={group.resultSource}
                   rounds={group.rounds}
                   paramDefs={paramDefs}
                   outputDefs={outputDefs}
-                  bestRoundIndex={simTypeResult?.bestRoundIndex}
+                  bestRoundIndex={schemeResult?.bestRoundIndex}
                   loading={isResultsLoading}
-                  height={Math.min(400, 60 + group.rounds.length * 40)}
+                  height={Math.min(420, 96 + group.rounds.length * 40)}
                 />
               </Card>
             );
           })}
 
-          {roundsBySimType.length === 0 && !isResultsLoading && (
+          {schemeRoundGroups.length === 0 && !isResultsLoading && (
             <Card>
               <div className="h-32 flex items-center justify-center text-slate-500 eyecare:text-muted-foreground">
-                暂无仿真结果数据
+                暂无工况方案结果数据
               </div>
             </Card>
           )}
@@ -357,15 +378,15 @@ const Results: React.FC = () => {
 
               <div className="flex items-center gap-3 flex-wrap">
                 <span className="text-sm text-slate-500 eyecare:text-muted-foreground">
-                  {t('res.filters.sim_compare')}
+                  对比工况方案
                 </span>
-                {availableSimTypes.map(simType => {
-                  const active = selectedSimTypes.includes(simType.id);
+                {availableSchemes.map(simType => {
+                  const active = selectedSchemeIds.includes(simType.id);
                   return (
                     <button
                       key={simType.id}
                       type="button"
-                      onClick={() => toggleSimType(simType.id)}
+                      onClick={() => toggleScheme(simType.id)}
                       className={`px-3 py-1 rounded-full text-sm border transition-colors ${
                         active
                           ? 'bg-brand-500 text-white border-brand-500'
@@ -392,11 +413,11 @@ const Results: React.FC = () => {
                     data={trendData}
                     xField="iteration"
                     yField="value"
-                    seriesField="simType"
+                    seriesField="schemeName"
                     showLegend
                     smooth
                     xAxisTitle={t('res.table.iteration')}
-                    yAxisTitle={metricLabelMap.get(Number(metric)) || metric}
+                    yAxisTitle={metricLabelMap.get(metric) || metric}
                     height={320}
                   />
                 </div>
@@ -407,8 +428,8 @@ const Results: React.FC = () => {
                 <h3 className="text-base font-semibold">{t('res.chart.avg')}</h3>
                 <div className="h-[320px]">
                   <BarChart
-                    data={avgBySimType}
-                    xField="simType"
+                    data={avgByScheme}
+                    xField="schemeName"
                     yField="value"
                     showLegend={false}
                     barWidth={32}
@@ -422,7 +443,7 @@ const Results: React.FC = () => {
           <Card>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-base font-semibold">{t('res.table.title')}</h3>
+                <h3 className="text-base font-semibold">工况方案指标明细</h3>
                 <span className="text-sm text-slate-500 eyecare:text-muted-foreground">
                   {tableCountLabel}
                 </span>
@@ -435,7 +456,7 @@ const Results: React.FC = () => {
                 enableSorting={false}
                 emptyText={t('res.table.empty')}
                 loading={isResultsLoading}
-                getRowId={record => `${record.simTypeId}-${record.metricId}-${record.iteration}`}
+                getRowId={record => `${record.schemeId}-${record.metricKey}-${record.iteration}`}
               />
             </div>
           </Card>
@@ -446,21 +467,21 @@ const Results: React.FC = () => {
         <ProcessFlowView
           orderId={orderId}
           orderStatus={
-            simTypeResults.length > 0
-              ? Math.max(...simTypeResults.map(r => (r.status === 1 ? 1 : r.status)))
+            schemeResults.length > 0
+              ? Math.max(...schemeResults.map(r => (r.status === 1 ? 1 : r.status)))
               : 0
           }
           orderProgress={
-            simTypeResults.length > 0
+            schemeResults.length > 0
               ? Math.round(
-                  simTypeResults.reduce((sum, r) => sum + r.progress, 0) / simTypeResults.length
+                  schemeResults.reduce((sum, r) => sum + r.progress, 0) / schemeResults.length
                 )
               : 0
           }
-          simTypeResults={simTypeResults}
-          roundsBySimType={roundsBySimType}
-          simTypeLabelMap={simTypeLabelMap}
-          workflowNodes={workflows[0]?.nodes || []}
+          schemeResults={schemeResults}
+          schemeRoundGroups={schemeRoundGroups}
+          schemeLabelMap={schemeLabelMap}
+          workflowNodes={workflowNodes}
           loading={isResultsLoading}
         />
       )}

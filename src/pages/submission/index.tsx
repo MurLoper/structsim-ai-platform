@@ -8,7 +8,7 @@ import { ordersApi } from '@/api';
 import { queryClient, queryKeys } from '@/lib/queryClient';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useCareDevices, useSolverResources } from '@/features/config/queries';
+import { useCareDevices } from '@/features/config/queries';
 import {
   FolderIcon,
   CubeIcon,
@@ -60,6 +60,100 @@ const DEFAULT_GLOBAL_SOLVER: GlobalSolverConfig = {
   applyToAll: true,
 };
 
+// 资源池最终将由外部接口返回“用户可用资源池 + 默认资源池”。
+// 当前开发环境先沿用本地配置数据，接口联通后直接替换这里的数据来源。
+const MOCK_RESOURCE_POOLS = [
+  {
+    id: 1,
+    name: '标准节点',
+    code: 'STD',
+    description: '标准计算节点',
+    cpuCores: 16,
+    memoryGb: 64,
+    valid: 1,
+    sort: 10,
+  },
+  {
+    id: 2,
+    name: '大内存节点',
+    code: 'MEM',
+    description: '高内存计算节点',
+    cpuCores: 32,
+    memoryGb: 256,
+    valid: 1,
+    sort: 20,
+  },
+  {
+    id: 3,
+    name: 'GPU节点',
+    code: 'GPU',
+    description: 'GPU 计算节点',
+    cpuCores: 16,
+    memoryGb: 128,
+    valid: 1,
+    sort: 30,
+  },
+];
+
+const toSafeInt = (value: unknown, fallback = 0): number => {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.trunc(n) : fallback;
+};
+
+const estimateRoundsFromOptParams = (optParams: Record<string, unknown> | undefined): number => {
+  if (!optParams) return 0;
+
+  const algType = toSafeInt(optParams.algType, 2);
+
+  if (algType === 2 || algType === 5) {
+    const doeData = Array.isArray(optParams.doeParamData) ? optParams.doeParamData : [];
+    return doeData.length;
+  }
+
+  if (algType !== 1) return 0;
+
+  const batchSizeType = toSafeInt(optParams.batchSizeType, 1);
+  const maxIter = Math.max(toSafeInt(optParams.maxIter, 1), 0);
+
+  if (batchSizeType === 2) {
+    const custom = Array.isArray(optParams.customBatchSize) ? optParams.customBatchSize : [];
+    let total = 0;
+    for (let idx = 1; idx <= maxIter; idx += 1) {
+      let value = 0;
+      for (const item of custom) {
+        const row = item as Record<string, unknown>;
+        const start = toSafeInt(row.startIndex, 0);
+        const end = toSafeInt(row.endIndex, 0);
+        if (start <= idx && idx <= end) {
+          value = Math.max(toSafeInt(row.value, 0), 0);
+          break;
+        }
+      }
+      total += value;
+    }
+    return total;
+  }
+
+  const batchSize = Array.isArray(optParams.batchSize) ? optParams.batchSize : [];
+  const values = batchSize.map(item => {
+    const row = item as Record<string, unknown>;
+    return Math.max(toSafeInt(row.value, 0), 0);
+  });
+
+  if (maxIter <= 0 || values.length === 0) return 0;
+  if (values.length >= maxIter) return values.slice(0, maxIter).reduce((a, b) => a + b, 0);
+  if (values.length === 1) return values[0] * maxIter;
+  return values.reduce((a, b) => a + b, 0) + values[values.length - 1] * (maxIter - values.length);
+};
+
+const estimateRoundsFromConditions = (conditions: Array<Record<string, unknown>>): number => {
+  return conditions.reduce((total, cond) => {
+    const params = cond.params as Record<string, unknown> | undefined;
+    const optParams = params?.optParams as Record<string, unknown> | undefined;
+    return total + estimateRoundsFromOptParams(optParams);
+  }, 0);
+};
+
 const Submission: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -72,8 +166,6 @@ const Submission: React.FC = () => {
 
   // 获取关注器件配置数据
   const { data: configCareDevices = [] } = useCareDevices();
-  // 获取资源池配置数据
-  const { data: solverResources = [] } = useSolverResources();
 
   // 编辑模式：从 URL 获取申请单 ID
   const orderId = searchParams.get('orderId') ? Number(searchParams.get('orderId')) : null;
@@ -147,8 +239,17 @@ const Submission: React.FC = () => {
     enabled: isEditMode && orderId !== null,
   });
 
+  const { data: submitLimitsResp } = useQuery({
+    queryKey: ['orders', 'submitLimits', user?.domainAccount || user?.id || 'anonymous'],
+    queryFn: () => ordersApi.getSubmitLimits(),
+    enabled: !!(user?.domainAccount || user?.id),
+    staleTime: 60 * 1000,
+  });
+
+  const submitLimits = submitLimitsResp?.data;
+
   const getProjectHabitIds = useCallback((): number[] => {
-    const userKey = user?.domainAccount || String(user?.id || '');
+    const userKey = user?.domainAccount || user?.id || '';
     if (!userKey) return [];
     try {
       const raw = localStorage.getItem(PROJECT_HABIT_STORAGE_KEY);
@@ -172,7 +273,7 @@ const Submission: React.FC = () => {
 
   const updateProjectHabit = useCallback(
     (projectId: number | null | undefined) => {
-      const userKey = user?.domainAccount || String(user?.id || '');
+      const userKey = user?.domainAccount || user?.id || '';
       if (!userKey || projectId == null) return;
       try {
         const raw = localStorage.getItem(PROJECT_HABIT_STORAGE_KEY);
@@ -201,6 +302,27 @@ const Submission: React.FC = () => {
     }),
     [getPreferredProjectId, state.safeFoldTypes]
   );
+
+  const conditionOrderMap = useMemo(() => {
+    const selectedConditionIds = new Set(state.selectedSimTypes.map(item => item.conditionId));
+    const orderMap = new Map<number, number>();
+    let order = 1;
+
+    state.foldTypesWithSimTypes.forEach(foldTypeData => {
+      if (!foldTypeIds.includes(foldTypeData.id)) {
+        return;
+      }
+      foldTypeData.simTypes.forEach(simType => {
+        if (!selectedConditionIds.has(simType.conditionId)) {
+          return;
+        }
+        orderMap.set(simType.conditionId, order);
+        order += 1;
+      });
+    });
+
+    return orderMap;
+  }, [foldTypeIds, state.foldTypesWithSimTypes, state.selectedSimTypes]);
 
   const applyNewEntryDefaults = useCallback(() => {
     state.clearInitializedConditionIds();
@@ -321,6 +443,14 @@ const Submission: React.FC = () => {
                 : Array.isArray(c.care_device_ids)
                   ? (c.care_device_ids as string[])
                   : [],
+              conditionRemark:
+                typeof c.remark === 'string'
+                  ? c.remark
+                  : typeof c.conditionRemark === 'string'
+                    ? c.conditionRemark
+                    : typeof c.condition_remark === 'string'
+                      ? c.condition_remark
+                      : '',
             };
             initializedConditionIds.push(conditionId);
           }
@@ -355,6 +485,7 @@ const Submission: React.FC = () => {
                 },
                 solver: (oldCfg.solver as SimTypeConfig['solver']) ?? DEFAULT_GLOBAL_SOLVER,
                 careDeviceIds: [],
+                conditionRemark: '',
               };
               initializedConditionIds.push(conditionId);
             }
@@ -577,8 +708,32 @@ const Submission: React.FC = () => {
             output: config?.output,
             solver: config?.solver,
             careDeviceIds: config?.careDeviceIds || [],
+            remark: config?.conditionRemark || '',
           };
         });
+
+        const currentSubmitRounds = estimateRoundsFromConditions(
+          conditions as Array<Record<string, unknown>>
+        );
+
+        const limitResp = await ordersApi.getSubmitLimits();
+        const limitData = limitResp?.data;
+
+        const maxBatchSize = limitData?.maxBatchSize ?? user?.maxBatchSize ?? 200;
+        if (currentSubmitRounds > maxBatchSize) {
+          showToast('error', `本次提单轮次 ${currentSubmitRounds} 超过上限 ${maxBatchSize}`);
+          return;
+        }
+
+        const dailyRoundLimit = limitData?.dailyRoundLimit ?? user?.dailyRoundLimit ?? 500;
+        const todayUsedRounds = limitData?.todayUsedRounds ?? 0;
+        if (todayUsedRounds + currentSubmitRounds > dailyRoundLimit) {
+          showToast(
+            'error',
+            `今日轮次上限 ${dailyRoundLimit}，已用 ${todayUsedRounds}，本次需 ${currentSubmitRounds}`
+          );
+          return;
+        }
 
         // 兼容旧版 optParam（以 simTypeId 为 key）
         const optParam = selectedSimTypeIds.reduce<Record<string, unknown>>((acc, simTypeId) => {
@@ -693,7 +848,13 @@ const Submission: React.FC = () => {
     // 获取当前工况和仿真类型名称
     const foldType = state.safeFoldTypes.find(ft => ft.id === state.activeFoldTypeId);
     const simType = state.safeSimTypes.find(st => st.id === state.activeSimTypeId);
-    const prefix = foldType && simType ? `${foldType.name}${simType.name} - ` : '';
+    const conditionOrder = state.activeConditionId
+      ? conditionOrderMap.get(state.activeConditionId)
+      : undefined;
+    const prefix =
+      foldType && simType
+        ? `${t('sub.condition')}${conditionOrder ?? '-'}-${foldType.name}${simType.name} - `
+        : '';
 
     switch (state.drawerMode) {
       case 'project':
@@ -1012,15 +1173,20 @@ const Submission: React.FC = () => {
                               height: CONFIG_BOX_HEIGHT,
                             }}
                           >
-                            <div className="absolute -top-3 left-4 px-2 bg-white dark:bg-slate-800 eyecare:bg-card text-xs text-slate-500 font-medium">
-                              {t('sub.condition')}
-                              {foldIdx + 1}-{foldTypeData.name}
-                              {simType.name} {t('sub.config')}
-                            </div>
+                            {(() => {
+                              const conditionOrder =
+                                conditionOrderMap.get(simType.conditionId) ?? foldIdx + simIdx + 1;
+                              return (
+                                <div className="absolute -top-3 left-4 px-2 bg-white dark:bg-slate-800 eyecare:bg-card text-xs text-slate-500 font-medium">
+                                  {t('sub.condition')}
+                                  {conditionOrder}-{foldTypeData.name}
+                                  {simType.name} {t('sub.config')}
+                                </div>
+                              );
+                            })()}
                             <SimTypeConfigBox
                               simType={simType}
                               foldType={foldTypeData}
-                              foldTypeIndex={foldIdx}
                               config={config}
                               solvers={state.safeSolvers}
                               globalSolver={state.globalSolver}
@@ -1091,7 +1257,7 @@ const Submission: React.FC = () => {
         isOpen={state.isDrawerOpen}
         onClose={() => state.setIsDrawerOpen(false)}
         title={getDrawerTitle()}
-        width={state.drawerMode === 'output' ? 'wide' : 'normal'}
+        width={state.drawerMode === 'output' ? 'xwide' : 'normal'}
         resizable={state.drawerMode === 'params' || state.drawerMode === 'output'}
         activeMode={state.drawerMode}
         onModeChange={mode => {
@@ -1174,9 +1340,9 @@ const Submission: React.FC = () => {
           <SolverDrawerContent
             config={state.simTypeConfigs[state.activeConditionId]}
             solvers={state.safeSolvers}
-            resourcePools={solverResources}
+            resourcePools={MOCK_RESOURCE_POOLS}
             globalSolver={state.globalSolver}
-            maxCpuCores={user?.maxCpuCores}
+            maxCpuCores={submitLimits?.maxCpuCores ?? user?.maxCpuCores}
             onUpdate={updates => state.updateSolverConfig(state.activeConditionId!, updates)}
             onGlobalSolverChange={state.setGlobalSolver}
             onApplyToAll={state.applySolverToAll}
@@ -1188,8 +1354,12 @@ const Submission: React.FC = () => {
           <CareDevicesDrawerContent
             configCareDevices={configCareDevices}
             selectedDeviceIds={state.simTypeConfigs[state.activeConditionId].careDeviceIds || []}
+            conditionRemark={state.simTypeConfigs[state.activeConditionId].conditionRemark || ''}
             onUpdate={deviceIds =>
               state.updateSimTypeConfig(state.activeConditionId!, { careDeviceIds: deviceIds })
+            }
+            onRemarkChange={remark =>
+              state.updateSimTypeConfig(state.activeConditionId!, { conditionRemark: remark })
             }
             t={t}
           />

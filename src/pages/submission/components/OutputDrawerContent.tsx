@@ -4,13 +4,20 @@ import type { SimTypeConfig, RespDetail, InpSetInfo } from '../types';
 import { TargetType } from '../types';
 import type { OutputSet, ConditionConfig } from '@/types/config';
 import type { OutputInGroup } from '@/types/configGroups';
+import { usePostProcessModes } from '@/features/config/queries';
+
+const DEFAULT_POST_PROCESS_MODE = '18';
+const POST_PROCESS_MODE_OPTIONS = [
+  { value: '18', labelKey: 'sub.output.post_process_other' },
+  { value: '35', labelKey: 'sub.output.post_process_rf_at_xx' },
+] as const;
 
 interface OutputDrawerContentProps {
   config: SimTypeConfig;
   simTypeId: number;
   outputSets: OutputSet[];
   conditionConfig?: ConditionConfig;
-  inpSets?: InpSetInfo[]; // INP 文件解析的 set 集
+  inpSets?: InpSetInfo[];
   onUpdate: (updates: Partial<SimTypeConfig>) => void;
   onFetchGroupOutputs?: (groupId: number) => Promise<OutputInGroup[]>;
   t?: (key: string) => string;
@@ -27,8 +34,31 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
   t = (key: string) => key,
 }) => {
   const [loadingGroup, setLoadingGroup] = useState(false);
+  const { data: postProcessModes = [] } = usePostProcessModes();
 
-  // 根据工况配置筛选输出组
+  // 接口字段仍叫 component，但业务语义已切到“后处理方式”。
+  const postProcessModeOptions = useMemo(() => {
+    const options: Array<{ value: string; label: string }> =
+      postProcessModes.length > 0
+        ? postProcessModes.map(mode => ({
+            value: mode.code,
+            label: mode.name,
+          }))
+        : POST_PROCESS_MODE_OPTIONS.map(option => ({
+            value: option.value,
+            label: t(option.labelKey),
+          }));
+
+    (config.output.respDetails || []).forEach(detail => {
+      const value = detail.component?.trim();
+      if (value && !options.some(option => option.value === value)) {
+        options.push({ value, label: value });
+      }
+    });
+
+    return options;
+  }, [config.output.respDetails, postProcessModes, t]);
+
   const filteredOutputSets = useMemo(() => {
     if (conditionConfig?.outputGroupIds?.length) {
       return outputSets.filter(s => conditionConfig.outputGroupIds.includes(s.id));
@@ -36,13 +66,12 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
     return outputSets;
   }, [outputSets, conditionConfig]);
 
-  // 响应详情管理函数
   const addRespDetail = () => {
     const currentDetails = config.output.respDetails || [];
     const newDetail: RespDetail = {
       set: '',
       outputType: 'RF3',
-      component: 'OTHER',
+      component: DEFAULT_POST_PROCESS_MODE,
       description: '',
       lowerLimit: null,
       upperLimit: null,
@@ -70,10 +99,7 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
     });
   };
 
-  // 输出类型选项
   const outputTypeOptions = ['RF3', 'LEP2', 'LEP1', 'S33', 'S11', 'S22', 'U1', 'U2', 'U3'];
-
-  // 积分点选项（适用于体单元应力/应变输出）
   const integrationPointOptions = ['', 'CENTROID', 'MAX', 'MIN', 'INTERPOLATE'];
   const targetTypeOptions = [
     { value: TargetType.MIN, label: t('sub.output.target_min') },
@@ -84,7 +110,6 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
 
   return (
     <div className="space-y-5">
-      {/* 输出组合选择 */}
       <div>
         <label className="block text-sm font-bold mb-2 text-foreground">
           {t('sub.output.output_set')}
@@ -98,34 +123,35 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
             onUpdate({
               output: { ...config.output, outputSetId: groupId },
             });
-            // 选择输出组后，获取输出详情并填充 respDetails
+
             if (groupId && onFetchGroupOutputs) {
               setLoadingGroup(true);
               try {
                 const groupOutputs = await onFetchGroupOutputs(groupId);
                 if (groupOutputs.length > 0) {
-                  // 映射后端 targetType 数字 → 前端枚举
-                  const mapTargetType = (t?: number): TargetType => {
-                    if (t === 1) return TargetType.MAX;
-                    if (t === 2) return TargetType.MIN;
-                    if (t === 3) return TargetType.TARGET;
+                  const mapTargetType = (value?: number): TargetType => {
+                    if (value === 1) return TargetType.MAX;
+                    if (value === 2) return TargetType.MIN;
+                    if (value === 3) return TargetType.TARGET;
                     return TargetType.MAX;
                   };
-                  const newRespDetails: RespDetail[] = groupOutputs.map(o => ({
-                    set: o.setName || 'push',
-                    outputType: o.outputCode || 'RF3',
-                    component: o.component || 'OTHER',
-                    integrationPoint: o.sectionPoint || undefined,
-                    stepName: o.stepName || undefined,
-                    specialOutputSet: o.specialOutputSet || undefined,
-                    description: o.description || o.outputName || '',
-                    lowerLimit: o.lowerLimit ?? null,
-                    upperLimit: o.upperLimit ?? null,
-                    weight: o.weight ?? 1,
-                    multiple: o.multiple ?? 1,
-                    targetValue: o.targetValue ?? null,
-                    targetType: mapTargetType(o.targetType),
+
+                  const newRespDetails: RespDetail[] = groupOutputs.map(output => ({
+                    set: output.setName || 'push',
+                    outputType: output.outputCode || 'RF3',
+                    component: output.component || DEFAULT_POST_PROCESS_MODE,
+                    integrationPoint: output.sectionPoint || undefined,
+                    stepName: output.stepName || undefined,
+                    specialOutputSet: output.specialOutputSet || undefined,
+                    description: output.description || output.outputName || '',
+                    lowerLimit: output.lowerLimit ?? null,
+                    upperLimit: output.upperLimit ?? null,
+                    weight: output.weight ?? 1,
+                    multiple: output.multiple ?? 1,
+                    targetValue: output.targetValue ?? null,
+                    targetType: mapTargetType(output.targetType),
                   }));
+
                   onUpdate({
                     output: { ...config.output, outputSetId: groupId, respDetails: newRespDetails },
                   });
@@ -146,7 +172,6 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
         {loadingGroup && <p className="text-xs text-muted-foreground mt-1">{t('sub.loading')}</p>}
       </div>
 
-      {/* 响应输出详情配置 - 表格形式 */}
       <div>
         <div className="flex justify-between items-center mb-2">
           <label className="text-sm font-bold text-foreground">
@@ -161,9 +186,7 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
           </button>
         </div>
 
-        {/* 表格形式展示 */}
         <div className="border rounded-lg border-border overflow-hidden">
-          {/* 表头 */}
           <div className="grid grid-cols-[80px_70px_70px_80px_1fr_60px_60px_60px_60px_80px_60px_36px] bg-muted text-xs font-medium text-muted-foreground">
             <div className="px-1 py-2 border-r border-border text-center">
               {t('sub.output.set_name')}
@@ -175,7 +198,7 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
               {t('sub.output.integration_point')}
             </div>
             <div className="px-1 py-2 border-r border-border text-center">
-              {t('sub.output.component_id')}
+              {t('sub.output.post_process_mode')}
             </div>
             <div className="px-1 py-2 border-r border-border text-center">
               {t('sub.output.description')}
@@ -201,7 +224,6 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
             <div className="px-1 py-2"></div>
           </div>
 
-          {/* 表格内容 */}
           <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
             {(config.output.respDetails || []).length === 0 ? (
               <div className="px-3 py-4 text-center text-sm text-muted-foreground">
@@ -259,13 +281,17 @@ export const OutputDrawerContent: React.FC<OutputDrawerContentProps> = ({
                     </select>
                   </div>
                   <div className="px-1 py-1 border-r border-border">
-                    <input
-                      type="text"
-                      className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-ring rounded"
-                      placeholder="comp"
-                      value={resp.component}
+                    <select
+                      className="w-full px-0 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-ring rounded"
+                      value={resp.component || DEFAULT_POST_PROCESS_MODE}
                       onChange={e => updateRespDetail(idx, { component: e.target.value })}
-                    />
+                    >
+                      {postProcessModeOptions.map(option => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                   <div className="px-1 py-1 border-r border-border">
                     <input

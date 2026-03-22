@@ -315,8 +315,8 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
             const selectedIds = (field.value || []) as string[];
             // 已选中的用户排在前面
             const sortedUsers = [...users].sort((a, b) => {
-              const aIdentity = a.domainAccount || String(a.id || '');
-              const bIdentity = b.domainAccount || String(b.id || '');
+              const aIdentity = a.domainAccount || a.id || '';
+              const bIdentity = b.domainAccount || b.id || '';
               const aSelected = selectedIds.includes(aIdentity);
               const bSelected = selectedIds.includes(bIdentity);
               if (aSelected && !bSelected) return -1;
@@ -326,7 +326,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
             return (
               <div className="space-y-1 max-h-48 overflow-y-auto border border-input rounded-lg p-2">
                 {sortedUsers.map(user => {
-                  const userIdentity = user.domainAccount || String(user.id || '');
+                  const userIdentity = user.domainAccount || user.id || '';
                   if (!userIdentity) return null;
                   const isSelected = selectedIds.includes(userIdentity);
                   return (
@@ -349,7 +349,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
                         className="w-4 h-4 rounded border-input"
                       />
                       <span className="flex-1 text-sm">
-                        {user.name || user.username || userIdentity}
+                        {user.realName || user.userName || user.displayName || userIdentity}
                       </span>
                     </label>
                   );

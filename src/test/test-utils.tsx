@@ -190,10 +190,13 @@ export function createMockSimType(overrides = {}) {
  * 创建 Mock 用户数据
  */
 export function createMockUser(overrides = {}) {
+  const domainAccount = `user_${Date.now()}`;
   return {
-    id: generateTestId(),
-    username: `user_${Date.now()}`,
-    email: `user_${Date.now()}@test.com`,
+    id: domainAccount,
+    domainAccount,
+    userName: domainAccount,
+    realName: domainAccount,
+    email: `${domainAccount}@test.com`,
     role: 'user',
     permissions: ['VIEW_DASHBOARD', 'VIEW_CONFIG'],
     ...overrides,

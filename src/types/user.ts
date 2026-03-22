@@ -25,38 +25,44 @@ export interface Role {
   description?: string;
   permissionIds?: number[];
   permissionCodes?: string[];
+  maxCpuCores?: number;
+  maxBatchSize?: number;
+  nodeList?: number[];
+  dailyRoundLimitDefault?: number;
   valid?: number;
   sort?: number;
 }
 
 export interface User {
-  id: number | string;
-  name: string;
+  id: string;
+  domainAccount: string;
   email: string;
   avatar?: string;
   permissions?: Permission[];
-  username?: string;
   userName?: string;
   realName?: string;
-  domainAccount?: string;
-  userId?: string;
+  displayName?: string;
   lcUserId?: string;
   password?: string;
   role?: string;
   status?: string;
   roleIds?: number[];
+  roleIdList?: number[];
   roleNames?: string[];
   roleCodes?: string[];
   permissionIds?: number[];
   permissionCodes?: string[];
   department?: string;
-  /** 用户可用的最大 CPU 核数（由后端根据权限返回，默认 192） */
   maxCpuCores?: number;
-  /** 用户默认资源池 ID */
+  maxBatchSize?: number;
+  nodeList?: number[];
+  dailyRoundLimitDefault?: number;
+  dailyRoundLimit?: number;
   defaultResourceId?: number | null;
   valid?: number;
   created_at?: string;
   updated_at?: string;
   createdAt?: number;
   updatedAt?: number;
+  lastLoginAt?: number;
 }

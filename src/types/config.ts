@@ -110,6 +110,14 @@ export interface OutputDef {
   updatedAt?: number;
 }
 
+export interface PostProcessMode {
+  code: string;
+  name: string;
+  isDefault?: number;
+  source?: string;
+  remark?: string;
+}
+
 export interface CareDevice {
   id: number;
   name: string;

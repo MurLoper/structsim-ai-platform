@@ -21,6 +21,15 @@ export interface OrdersQueryParams {
   endDate?: number;
 }
 
+export interface SubmitLimitsResponse {
+  maxBatchSize: number;
+  maxCpuCores: number;
+  dailyRoundLimitDefault?: number;
+  dailyRoundLimit: number;
+  todayUsedRounds: number;
+  todayRemainingRounds: number;
+}
+
 // Mock 数据开关（可通过环境变量控制）
 const useMockData = false; // 改为使用真实API
 
@@ -45,6 +54,8 @@ export const ordersApi = {
       inpSets?: { type: string; name: string }[];
       error?: string;
     }>('/orders/verify-file', { path, type }),
+
+  getSubmitLimits: () => api.get<SubmitLimitsResponse>('/orders/submit-limits'),
 
   // 统计相关接口（开发环境使用 mock 数据）
   getStatistics: async () => {

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
-import { Box, SlidersHorizontal, BarChart3, FlaskConical, Cpu, Server } from 'lucide-react';
+import { Box, SlidersHorizontal, BarChart3, FlaskConical, Cpu } from 'lucide-react';
 
 import { ConfigTabs, TabItem } from './components';
 import {
@@ -9,7 +9,6 @@ import {
   ParamDefsTab,
   OutputDefsTab,
   SolversTab,
-  SolverResourcesTab,
   FoldTypesTab,
   CareDevicesTab,
 } from './tabs';
@@ -20,7 +19,6 @@ const TABS: TabItem[] = [
   { key: 'params', label: '参数定义', icon: <SlidersHorizontal className="w-4 h-4" /> },
   { key: 'outputs', label: '输出定义', icon: <BarChart3 className="w-4 h-4" /> },
   { key: 'solvers', label: '求解器', icon: <SlidersHorizontal className="w-4 h-4" /> },
-  { key: 'solverResources', label: '资源池', icon: <Server className="w-4 h-4" /> },
   { key: 'careDevices', label: '关注器件', icon: <Cpu className="w-4 h-4" /> },
 ];
 
@@ -43,7 +41,6 @@ const BasicConfig: React.FC = () => {
       {activeTab === 'params' && <ParamDefsTab />}
       {activeTab === 'outputs' && <OutputDefsTab />}
       {activeTab === 'solvers' && <SolversTab />}
-      {activeTab === 'solverResources' && <SolverResourcesTab />}
       {activeTab === 'foldTypes' && <FoldTypesTab />}
       {activeTab === 'careDevices' && <CareDevicesTab />}
     </div>

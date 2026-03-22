@@ -16,9 +16,9 @@ const mockUseResultsData = async (overrides = {}) => {
     setMetric: vi.fn(),
     metricOptions: [{ value: '1', label: 'Metric A' }],
     metricLabelMap: new Map([[1, 'Metric A']]),
-    simTypeLabelMap: new Map([[1, 'Sim A']]),
-    selectedSimTypes: [1],
-    toggleSimType: vi.fn(),
+    schemeLabelMap: new Map([[1, 'Sim A']]),
+    selectedSchemeIds: [1],
+    toggleScheme: vi.fn(),
     minValue: '',
     setMinValue: vi.fn(),
     maxValue: '',
@@ -27,10 +27,24 @@ const mockUseResultsData = async (overrides = {}) => {
     setMinIteration: vi.fn(),
     maxIteration: '',
     setMaxIteration: vi.fn(),
-    availableSimTypes: [{ id: 1, name: 'Sim A' }],
+    availableSchemes: [{ id: 1, name: 'Sim A' }],
     filteredResults: [],
     trendData: [],
-    avgBySimType: [],
+    avgByScheme: [],
+    schemeResults: [],
+    schemeRoundGroups: [],
+    overviewStats: {
+      schemeCount: 0,
+      totalRounds: 0,
+      completedRounds: 0,
+      failedRounds: 0,
+      runningRounds: 0,
+      resultSource: 'mock',
+      runningModules: [],
+    },
+    paramDefs: [],
+    outputDefs: [],
+    workflowNodes: [],
     isResultsLoading: false,
     resultsError: null,
     retryResults: vi.fn(),
@@ -56,7 +70,7 @@ describe('Results page', () => {
     );
 
     expect(screen.getByText('订单不存在')).toBeInTheDocument();
-    expect(screen.getByText('无效的订单ID，请返回订单列表')).toBeInTheDocument();
+    expect(screen.getByText('无效的订单 ID，请返回订单列表')).toBeInTheDocument();
   });
 
   it('should show error card and allow retry', async () => {

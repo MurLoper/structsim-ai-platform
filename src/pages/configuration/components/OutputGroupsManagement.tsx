@@ -7,12 +7,19 @@ import { VirtualTable } from '@/components/tables/VirtualTable';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { OutputGroup, OutputInGroup } from '@/types/configGroups';
 import type { OutputDef } from '@/api';
+import { usePostProcessModes } from '@/features/config/queries';
+
+const DEFAULT_POST_PROCESS_MODE = '18';
+const POST_PROCESS_MODE_OPTIONS = [
+  { value: '18', label: 'Other' },
+  { value: '35', label: 'RF_AT_XX' },
+];
 
 /** 每个输出的 resp_details 预配置 */
 interface OutputRespConfig {
   outputDefId: number;
   setName: string;
-  component: string;
+  component: string; // 后处理方式编码（接口字段名仍为 component）
   stepName?: string;
   sectionPoint?: string;
   specialOutputSet?: string;
@@ -28,7 +35,7 @@ interface OutputRespConfig {
 
 const DEFAULT_RESP: Omit<OutputRespConfig, 'outputDefId'> = {
   setName: 'push',
-  component: '35',
+  component: DEFAULT_POST_PROCESS_MODE,
   weight: 1.0,
   multiple: 1.0,
   lowerLimit: 0.0,
@@ -56,7 +63,17 @@ export const OutputGroupsManagement: React.FC = () => {
 
   const { showToast } = useToast();
   const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
+  const { data: postProcessModes = [] } = usePostProcessModes();
   const loadedRef = useRef(false);
+
+  const postProcessModeOptions = useMemo(() => {
+    return postProcessModes.length > 0
+      ? postProcessModes.map(mode => ({
+          value: mode.code,
+          label: mode.name,
+        }))
+      : POST_PROCESS_MODE_OPTIONS;
+  }, [postProcessModes]);
 
   // 加载所有数据
   const loadAllData = async () => {
@@ -435,12 +452,13 @@ export const OutputGroupsManagement: React.FC = () => {
           group={editingGroup}
           outputDefs={allOutputDefs}
           projects={projects}
+          postProcessModeOptions={postProcessModeOptions}
           existingOutputConfigs={
             editingGroup?.id
               ? (groupOutputsMap.get(editingGroup.id) || []).map(o => ({
                   outputDefId: o.outputDefId,
                   setName: o.setName || 'push',
-                  component: o.component || '35',
+                  component: o.component || DEFAULT_POST_PROCESS_MODE,
                   stepName: o.stepName,
                   sectionPoint: o.sectionPoint,
                   specialOutputSet: o.specialOutputSet,
@@ -472,10 +490,19 @@ const GroupModal: React.FC<{
   group: Partial<OutputGroup> | null;
   outputDefs: OutputDef[];
   projects: Array<{ id: number; name: string }>;
+  postProcessModeOptions: Array<{ value: string; label: string }>;
   existingOutputConfigs?: OutputRespConfig[];
   onSave: (data: Partial<OutputGroup>, outputConfigs: OutputRespConfig[]) => void;
   onClose: () => void;
-}> = ({ group, outputDefs, projects, existingOutputConfigs = [], onSave, onClose }) => {
+}> = ({
+  group,
+  outputDefs,
+  projects,
+  postProcessModeOptions,
+  existingOutputConfigs = [],
+  onSave,
+  onClose,
+}) => {
   const initialData = useMemo(
     () => ({
       name: group?.name || '',
@@ -547,16 +574,22 @@ const GroupModal: React.FC<{
         ),
       },
       {
-        header: 'Component',
+        header: '后处理方式',
         accessorKey: 'component',
         size: 110,
         enableSorting: false,
         cell: ({ row }) => (
-          <input
+          <select
             className={inputCls}
-            value={row.original.component || ''}
+            value={row.original.component || DEFAULT_POST_PROCESS_MODE}
             onChange={e => updateRow(row.index, 'component', e.target.value)}
-          />
+          >
+            {postProcessModeOptions.map(option => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         ),
       },
       {
@@ -675,7 +708,7 @@ const GroupModal: React.FC<{
         ),
       },
     ],
-    [getDef, updateRow, removeRow, inputCls]
+    [getDef, updateRow, removeRow, inputCls, postProcessModeOptions]
   );
 
   return (

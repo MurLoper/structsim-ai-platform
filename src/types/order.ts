@@ -31,6 +31,23 @@ export interface OrderOriginFile {
   fileId?: number | null;
 }
 
+export interface OrderConditionItem {
+  id: number;
+  conditionId?: number;
+  foldTypeId?: number;
+  foldTypeName?: string;
+  simTypeId?: number;
+  simTypeName?: string;
+  optIssueId?: number | null;
+  optJobId?: number | null;
+  algorithmType?: string | null;
+  roundTotal?: number;
+  outputCount?: number;
+  solverId?: string | null;
+  process?: number;
+  status?: number;
+}
+
 export interface OrderDetail extends OrderListItem {
   originFile: OrderOriginFile;
   originFoldTypeId?: number | null;
@@ -45,6 +62,7 @@ export interface OrderDetail extends OrderListItem {
   curNodeId?: number | null;
   submitCheck?: Record<string, unknown> | null;
   clientMeta?: Record<string, unknown> | null;
+  conditions?: OrderConditionItem[];
 }
 
 export interface OrderCreatePayload {

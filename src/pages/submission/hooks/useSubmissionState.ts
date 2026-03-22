@@ -253,26 +253,31 @@ export const useSubmissionState = (
     return AlgorithmType.DOE;
   };
 
-  const toCamelKey = (key: string) =>
-    key.replace(/_([a-zA-Z])/g, (_, ch: string) => ch.toUpperCase());
+  const toCamelKey = useCallback(
+    (key: string) => key.replace(/_([a-zA-Z])/g, (_, ch: string) => ch.toUpperCase()),
+    []
+  );
 
-  const normalizeDoeDataByHeads = (
-    heads: string[],
-    rows: Array<Record<string, number | string>>
-  ): Array<Record<string, number | string>> =>
-    rows.map(row => {
-      const normalized: Record<string, number | string> = {};
-      heads.forEach(head => {
-        if (row[head] !== undefined) {
-          normalized[head] = row[head];
-        } else if (row[toCamelKey(head)] !== undefined) {
-          normalized[head] = row[toCamelKey(head)];
-        } else {
-          normalized[head] = '';
-        }
-      });
-      return normalized;
-    });
+  const normalizeDoeDataByHeads = useCallback(
+    (
+      heads: string[],
+      rows: Array<Record<string, number | string>>
+    ): Array<Record<string, number | string>> =>
+      rows.map(row => {
+        const normalized: Record<string, number | string> = {};
+        heads.forEach(head => {
+          if (row[head] !== undefined) {
+            normalized[head] = row[head];
+          } else if (row[toCamelKey(head)] !== undefined) {
+            normalized[head] = row[toCamelKey(head)];
+          } else {
+            normalized[head] = '';
+          }
+        });
+        return normalized;
+      }),
+    [toCamelKey]
+  );
 
   // 初始化仿真类型配置（以 conditionId 为 key）
   const initSimTypeConfig = useCallback(
@@ -346,10 +351,11 @@ export const useSubmissionState = (
             resourceId: null,
           },
           careDeviceIds: [],
+          conditionRemark: '',
         },
       }));
     },
-    [safeSimTypes, safeSolvers, safeParamGroups, getConditionConfig]
+    [safeSimTypes, safeSolvers, safeParamGroups, getConditionConfig, normalizeDoeDataByHeads]
   );
 
   const paramGroupPrefillRef = useRef<Set<string>>(new Set());
@@ -500,7 +506,7 @@ export const useSubmissionState = (
               const nextRespDetails: RespDetail[] = groupOutputs.map(o => ({
                 set: o.setName || 'push',
                 outputType: o.outputCode || 'RF3',
-                component: o.component || 'OTHER',
+                component: o.component || '18',
                 integrationPoint: o.sectionPoint || undefined,
                 stepName: o.stepName || undefined,
                 specialOutputSet: o.specialOutputSet || undefined,

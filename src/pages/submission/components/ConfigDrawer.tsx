@@ -18,7 +18,7 @@ interface ConfigDrawerProps {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
-  width?: 'normal' | 'wide';
+  width?: 'normal' | 'wide' | 'xwide';
   resizable?: boolean;
   minWidth?: number;
   maxWidth?: number;
@@ -30,7 +30,7 @@ interface ConfigDrawerProps {
   t?: (key: string) => string;
 }
 
-const widthMap = { normal: 'md' as const, wide: 'lg' as const };
+const widthMap = { normal: 'md' as const, wide: 'lg' as const, xwide: 'xl' as const };
 
 const CONFIG_TABS: TabDef[] = [
   { mode: 'params', label: 'sub.params_config' },

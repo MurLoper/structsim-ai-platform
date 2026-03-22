@@ -5,6 +5,7 @@ import type {
   ParamDef,
   ConditionDef,
   OutputDef,
+  PostProcessMode,
   Solver,
   SolverResource,
   FoldType,
@@ -71,6 +72,7 @@ export const baseConfigApi = {
 
   // 输出定义
   getOutputDefs: () => api.get<OutputDef[]>('/config/output-defs'),
+  getPostProcessModes: () => api.get<PostProcessMode[]>('/config/post-process-modes'),
   getOutputDefsPaginated: (params: { page: number; pageSize?: number; keyword?: string }) =>
     api.get<{ items: OutputDef[]; total: number; page: number; pageSize: number }>(
       '/config/output-defs',

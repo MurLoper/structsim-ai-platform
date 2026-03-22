@@ -62,6 +62,10 @@ export const queryKeys = {
     list: () => [...queryKeys.outputDefs.all, 'list'] as const,
     detail: (id: number) => [...queryKeys.outputDefs.all, 'detail', id] as const,
   },
+  postProcessModes: {
+    all: ['postProcessModes'] as const,
+    list: () => [...queryKeys.postProcessModes.all, 'list'] as const,
+  },
   // 求解器
   solvers: {
     all: ['solvers'] as const,

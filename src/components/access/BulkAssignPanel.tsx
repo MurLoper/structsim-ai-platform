@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Card, CardHeader, Select } from '@/components/ui';
-import type { Role, PermissionItem } from '@/types';
+import type { PermissionItem, Role } from '@/types';
 import { PermissionTree } from './PermissionTree';
 
 interface BulkAssignPanelProps {
@@ -16,8 +16,18 @@ export const BulkAssignPanel: React.FC<BulkAssignPanelProps> = ({
 }) => {
   const [roleId, setRoleId] = useState<number | null>(roles[0]?.id ?? null);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
-  const selectedRole = useMemo(() => roles.find(r => r.id === roleId), [roles, roleId]);
 
+  useEffect(() => {
+    if (roles.length === 0) {
+      setRoleId(null);
+      return;
+    }
+    if (!roles.some(role => role.id === roleId)) {
+      setRoleId(roles[0]?.id ?? null);
+    }
+  }, [roles, roleId]);
+
+  const selectedRole = useMemo(() => roles.find(role => role.id === roleId), [roles, roleId]);
   const roleOptions = roles.map(role => ({
     value: String(role.id),
     label: role.name,
@@ -25,10 +35,10 @@ export const BulkAssignPanel: React.FC<BulkAssignPanelProps> = ({
 
   return (
     <Card>
-      <CardHeader title="批量授权面板" subtitle="选择角色并批量配置权限" />
+      <CardHeader title="批量授权面板" subtitle="选择目标权限组后，批量勾选并覆盖权限配置。" />
       <div className="space-y-4">
         <Select
-          label="目标角色"
+          label="目标权限组"
           options={roleOptions}
           value={roleId ? String(roleId) : ''}
           onChange={event => setRoleId(Number(event.target.value))}
@@ -42,7 +52,7 @@ export const BulkAssignPanel: React.FC<BulkAssignPanelProps> = ({
 
         <div className="flex items-center justify-between">
           <div className="text-xs text-slate-500">
-            {selectedRole ? `正在配置：${selectedRole.name}` : '请选择角色'}
+            {selectedRole ? `正在为 ${selectedRole.name} 配置权限` : '请先选择目标权限组'}
           </div>
           <Button
             onClick={() => roleId && onApply(roleId, selectedIds)}

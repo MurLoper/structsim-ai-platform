@@ -7,7 +7,6 @@ import type { Solver } from '@/api/config';
 interface SimTypeConfigBoxProps {
   simType: { id: number; name: string };
   foldType: { id: number; name: string };
-  foldTypeIndex: number; // 工况序号（从0开始）
   config: SimTypeConfig;
   solvers: Solver[];
   globalSolver: GlobalSolverConfig;
@@ -22,8 +21,6 @@ interface SimTypeConfigBoxProps {
 
 export const SimTypeConfigBox: React.FC<SimTypeConfigBoxProps> = ({
   simType,
-  foldType: _foldType,
-  foldTypeIndex: _foldTypeIndex,
   config,
   solvers,
   globalSolver,
@@ -106,6 +103,9 @@ export const SimTypeConfigBox: React.FC<SimTypeConfigBoxProps> = ({
     config.output.mode === 'template'
       ? config.output.outputSetId
       : config.output.selectedOutputIds.length > 0;
+  const selectedSolver = solvers.find(s => s.id === config.solver.solverId);
+  const externalSolverId = Number(selectedSolver?.code);
+  const isGpuSolver = Number.isFinite(externalSolverId) && externalSolverId === 0;
   const hasSolver = config.solver.solverId > 0;
   const hasCareDevices = config.careDeviceIds && config.careDeviceIds.length > 0;
 
@@ -204,18 +204,24 @@ export const SimTypeConfigBox: React.FC<SimTypeConfigBoxProps> = ({
         <div className="text-xs space-y-1 text-muted-foreground">
           <div className="flex justify-between">
             <span>{t('sub.solver')}:</span>
-            <span className="font-medium truncate max-w-[80px]">
-              {solvers.find(s => s.id === config.solver.solverId)?.name || '-'}
-            </span>
+            <span className="font-medium truncate max-w-[80px]">{selectedSolver?.name || '-'}</span>
           </div>
           <div className="flex justify-between">
             <span>{t('sub.mode')}:</span>
             <span
-              className={`font-medium ${config.solver.cpuType === 1 ? 'text-primary' : 'text-muted-foreground'}`}
+              className={`font-medium ${
+                isGpuSolver
+                  ? 'text-primary'
+                  : config.solver.cpuType === 1
+                    ? 'text-primary'
+                    : 'text-muted-foreground'
+              }`}
             >
-              {config.solver.cpuType === 1
-                ? `${config.solver.cpuCores}${t('sub.cores')}`
-                : t('sub.single_node')}
+              {isGpuSolver
+                ? 'GPU'
+                : config.solver.cpuType === 1
+                  ? `${config.solver.cpuCores}${t('sub.cores')}`
+                  : t('sub.single_node')}
             </span>
           </div>
           {globalSolver.applyToAll && (
