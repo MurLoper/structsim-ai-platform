@@ -222,8 +222,7 @@ export const submissionEn = {
   'sub.care_devices_empty': 'No devices available',
   'sub.care_devices_empty_hint': 'Please verify the source file first',
   'sub.care_devices_desc': 'Select the components you want to monitor from the INP file',
-  'sub.care_devices_config_desc':
-    'Select devices from the configuration list or add custom device IDs.',
+  'sub.care_devices_config_desc': 'Select devices from the configuration list.',
   'sub.care_devices_from_config': 'Configured Devices',
   'sub.care_devices_selected_list': 'Selected Devices',
   'sub.care_devices_manual_desc':
@@ -467,7 +466,7 @@ export const submissionZh = {
   'sub.care_devices_empty': '暂无可选器件',
   'sub.care_devices_empty_hint': '请先验证源文件',
   'sub.care_devices_desc': '从INP文件中选择需要监控的组件',
-  'sub.care_devices_config_desc': '从配置列表中选择关注器件，或补充自定义器件 ID。',
+  'sub.care_devices_config_desc': '从配置列表中选择关注器件。',
   'sub.care_devices_from_config': '配置器件',
   'sub.care_devices_selected_list': '已选器件',
   'sub.care_devices_manual_desc': '输入需要额外关注的自定义器件 ID，可一次添加多个。',

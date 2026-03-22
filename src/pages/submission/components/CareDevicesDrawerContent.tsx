@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Alert, Button, FormItem, Input, Tag, Textarea } from '@/components/ui';
+import React, { useMemo } from 'react';
+import { Alert, FormItem, Tag, Textarea } from '@/components/ui';
 import type { CareDevice } from '@/types/config';
 
 interface CareDevicesDrawerContentProps {
@@ -19,8 +19,6 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
   onRemarkChange,
   t = (key: string) => key,
 }) => {
-  const [customDeviceInput, setCustomDeviceInput] = useState('');
-
   const mergedCareDevices = useMemo(
     () =>
       configCareDevices.map(device => ({
@@ -50,18 +48,6 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
   const clearConfigSelection = () => {
     const configCodes = new Set(mergedCareDevices.map(d => d.code || d.name));
     onUpdate(selectedDeviceIds.filter(id => !configCodes.has(id)));
-  };
-
-  const addCustomDevices = () => {
-    const customIds = customDeviceInput
-      .split(/[\s,，;；\n]+/)
-      .map(item => item.trim())
-      .filter(Boolean);
-    if (customIds.length === 0) {
-      return;
-    }
-    onUpdate(Array.from(new Set([...selectedDeviceIds, ...customIds])));
-    setCustomDeviceInput('');
   };
 
   return (
@@ -138,31 +124,6 @@ export const CareDevicesDrawerContent: React.FC<CareDevicesDrawerContentProps> =
           </div>
         </div>
       )}
-
-      <FormItem label={t('sub.care_devices_manual_input')}>
-        <div className="space-y-3">
-          <div className="text-sm text-muted-foreground">{t('sub.care_devices_manual_desc')}</div>
-          <div className="flex gap-2">
-            <Input
-              value={customDeviceInput}
-              onChange={e => setCustomDeviceInput(e.target.value)}
-              placeholder={t('sub.care_devices_input_placeholder')}
-              onKeyDown={event => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  addCustomDevices();
-                }
-              }}
-            />
-            <Button type="button" variant="outline" onClick={addCustomDevices}>
-              {t('sub.add')}
-            </Button>
-          </div>
-          <div className="text-xs text-muted-foreground">
-            支持输入一个或多个自定义器件 ID，多个 ID 可用逗号、空格或换行分隔。
-          </div>
-        </div>
-      </FormItem>
 
       <FormItem label={t('sub.condition_remark')}>
         <Textarea
