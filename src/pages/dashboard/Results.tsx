@@ -88,7 +88,7 @@ const Results: React.FC = () => {
     isResultsLoading,
     resultsError,
     retryResults,
-  } = useResultsData(resolvedOrderId);
+  } = useResultsData(resolvedOrderId, activeTab as 'overview' | 'detail' | 'analysis');
 
   const invalidOrderId = resolvedOrderId === null;
   const resultsErrorMessage = resultsError ? String(resultsError) : t('res.error_desc');
@@ -517,66 +517,6 @@ const Results: React.FC = () => {
           </Card>
 
           <div className="space-y-4">
-            <div className="rounded-[20px] border border-slate-200 bg-white px-5 py-4">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-                <div className="space-y-2">
-                  <div className="text-xs uppercase tracking-[0.18em] text-slate-500">当前工况</div>
-                  <div className="text-xl font-semibold text-slate-900">{focusConditionLabel}</div>
-                  <div className="flex flex-wrap gap-2 text-xs text-slate-500">
-                    {focusedCard?.detail?.conditionId ? (
-                      <span className="rounded-full bg-slate-100 px-3 py-1">
-                        工况ID {focusedCard.detail.conditionId}
-                      </span>
-                    ) : null}
-                    {focusedCard?.detail?.foldTypeId ? (
-                      <span className="rounded-full bg-slate-100 px-3 py-1">
-                        FoldType {focusedCard.detail.foldTypeId}
-                      </span>
-                    ) : null}
-                    {focusedCard?.detail?.simTypeId ? (
-                      <span className="rounded-full bg-slate-100 px-3 py-1">
-                        SimType {focusedCard.detail.simTypeId}
-                      </span>
-                    ) : null}
-                    {focusedCard?.detail?.solverId ? (
-                      <span className="rounded-full bg-slate-100 px-3 py-1">
-                        求解器 {focusedCard.detail.solverId}
-                      </span>
-                    ) : null}
-                    <span className="rounded-full bg-slate-100 px-3 py-1">{sourceLabel}</span>
-                  </div>
-                </div>
-
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-900/50">
-                    <div className="text-xs uppercase tracking-[0.16em] text-slate-500">状态</div>
-                    <div className="mt-2">
-                      <Badge
-                        variant={
-                          ORDER_STATUS_META[focusedCondition?.status || 0]?.variant || 'default'
-                        }
-                        size="sm"
-                      >
-                        {ORDER_STATUS_META[focusedCondition?.status || 0]?.label || '待运行'}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-900/50">
-                    <div className="text-xs uppercase tracking-[0.16em] text-slate-500">轮次</div>
-                    <div className="mt-2 text-xl font-semibold tabular-nums">
-                      {(focusedGroup?.total || focusedCondition?.roundTotal || 0).toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-900/50">
-                    <div className="text-xs uppercase tracking-[0.16em] text-slate-500">输出数</div>
-                    <div className="mt-2 text-xl font-semibold tabular-nums">
-                      {focusedCondition?.outputCount || 0}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
             {focusedGroup ? (
               <Card className="shadow-none">
                 <ConditionResultTable
@@ -602,7 +542,7 @@ const Results: React.FC = () => {
             ) : (
               <Card className="shadow-none">
                 <div className="flex h-56 items-center justify-center text-sm text-slate-500 dark:text-slate-400">
-                  当前工况暂无明细数据
+                  {isResultsLoading ? '当前工况明细加载中...' : '当前工况暂无明细数据'}
                 </div>
               </Card>
             )}

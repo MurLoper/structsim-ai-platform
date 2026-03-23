@@ -110,7 +110,10 @@ const buildWorkflowNodesFromRounds = (groups: ConditionRoundsGroup[]): WorkflowN
   return nodes;
 };
 
-export const useResultsData = (orderId: number | null) => {
+export const useResultsData = (
+  orderId: number | null,
+  activeTab: 'overview' | 'detail' | 'analysis' = 'overview'
+) => {
   const resolvedOrderId = orderId && Number.isFinite(orderId) ? orderId : null;
 
   const {
@@ -235,6 +238,14 @@ export const useResultsData = (orderId: number | null) => {
     });
   }, [selectedConditions]);
 
+  const focusedCondition = useMemo(
+    () => orderConditions.find(condition => condition.id === focusedConditionId) ?? null,
+    [focusedConditionId, orderConditions]
+  );
+
+  const shouldFetchDetailRounds = activeTab === 'detail';
+  const shouldFetchAnalysisRounds = activeTab === 'analysis';
+
   const {
     data: conditionRoundGroups = [],
     isLoading: roundsLoading,
@@ -245,52 +256,45 @@ export const useResultsData = (orderId: number | null) => {
       'results',
       'conditionRounds',
       resolvedOrderId,
-      selectedConditionIds,
-      conditionRoundPaging,
+      focusedConditionId,
+      focusedConditionId ? conditionRoundPaging[focusedConditionId] : null,
+      activeTab,
     ],
     queryFn: async () => {
-      if (!resolvedOrderId || selectedConditions.length === 0) return [] as ConditionRoundsGroup[];
-      const responses = await Promise.all(
-        selectedConditions.map(async condition => {
-          const paging = conditionRoundPaging[condition.id] || {
-            page: PAGINATION.DEFAULT_PAGE,
-            pageSize: RESULTS_PAGE_SIZE,
-          };
-          const response = await resultsApi.getOrderConditionRounds(condition.id, {
-            page: paging.page,
-            pageSize: paging.pageSize,
-          });
+      if (!resolvedOrderId || !focusedCondition) return [] as ConditionRoundsGroup[];
+      const paging = conditionRoundPaging[focusedCondition.id] || {
+        page: PAGINATION.DEFAULT_PAGE,
+        pageSize: RESULTS_PAGE_SIZE,
+      };
+      const response = await resultsApi.getOrderConditionRounds(focusedCondition.id, {
+        page: paging.page,
+        pageSize: paging.pageSize,
+      });
 
-          return {
-            conditionId: condition.id,
-            orderCondition: response.data?.orderCondition || condition,
-            resultSource: response.data?.resultSource || 'mock',
-            columns: response.data?.columns || [],
-            statistics: response.data?.statistics,
-            rounds: (response.data?.items || []).map(item =>
-              mapMockRoundToLegacyRound(condition.id, item)
-            ),
-            page: response.data?.page || paging.page,
-            pageSize: response.data?.pageSize || paging.pageSize,
-            total: response.data?.total || 0,
-            totalPages: response.data?.totalPages || 0,
-          } as ConditionRoundsGroup;
-        })
-      );
-      return responses;
+      return [
+        {
+          conditionId: focusedCondition.id,
+          orderCondition: response.data?.orderCondition || focusedCondition,
+          resultSource: response.data?.resultSource || 'mock',
+          columns: response.data?.columns || [],
+          statistics: response.data?.statistics,
+          rounds: (response.data?.items || []).map(item =>
+            mapMockRoundToLegacyRound(focusedCondition.id, item)
+          ),
+          page: response.data?.page || paging.page,
+          pageSize: response.data?.pageSize || paging.pageSize,
+          total: response.data?.total || 0,
+          totalPages: response.data?.totalPages || 0,
+        } as ConditionRoundsGroup,
+      ];
     },
-    enabled: !!resolvedOrderId && selectedConditions.length > 0,
+    enabled: !!resolvedOrderId && !!focusedCondition && shouldFetchDetailRounds,
     staleTime: 30 * 1000,
   });
 
   const workflowNodes = useMemo(
     () => buildWorkflowNodesFromRounds(conditionRoundGroups),
     [conditionRoundGroups]
-  );
-
-  const focusedCondition = useMemo(
-    () => orderConditions.find(condition => condition.id === focusedConditionId) ?? null,
-    [focusedConditionId, orderConditions]
   );
 
   const {
@@ -328,7 +332,7 @@ export const useResultsData = (orderId: number | null) => {
         sampled: (response.data?.total || expectedTotal) > pageSize,
       } satisfies FullConditionRoundsGroup;
     },
-    enabled: !!focusedCondition,
+    enabled: !!focusedCondition && shouldFetchAnalysisRounds,
     staleTime: 30 * 1000,
   });
 
@@ -361,7 +365,7 @@ export const useResultsData = (orderId: number | null) => {
     });
 
     return map;
-  }, [conditionRoundGroups, outputDefs]);
+  }, [conditionRoundGroups, focusedConditionAnalysis, outputDefs]);
 
   const metricOptions = useMemo(
     () =>
@@ -413,24 +417,23 @@ export const useResultsData = (orderId: number | null) => {
 
   const overviewStats = useMemo<ResultsOverviewStats>(() => {
     const runningModuleSet = new Set<string>();
-    const stats = conditionRoundGroups.reduce<ResultsOverviewStats>(
-      (acc, group) => {
-        const summary = group.statistics;
-        acc.totalRounds += Number(summary?.totalRounds ?? group.rounds.length);
-        acc.completedRounds += Number(
-          summary?.completedRounds ?? group.rounds.filter(round => round.status === 2).length
-        );
-        acc.failedRounds += Number(
-          summary?.failedRounds ?? group.rounds.filter(round => round.status === 3).length
-        );
-        acc.runningRounds += Number(
-          summary?.runningRounds ?? group.rounds.filter(round => round.status === 1).length
-        );
-        if (!acc.resultSource && group.resultSource) {
-          acc.resultSource = group.resultSource;
-        }
-        if (group.orderCondition.status === 1 && group.orderCondition.runningModule) {
-          runningModuleSet.add(group.orderCondition.runningModule);
+    const stats = orderConditions.reduce<ResultsOverviewStats>(
+      (acc, condition) => {
+        const summary = (condition.statistics as
+          | {
+              totalRounds?: number;
+              completedRounds?: number;
+              failedRounds?: number;
+              runningRounds?: number;
+            }
+          | undefined) || { totalRounds: condition.roundTotal };
+
+        acc.totalRounds += Number(summary.totalRounds ?? condition.roundTotal ?? 0);
+        acc.completedRounds += Number(summary.completedRounds ?? 0);
+        acc.failedRounds += Number(summary.failedRounds ?? 0);
+        acc.runningRounds += Number(summary.runningRounds ?? 0);
+        if (condition.status === 1 && condition.runningModule) {
+          runningModuleSet.add(condition.runningModule);
         }
         return acc;
       },
@@ -440,17 +443,16 @@ export const useResultsData = (orderId: number | null) => {
         completedRounds: 0,
         failedRounds: 0,
         runningRounds: 0,
-        resultSource: '',
+        resultSource: 'mock',
         runningModules: [],
       }
     );
 
     return {
       ...stats,
-      resultSource: stats.resultSource || 'mock',
       runningModules: Array.from(runningModuleSet),
     };
-  }, [orderConditions.length, conditionRoundGroups]);
+  }, [orderConditions]);
 
   const results = useMemo(() => {
     if (!metric || conditionRoundGroups.length === 0) return [] as ResultRecord[];
@@ -596,8 +598,10 @@ export const useResultsData = (orderId: number | null) => {
     if (resolvedOrderId) {
       void refetchOrder();
       void refetchOrderConditions();
-      void refetchRounds();
-      if (focusedConditionId) {
+      if (shouldFetchDetailRounds) {
+        void refetchRounds();
+      }
+      if (focusedConditionId && shouldFetchAnalysisRounds) {
         void refetchFocusedConditionAnalysis();
       }
     }
