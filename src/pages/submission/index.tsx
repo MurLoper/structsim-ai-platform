@@ -296,11 +296,11 @@ const Submission: React.FC = () => {
       originFile: { type: 1, path: '', name: '', verified: false },
       originFoldTypeId: null,
       participantIds: [],
-      foldTypeIds: state.safeFoldTypes.length > 0 ? [state.safeFoldTypes[0].id] : [],
+      foldTypeIds: [],
       remark: '',
       simTypeIds: [],
     }),
-    [getPreferredProjectId, state.safeFoldTypes]
+    [getPreferredProjectId]
   );
 
   const conditionOrderMap = useMemo(() => {
@@ -324,21 +324,41 @@ const Submission: React.FC = () => {
     return orderMap;
   }, [foldTypeIds, state.foldTypesWithSimTypes, state.selectedSimTypes]);
 
-  const applyNewEntryDefaults = useCallback(() => {
-    state.clearInitializedConditionIds();
-    form.reset(defaultFormValues);
-    state.setSelectedSimTypes([]);
-    state.setSimTypeConfigs({});
-    state.setGlobalSolver(DEFAULT_GLOBAL_SOLVER);
-    setInpSets([]);
-  }, [defaultFormValues, form, state]);
+  const applyNewEntryDefaults = useCallback(
+    (
+      defaults: {
+        selectedSimTypes: Array<{ conditionId: number; foldTypeId: number; simTypeId: number }>;
+        foldTypeIds: number[];
+      } = state.getDefaultSelections()
+    ) => {
+      const simTypeIds = [...new Set(defaults.selectedSimTypes.map(item => item.simTypeId))];
+      state.clearUserClearedFoldTypeIds();
+      state.clearInitializedConditionIds();
+      form.reset({
+        ...defaultFormValues,
+        foldTypeIds: defaults.foldTypeIds,
+        simTypeIds,
+      });
+      state.setSelectedSimTypes(defaults.selectedSimTypes);
+      state.setSimTypeConfigs({});
+      state.setGlobalSolver(DEFAULT_GLOBAL_SOLVER);
+      setInpSets([]);
+    },
+    [defaultFormValues, form, state]
+  );
+
+  const resetToLatestDefaults = useCallback(async () => {
+    const latest = await state.refreshSubmissionConfig();
+    applyNewEntryDefaults(state.getDefaultSelections(latest.conditionConfigs));
+  }, [applyNewEntryDefaults, state]);
 
   const findConditionId = useCallback(
     (foldTypeId: number, simTypeId: number) => {
-      const mapped = state.foldTypesWithSimTypes
-        .find(ft => ft.id === foldTypeId)
-        ?.simTypes.find(st => st.id === simTypeId)?.conditionId;
-      return mapped ?? -(foldTypeId * 10000 + simTypeId);
+      return (
+        state.foldTypesWithSimTypes
+          .find(ft => ft.id === foldTypeId)
+          ?.simTypes.find(st => st.id === simTypeId)?.conditionId ?? null
+      );
     },
     [state.foldTypesWithSimTypes]
   );
@@ -428,6 +448,7 @@ const Submission: React.FC = () => {
           if (foldTypeId == null || simTypeId == null) return;
           const conditionId =
             toNumber(c.conditionId ?? c.condition_id) ?? findConditionId(foldTypeId, simTypeId);
+          if (conditionId == null) return;
           selected.push({ conditionId, foldTypeId, simTypeId });
 
           if (c.params && c.output && c.solver) {
@@ -462,6 +483,7 @@ const Submission: React.FC = () => {
         foldIds.forEach(foldTypeId => {
           simIds.forEach(simTypeId => {
             const conditionId = findConditionId(foldTypeId, simTypeId);
+            if (conditionId == null) return;
             selected.push({ conditionId, foldTypeId, simTypeId });
             const oldCfg = legacyOpt[String(simTypeId)] as Record<string, unknown> | undefined;
             if (oldCfg) {
@@ -534,7 +556,7 @@ const Submission: React.FC = () => {
           isLoadingDraftRef.current = false;
         }, 100);
       } else {
-        applyNewEntryDefaults();
+        void resetToLatestDefaults();
       }
       hasInitializedRef.current = true;
     }
@@ -678,7 +700,7 @@ const Submission: React.FC = () => {
           showToast('info', t('sub.reset_to_original'));
         } else {
           clearDraft(orderId, draftScopeIdRef.current);
-          applyNewEntryDefaults();
+          void resetToLatestDefaults();
           showToast('info', t('sub.reset_to_default'));
         }
       },
@@ -774,12 +796,8 @@ const Submission: React.FC = () => {
           modelLevelId: values.modelLevelId,
           originFile,
           originFoldTypeId: values.originFoldTypeId ?? null,
-          foldTypeIds: values.foldTypeIds,
           participantIds: values.participantIds,
           remark: values.remark,
-          simTypeIds: values.simTypeIds,
-          optParam,
-          conditionSummary,
           inputJson: {
             version: 2,
             projectInfo: {

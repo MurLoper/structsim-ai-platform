@@ -13,12 +13,13 @@ import { queryKeys } from '@/lib/queryClient';
  */
 export function useConditionConfigs() {
   return useQuery({
-    queryKey: ['conditionConfigs', 'list'],
+    queryKey: queryKeys.conditionConfigs.list(),
     queryFn: async () => {
       const response = await baseConfigApi.getConditionConfigs();
       return response.data || [];
     },
     staleTime: 5 * 60 * 1000,
+    refetchOnMount: 'always',
   });
 }
 
@@ -27,7 +28,7 @@ export function useConditionConfigs() {
  */
 export function useConditionByFoldSim(foldTypeId: number | null, simTypeId: number | null) {
   return useQuery({
-    queryKey: ['conditionConfigs', 'byFoldSim', foldTypeId, simTypeId],
+    queryKey: queryKeys.conditionConfigs.byFoldSim(foldTypeId, simTypeId),
     queryFn: async () => {
       if (!foldTypeId || !simTypeId) return null;
       const response = await baseConfigApi.getConditionByFoldSim(foldTypeId, simTypeId);
@@ -43,7 +44,7 @@ export function useConditionByFoldSim(foldTypeId: number | null, simTypeId: numb
  */
 export function useConditionsByFoldType(foldTypeId: number | null) {
   return useQuery({
-    queryKey: ['conditionConfigs', 'byFoldType', foldTypeId],
+    queryKey: queryKeys.conditionConfigs.byFoldType(foldTypeId),
     queryFn: async () => {
       if (!foldTypeId) return [];
       const response = await baseConfigApi.getConditionsByFoldType(foldTypeId);
@@ -51,6 +52,7 @@ export function useConditionsByFoldType(foldTypeId: number | null) {
     },
     enabled: !!foldTypeId,
     staleTime: 5 * 60 * 1000,
+    refetchOnMount: 'always',
   });
 }
 
@@ -97,6 +99,7 @@ export function useFoldTypeSimTypeRels() {
       return response.data || [];
     },
     staleTime: 5 * 60 * 1000,
+    refetchOnMount: 'always',
   });
 }
 

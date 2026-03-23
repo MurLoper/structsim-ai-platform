@@ -1,36 +1,51 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useOutputDefs, useParamDefs } from '@/features/config/queries';
 import { ordersApi, resultsApi } from '@/api';
 import { queryKeys } from '@/lib/queryClient';
-import { RESULTS_PAGE_SIZE, RESULTS_CHART_MAX_POINTS, PAGINATION } from '@/constants';
+import { PAGINATION, RESULTS_CHART_MAX_POINTS, RESULTS_PAGE_SIZE } from '@/constants';
 import type {
   ModuleDetail,
+  OrderConditionRoundColumn,
   OrderConditionRoundsResponse,
   OrderConditionSummary,
   RoundItem,
-  SimTypeResult,
+  SimTypeResult as ConditionResultSummary,
 } from '@/api/results';
 import type { WorkflowNode } from '../components/ProcessFlowView';
 
 export interface ResultRecord {
   iteration: number;
-  schemeId: number;
+  conditionId: number;
   metricKey: string;
   value: number;
-  group: string;
+  conditionName: string;
 }
 
-interface RoundsGroup {
-  schemeId: number;
+interface ConditionRoundsGroup {
+  conditionId: number;
   rounds: RoundItem[];
   orderCondition: OrderConditionSummary;
   resultSource: string;
+  columns: OrderConditionRoundColumn[];
   statistics?: OrderConditionRoundsResponse['statistics'];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+}
+
+interface FullConditionRoundsGroup extends ConditionRoundsGroup {
+  sampled: boolean;
+}
+
+interface ConditionRoundPagingState {
+  page: number;
+  pageSize: number;
 }
 
 interface ResultsOverviewStats {
-  schemeCount: number;
+  conditionCount: number;
   totalRounds: number;
   completedRounds: number;
   failedRounds: number;
@@ -39,10 +54,12 @@ interface ResultsOverviewStats {
   runningModules: string[];
 }
 
+const RESULTS_ANALYSIS_PAGE_SIZE = 20000;
+
 const buildConditionLabel = (condition: OrderConditionSummary) => {
-  const fold = condition.foldTypeName || `姿态-${condition.foldTypeId ?? '-'}`;
-  const sim = condition.simTypeName || `方案-${condition.simTypeId}`;
-  return `${fold} / ${sim} · C${condition.conditionId}`;
+  const fold = condition.foldTypeName || `工况类型-${condition.foldTypeId ?? '-'}`;
+  const sim = condition.simTypeName || `仿真类型-${condition.simTypeId}`;
+  return `${fold} / ${sim}`;
 };
 
 const buildModuleProgress = (moduleDetails?: ModuleDetail[]) => {
@@ -54,11 +71,11 @@ const buildModuleProgress = (moduleDetails?: ModuleDetail[]) => {
 };
 
 const mapMockRoundToLegacyRound = (
-  groupId: number,
+  conditionId: number,
   item: OrderConditionRoundsResponse['items'][number]
 ): RoundItem => ({
   id: item.id,
-  simTypeResultId: groupId,
+  simTypeResultId: conditionId,
   roundIndex: item.roundIndex,
   status: item.status,
   progress: Math.round(Number(item.process ?? 0)),
@@ -71,7 +88,7 @@ const mapMockRoundToLegacyRound = (
   flowNodeProgress: buildModuleProgress(item.moduleDetails),
 });
 
-const buildWorkflowNodesFromRounds = (groups: RoundsGroup[]): WorkflowNode[] => {
+const buildWorkflowNodesFromRounds = (groups: ConditionRoundsGroup[]): WorkflowNode[] => {
   const seen = new Set<string>();
   const nodes: WorkflowNode[] = [];
 
@@ -143,27 +160,44 @@ export const useResultsData = (orderId: number | null) => {
   });
 
   const displayOrderId = orderDetail?.orderNo || (resolvedOrderId ? `#${resolvedOrderId}` : '-');
+  const orderStatus = typeof orderDetail?.status === 'number' ? orderDetail.status : null;
+  const orderProgress = typeof orderDetail?.progress === 'number' ? orderDetail.progress : null;
 
   const [metric, setMetric] = useState('');
-  const [selectedSchemeIds, setSelectedSchemeIds] = useState<number[]>([]);
+  const [selectedConditionIds, setSelectedConditionIds] = useState<number[]>([]);
   const [minValue, setMinValue] = useState('');
   const [maxValue, setMaxValue] = useState('');
   const [minIteration, setMinIteration] = useState('');
   const [maxIteration, setMaxIteration] = useState('');
+  const [focusedConditionId, setFocusedConditionId] = useState<number | null>(null);
+  const [conditionRoundPaging, setConditionRoundPaging] = useState<
+    Record<number, ConditionRoundPagingState>
+  >({});
 
   useEffect(() => {
-    if (selectedSchemeIds.length > 0) return;
+    if (selectedConditionIds.length > 0) return;
     const fromConditions = orderConditions.map(item => item.id);
     const fromOrder = Array.isArray(orderDetail?.conditions)
       ? orderDetail.conditions.map((item: { id: number }) => item.id)
       : [];
     const defaults = fromConditions.length > 0 ? fromConditions : fromOrder;
     if (defaults.length > 0) {
-      setSelectedSchemeIds(defaults);
+      setSelectedConditionIds(defaults);
     }
-  }, [orderConditions, orderDetail, selectedSchemeIds.length]);
+  }, [orderConditions, orderDetail, selectedConditionIds.length]);
 
-  const availableSchemes = useMemo(
+  useEffect(() => {
+    if (!orderConditions.length) return;
+    if (
+      focusedConditionId &&
+      orderConditions.some(condition => condition.id === focusedConditionId)
+    ) {
+      return;
+    }
+    setFocusedConditionId(orderConditions[0]?.id ?? null);
+  }, [focusedConditionId, orderConditions]);
+
+  const availableConditions = useMemo(
     () =>
       orderConditions.map(condition => ({
         id: condition.id,
@@ -172,46 +206,75 @@ export const useResultsData = (orderId: number | null) => {
     [orderConditions]
   );
 
-  const availableSchemeIds = useMemo(
-    () => availableSchemes.map(item => item.id),
-    [availableSchemes]
+  const availableConditionIds = useMemo(
+    () => availableConditions.map(item => item.id),
+    [availableConditions]
   );
 
-  const schemeLabelMap = useMemo(
-    () => new Map(availableSchemes.map(item => [item.id, item.name])),
-    [availableSchemes]
+  const conditionLabelMap = useMemo(
+    () => new Map(availableConditions.map(item => [item.id, item.name])),
+    [availableConditions]
   );
 
   const selectedConditions = useMemo(
-    () => orderConditions.filter(condition => selectedSchemeIds.includes(condition.id)),
-    [orderConditions, selectedSchemeIds]
+    () => orderConditions.filter(condition => selectedConditionIds.includes(condition.id)),
+    [orderConditions, selectedConditionIds]
   );
 
+  useEffect(() => {
+    if (selectedConditions.length === 0) return;
+    setConditionRoundPaging(prev => {
+      const next: Record<number, ConditionRoundPagingState> = {};
+      selectedConditions.forEach(condition => {
+        next[condition.id] = prev[condition.id] || {
+          page: PAGINATION.DEFAULT_PAGE,
+          pageSize: RESULTS_PAGE_SIZE,
+        };
+      });
+      return next;
+    });
+  }, [selectedConditions]);
+
   const {
-    data: schemeRoundGroups = [],
+    data: conditionRoundGroups = [],
     isLoading: roundsLoading,
     error: roundsError,
     refetch: refetchRounds,
   } = useQuery({
-    queryKey: ['results', 'conditionRounds', resolvedOrderId, selectedSchemeIds],
+    queryKey: [
+      'results',
+      'conditionRounds',
+      resolvedOrderId,
+      selectedConditionIds,
+      conditionRoundPaging,
+    ],
     queryFn: async () => {
-      if (!resolvedOrderId || selectedConditions.length === 0) return [] as RoundsGroup[];
+      if (!resolvedOrderId || selectedConditions.length === 0) return [] as ConditionRoundsGroup[];
       const responses = await Promise.all(
         selectedConditions.map(async condition => {
-          const response = await resultsApi.getOrderConditionRounds(condition.id, {
+          const paging = conditionRoundPaging[condition.id] || {
             page: PAGINATION.DEFAULT_PAGE,
             pageSize: RESULTS_PAGE_SIZE,
+          };
+          const response = await resultsApi.getOrderConditionRounds(condition.id, {
+            page: paging.page,
+            pageSize: paging.pageSize,
           });
 
           return {
-            schemeId: condition.id,
-            orderCondition: condition,
+            conditionId: condition.id,
+            orderCondition: response.data?.orderCondition || condition,
             resultSource: response.data?.resultSource || 'mock',
+            columns: response.data?.columns || [],
             statistics: response.data?.statistics,
             rounds: (response.data?.items || []).map(item =>
               mapMockRoundToLegacyRound(condition.id, item)
             ),
-          } as RoundsGroup;
+            page: response.data?.page || paging.page,
+            pageSize: response.data?.pageSize || paging.pageSize,
+            total: response.data?.total || 0,
+            totalPages: response.data?.totalPages || 0,
+          } as ConditionRoundsGroup;
         })
       );
       return responses;
@@ -221,20 +284,72 @@ export const useResultsData = (orderId: number | null) => {
   });
 
   const workflowNodes = useMemo(
-    () => buildWorkflowNodesFromRounds(schemeRoundGroups),
-    [schemeRoundGroups]
+    () => buildWorkflowNodesFromRounds(conditionRoundGroups),
+    [conditionRoundGroups]
   );
+
+  const focusedCondition = useMemo(
+    () => orderConditions.find(condition => condition.id === focusedConditionId) ?? null,
+    [focusedConditionId, orderConditions]
+  );
+
+  const {
+    data: focusedConditionAnalysis,
+    isLoading: focusedConditionAnalysisLoading,
+    error: focusedConditionAnalysisError,
+    refetch: refetchFocusedConditionAnalysis,
+  } = useQuery({
+    queryKey: ['results', 'focusedConditionAnalysis', focusedConditionId],
+    queryFn: async () => {
+      if (!focusedCondition) return null as FullConditionRoundsGroup | null;
+      const expectedTotal = Math.max(Number(focusedCondition.roundTotal || 0), 1);
+      const pageSize = Math.min(
+        Math.max(expectedTotal, RESULTS_PAGE_SIZE),
+        RESULTS_ANALYSIS_PAGE_SIZE
+      );
+      const response = await resultsApi.getOrderConditionRounds(focusedCondition.id, {
+        page: PAGINATION.DEFAULT_PAGE,
+        pageSize,
+      });
+
+      return {
+        conditionId: focusedCondition.id,
+        orderCondition: response.data?.orderCondition || focusedCondition,
+        resultSource: response.data?.resultSource || 'mock',
+        columns: response.data?.columns || [],
+        statistics: response.data?.statistics,
+        rounds: (response.data?.items || []).map(item =>
+          mapMockRoundToLegacyRound(focusedCondition.id, item)
+        ),
+        page: response.data?.page || PAGINATION.DEFAULT_PAGE,
+        pageSize: response.data?.pageSize || pageSize,
+        total: response.data?.total || expectedTotal,
+        totalPages: response.data?.totalPages || 1,
+        sampled: (response.data?.total || expectedTotal) > pageSize,
+      } satisfies FullConditionRoundsGroup;
+    },
+    enabled: !!focusedCondition,
+    staleTime: 30 * 1000,
+  });
 
   const metricLabelMap = useMemo(() => {
     const map = new Map<string, string>();
 
-    schemeRoundGroups.forEach(({ rounds }) => {
+    conditionRoundGroups.forEach(({ rounds }) => {
       rounds.forEach(round => {
         Object.keys(round.outputResults || {}).forEach(key => {
           if (!map.has(key)) {
             map.set(key, key);
           }
         });
+      });
+    });
+
+    focusedConditionAnalysis?.rounds.forEach(round => {
+      Object.keys(round.outputResults || {}).forEach(key => {
+        if (!map.has(key)) {
+          map.set(key, key);
+        }
       });
     });
 
@@ -246,7 +361,7 @@ export const useResultsData = (orderId: number | null) => {
     });
 
     return map;
-  }, [schemeRoundGroups, outputDefs]);
+  }, [conditionRoundGroups, outputDefs]);
 
   const metricOptions = useMemo(
     () =>
@@ -264,28 +379,41 @@ export const useResultsData = (orderId: number | null) => {
     }
   }, [metric, metricLabelMap, metricOptions]);
 
-  const schemeResults = useMemo<SimTypeResult[]>(
-    () =>
-      orderConditions.map(condition => ({
-        id: condition.id,
-        orderId: condition.orderId,
-        simTypeId: condition.id,
-        simTypeName: buildConditionLabel(condition),
-        status: condition.status,
-        progress: Math.round(Number(condition.process ?? 0)),
-        totalRounds: Number(condition.roundTotal ?? 0),
-        completedRounds: 0,
-        failedRounds: 0,
+  const conditionResults = useMemo<ConditionResultSummary[]>(() => {
+    const groupConditionMap = new Map(
+      conditionRoundGroups.map(group => [group.orderCondition.id, group.orderCondition])
+    );
+
+    return orderConditions.map(condition => {
+      const resolvedCondition = groupConditionMap.get(condition.id) || condition;
+      const statistics = resolvedCondition.statistics as
+        | {
+            totalRounds?: number;
+            completedRounds?: number;
+            failedRounds?: number;
+          }
+        | undefined;
+
+      return {
+        id: resolvedCondition.id,
+        orderId: resolvedCondition.orderId,
+        simTypeId: resolvedCondition.id,
+        simTypeName: buildConditionLabel(resolvedCondition),
+        status: resolvedCondition.status,
+        progress: Math.round(Number(resolvedCondition.process ?? 0)),
+        totalRounds: Number(statistics?.totalRounds ?? resolvedCondition.roundTotal ?? 0),
+        completedRounds: Number(statistics?.completedRounds ?? 0),
+        failedRounds: Number(statistics?.failedRounds ?? 0),
         bestRoundIndex: null,
-        createdAt: condition.createdAt,
-        updatedAt: condition.updatedAt,
-      })),
-    [orderConditions]
-  );
+        createdAt: resolvedCondition.createdAt,
+        updatedAt: resolvedCondition.updatedAt,
+      };
+    });
+  }, [orderConditions, conditionRoundGroups]);
 
   const overviewStats = useMemo<ResultsOverviewStats>(() => {
     const runningModuleSet = new Set<string>();
-    const stats = schemeRoundGroups.reduce<ResultsOverviewStats>(
+    const stats = conditionRoundGroups.reduce<ResultsOverviewStats>(
       (acc, group) => {
         const summary = group.statistics;
         acc.totalRounds += Number(summary?.totalRounds ?? group.rounds.length);
@@ -307,7 +435,7 @@ export const useResultsData = (orderId: number | null) => {
         return acc;
       },
       {
-        schemeCount: orderConditions.length,
+        conditionCount: orderConditions.length,
         totalRounds: 0,
         completedRounds: 0,
         failedRounds: 0,
@@ -322,12 +450,12 @@ export const useResultsData = (orderId: number | null) => {
       resultSource: stats.resultSource || 'mock',
       runningModules: Array.from(runningModuleSet),
     };
-  }, [orderConditions.length, schemeRoundGroups]);
+  }, [orderConditions.length, conditionRoundGroups]);
 
   const results = useMemo(() => {
-    if (!metric || schemeRoundGroups.length === 0) return [] as ResultRecord[];
+    if (!metric || conditionRoundGroups.length === 0) return [] as ResultRecord[];
 
-    return schemeRoundGroups.flatMap(({ schemeId, rounds, orderCondition }) =>
+    return conditionRoundGroups.flatMap(({ conditionId, rounds, orderCondition }) =>
       rounds
         .map(round => {
           const outputs = round.outputResults || {};
@@ -337,31 +465,31 @@ export const useResultsData = (orderId: number | null) => {
           if (!Number.isFinite(value)) return null;
           return {
             iteration: round.roundIndex,
-            schemeId,
+            conditionId,
             metricKey: metric,
             value,
-            group: buildConditionLabel(orderCondition),
+            conditionName: buildConditionLabel(orderCondition),
           } as ResultRecord;
         })
         .filter((item): item is ResultRecord => Boolean(item))
     );
-  }, [metric, schemeRoundGroups]);
+  }, [metric, conditionRoundGroups]);
 
   const filteredResults = useMemo(() => {
     const minVal = minValue ? Number(minValue) : Number.NEGATIVE_INFINITY;
     const maxVal = maxValue ? Number(maxValue) : Number.POSITIVE_INFINITY;
     const minIter = minIteration ? Number(minIteration) : Number.NEGATIVE_INFINITY;
     const maxIter = maxIteration ? Number(maxIteration) : Number.POSITIVE_INFINITY;
-    const schemeSet = new Set(selectedSchemeIds);
+    const conditionSet = new Set(selectedConditionIds);
 
     return results.filter(record => {
       if (metric && record.metricKey !== metric) return false;
-      if (schemeSet.size > 0 && !schemeSet.has(record.schemeId)) return false;
+      if (conditionSet.size > 0 && !conditionSet.has(record.conditionId)) return false;
       if (record.value < minVal || record.value > maxVal) return false;
       if (record.iteration < minIter || record.iteration > maxIter) return false;
       return true;
     });
-  }, [results, metric, selectedSchemeIds, minValue, maxValue, minIteration, maxIteration]);
+  }, [results, metric, selectedConditionIds, minValue, maxValue, minIteration, maxIteration]);
 
   const chartResults = useMemo(() => {
     if (filteredResults.length <= RESULTS_CHART_MAX_POINTS) {
@@ -375,41 +503,92 @@ export const useResultsData = (orderId: number | null) => {
     () =>
       chartResults.map(record => ({
         iteration: record.iteration,
-        schemeName: schemeLabelMap.get(record.schemeId) || String(record.schemeId),
+        conditionName: conditionLabelMap.get(record.conditionId) || String(record.conditionId),
         value: record.value,
       })),
-    [chartResults, schemeLabelMap]
+    [chartResults, conditionLabelMap]
   );
 
-  const avgByScheme = useMemo(() => {
+  const avgByCondition = useMemo(() => {
     const map = new Map<number, { total: number; count: number }>();
     filteredResults.forEach(record => {
-      const current = map.get(record.schemeId) || { total: 0, count: 0 };
-      map.set(record.schemeId, { total: current.total + record.value, count: current.count + 1 });
+      const current = map.get(record.conditionId) || { total: 0, count: 0 };
+      map.set(record.conditionId, {
+        total: current.total + record.value,
+        count: current.count + 1,
+      });
     });
-    return Array.from(map.entries()).map(([schemeId, stats]) => ({
-      schemeName: schemeLabelMap.get(schemeId) || String(schemeId),
+    return Array.from(map.entries()).map(([conditionId, stats]) => ({
+      conditionName: conditionLabelMap.get(conditionId) || String(conditionId),
       value: stats.count ? Math.round((stats.total / stats.count) * 100) / 100 : 0,
     }));
-  }, [filteredResults, schemeLabelMap]);
+  }, [filteredResults, conditionLabelMap]);
 
-  const toggleScheme = (value: number) => {
-    setSelectedSchemeIds(prev =>
+  const focusedConditionResults = useMemo<ResultRecord[]>(() => {
+    if (!metric || !focusedConditionAnalysis) return [];
+    const condition = focusedConditionAnalysis.orderCondition;
+    const conditionName = buildConditionLabel(condition);
+
+    return focusedConditionAnalysis.rounds
+      .map(round => {
+        const outputs = round.outputResults || {};
+        const rawValue = outputs[metric];
+        if (rawValue === undefined || rawValue === null) return null;
+        const value = typeof rawValue === 'number' ? rawValue : Number(rawValue);
+        if (!Number.isFinite(value)) return null;
+        return {
+          iteration: round.roundIndex,
+          conditionId: focusedConditionAnalysis.conditionId,
+          metricKey: metric,
+          value,
+          conditionName,
+        } as ResultRecord;
+      })
+      .filter((item): item is ResultRecord => Boolean(item));
+  }, [focusedConditionAnalysis, metric]);
+
+  const toggleCondition = (value: number) => {
+    setSelectedConditionIds(prev =>
       prev.includes(value) ? prev.filter(item => item !== value) : [...prev, value]
     );
   };
 
   const handleReset = () => {
     setMetric(metricOptions[0]?.value || '');
-    setSelectedSchemeIds(availableSchemeIds);
+    setSelectedConditionIds(availableConditionIds);
     setMinValue('');
     setMaxValue('');
     setMinIteration('');
     setMaxIteration('');
   };
 
+  const updateConditionRoundsPage = (conditionId: number, page: number) => {
+    setConditionRoundPaging(prev => ({
+      ...prev,
+      [conditionId]: {
+        ...(prev[conditionId] || { pageSize: RESULTS_PAGE_SIZE }),
+        page: Math.max(1, page),
+      },
+    }));
+  };
+
+  const updateConditionRoundsPageSize = (conditionId: number, pageSize: number) => {
+    setConditionRoundPaging(prev => ({
+      ...prev,
+      [conditionId]: {
+        page: PAGINATION.DEFAULT_PAGE,
+        pageSize,
+      },
+    }));
+  };
+
   const resultsError =
-    outputDefsError || paramDefsError || orderError || orderConditionsError || roundsError;
+    outputDefsError ||
+    paramDefsError ||
+    orderError ||
+    orderConditionsError ||
+    roundsError ||
+    focusedConditionAnalysisError;
 
   const retryResults = () => {
     void refetchOutputDefs();
@@ -418,18 +597,28 @@ export const useResultsData = (orderId: number | null) => {
       void refetchOrder();
       void refetchOrderConditions();
       void refetchRounds();
+      if (focusedConditionId) {
+        void refetchFocusedConditionAnalysis();
+      }
     }
   };
 
   return {
     displayOrderId,
+    orderStatus,
+    orderProgress,
     metric,
     setMetric,
+    focusedConditionId,
+    setFocusedConditionId,
+    focusedCondition,
+    focusedConditionAnalysis,
+    focusedConditionResults,
     metricOptions,
     metricLabelMap,
-    schemeLabelMap,
-    selectedSchemeIds,
-    toggleScheme,
+    conditionLabelMap,
+    selectedConditionIds,
+    toggleCondition,
     minValue,
     setMinValue,
     maxValue,
@@ -438,13 +627,16 @@ export const useResultsData = (orderId: number | null) => {
     setMinIteration,
     maxIteration,
     setMaxIteration,
-    availableSchemes,
-    availableSchemeIds,
+    availableConditions,
+    availableConditionIds,
     filteredResults,
     trendData,
-    avgByScheme,
-    schemeResults,
-    schemeRoundGroups,
+    avgByCondition,
+    conditionResults,
+    conditionRoundGroups,
+    conditionRoundPaging,
+    updateConditionRoundsPage,
+    updateConditionRoundsPageSize,
     overviewStats,
     paramDefs,
     outputDefs,
@@ -454,7 +646,8 @@ export const useResultsData = (orderId: number | null) => {
       paramDefsLoading ||
       orderLoading ||
       orderConditionsLoading ||
-      roundsLoading,
+      roundsLoading ||
+      focusedConditionAnalysisLoading,
     resultsError,
     retryResults,
     handleReset,

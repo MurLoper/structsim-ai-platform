@@ -125,6 +125,14 @@ export const queryKeys = {
       [...queryKeys.workingConditions.all, 'byFoldType', foldTypeId] as const,
   },
   // 姿态-仿真类型关联
+  conditionConfigs: {
+    all: ['conditionConfigs'] as const,
+    list: () => [...queryKeys.conditionConfigs.all, 'list'] as const,
+    byFoldSim: (foldTypeId: number | null, simTypeId: number | null) =>
+      [...queryKeys.conditionConfigs.all, 'byFoldSim', foldTypeId, simTypeId] as const,
+    byFoldType: (foldTypeId: number | null) =>
+      [...queryKeys.conditionConfigs.all, 'byFoldType', foldTypeId] as const,
+  },
   foldTypeSimTypeRels: {
     all: ['foldTypeSimTypeRels'] as const,
     list: () => [...queryKeys.foldTypeSimTypeRels.all, 'list'] as const,

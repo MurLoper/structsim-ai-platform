@@ -1,24 +1,24 @@
 /**
- * 流程展示视图组件
+ * 流程展示视图
  *
- * 层级式展示：订单 -> 工况方案 -> 轮次
+ * 层级式展示：订单 -> 工况 -> 轮次
  */
-import { useState, useMemo } from 'react';
-import { cn } from '@/lib/utils';
-import { Card, Badge } from '@/components/ui';
+import { useMemo, useState } from 'react';
 import {
+  AlertTriangle,
   CheckCircle,
-  XCircle,
-  Clock,
-  Loader2,
-  ChevronRight,
   ChevronDown,
   ChevronLeft,
-  PlayCircle,
-  AlertTriangle,
+  ChevronRight,
+  Clock,
   Filter,
+  Loader2,
+  PlayCircle,
+  XCircle,
 } from 'lucide-react';
-import type { RoundItem, SimTypeResult } from '@/api/results';
+import type { RoundItem, SimTypeResult as ConditionResultSummary } from '@/api/results';
+import { Badge, Card } from '@/components/ui';
+import { cn } from '@/lib/utils';
 
 export interface WorkflowNode {
   id: string;
@@ -31,9 +31,9 @@ export interface ProcessFlowViewProps {
   orderId: number;
   orderStatus: number;
   orderProgress: number;
-  schemeResults: SimTypeResult[];
-  schemeRoundGroups: Array<{ schemeId: number; rounds: RoundItem[] }>;
-  schemeLabelMap: Map<number, string>;
+  conditionResults: ConditionResultSummary[];
+  conditionRoundGroups: Array<{ conditionId: number; rounds: RoundItem[] }>;
+  conditionLabelMap: Map<number, string>;
   workflowNodes: WorkflowNode[];
   loading?: boolean;
 }
@@ -59,14 +59,14 @@ const ProgressBar: React.FC<{ progress: number; status: number }> = ({ progress,
           : 'bg-slate-300';
 
   return (
-    <div className="flex items-center gap-2 flex-1">
-      <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+    <div className="flex flex-1 items-center gap-2">
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
         <div
           className={cn('h-full rounded-full transition-all duration-300', colorClass)}
           style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
         />
       </div>
-      <span className="text-xs text-slate-500 w-10 text-right">{progress}%</span>
+      <span className="w-10 text-right text-xs text-slate-500">{progress}%</span>
     </div>
   );
 };
@@ -83,7 +83,7 @@ const StatusIcon: React.FC<{ status: number; className?: string }> = ({ status, 
           ? 'text-amber-500 animate-spin'
           : 'text-slate-400';
 
-  return <Icon className={cn('w-5 h-5', iconClass, className)} />;
+  return <Icon className={cn('h-5 w-5', iconClass, className)} />;
 };
 
 const FlowNode: React.FC<{
@@ -95,12 +95,12 @@ const FlowNode: React.FC<{
 }> = ({ node, status, progress = 0, isStuck, isLast }) => {
   const bgClass =
     status === 'completed'
-      ? 'bg-green-50 border-green-300 dark:bg-green-900/20'
+      ? 'border-green-300 bg-green-50 dark:bg-green-900/20'
       : status === 'running'
-        ? 'bg-amber-50 border-amber-300 dark:bg-amber-900/20'
+        ? 'border-amber-300 bg-amber-50 dark:bg-amber-900/20'
         : status === 'failed'
-          ? 'bg-red-50 border-red-300 dark:bg-red-900/20'
-          : 'bg-slate-50 border-slate-200 dark:bg-slate-800';
+          ? 'border-red-300 bg-red-50 dark:bg-red-900/20'
+          : 'border-slate-200 bg-slate-50 dark:bg-slate-800';
 
   const statusNum =
     status === 'completed' ? 2 : status === 'running' ? 1 : status === 'failed' ? 3 : 0;
@@ -109,16 +109,16 @@ const FlowNode: React.FC<{
     <div className="flex items-center">
       <div
         className={cn(
-          'flex items-center gap-2 px-3 py-2 rounded-lg border',
+          'flex items-center gap-2 rounded-lg border px-3 py-2',
           bgClass,
           isStuck && 'ring-2 ring-red-400'
         )}
       >
-        <StatusIcon status={statusNum} className="w-4 h-4" />
+        <StatusIcon status={statusNum} className="h-4 w-4" />
         <div className="flex flex-col">
           <span
             className={cn(
-              'text-sm font-medium whitespace-nowrap',
+              'whitespace-nowrap text-sm font-medium',
               status === 'pending' && 'text-slate-500'
             )}
           >
@@ -127,7 +127,7 @@ const FlowNode: React.FC<{
           {status === 'running' && <span className="text-xs text-amber-600">{progress}%</span>}
         </div>
       </div>
-      {!isLast && <ChevronRight className="w-4 h-4 text-slate-400 mx-1 flex-shrink-0" />}
+      {!isLast && <ChevronRight className="mx-1 h-4 w-4 flex-shrink-0 text-slate-400" />}
     </div>
   );
 };
@@ -145,54 +145,49 @@ function getNodeStatus(
   return 'pending';
 }
 
-const RoundFlowRow: React.FC<{
-  round: RoundItem;
-  nodes: WorkflowNode[];
-}> = ({ round, nodes }) => {
-  return (
-    <div className="flex items-center gap-4 py-2 px-3 bg-slate-50 dark:bg-slate-800/50 rounded-lg">
-      <div className="flex items-center gap-2 min-w-[100px]">
-        <StatusIcon status={round.status} className="w-4 h-4" />
-        <span className="text-sm font-medium">轮次 #{round.roundIndex}</span>
-      </div>
-      <div className="flex items-center gap-1 overflow-x-auto flex-1">
-        {nodes.map((node, index) => {
-          const status = getNodeStatus(node.id, index, round.flowNodeProgress, round.status);
-          const progress =
-            round.flowNodeProgress?.[node.id] ?? round.flowNodeProgress?.[`node_${index + 1}`] ?? 0;
-          return (
-            <FlowNode
-              key={node.id}
-              node={node}
-              status={status}
-              progress={progress}
-              isStuck={round.stuckModuleId === node.moduleId}
-              isLast={index === nodes.length - 1}
-            />
-          );
-        })}
-      </div>
-      {round.errorMsg && (
-        <span className="text-xs text-red-500 truncate max-w-[200px]" title={round.errorMsg}>
-          {round.errorMsg}
-        </span>
-      )}
+const RoundFlowRow: React.FC<{ round: RoundItem; nodes: WorkflowNode[] }> = ({ round, nodes }) => (
+  <div className="flex items-center gap-4 rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/50">
+    <div className="flex min-w-[100px] items-center gap-2">
+      <StatusIcon status={round.status} className="h-4 w-4" />
+      <span className="text-sm font-medium">轮次 #{round.roundIndex}</span>
     </div>
-  );
-};
+    <div className="flex flex-1 items-center gap-1 overflow-x-auto">
+      {nodes.map((node, index) => {
+        const status = getNodeStatus(node.id, index, round.flowNodeProgress, round.status);
+        const progress =
+          round.flowNodeProgress?.[node.id] ?? round.flowNodeProgress?.[`node_${index + 1}`] ?? 0;
+        return (
+          <FlowNode
+            key={node.id}
+            node={node}
+            status={status}
+            progress={progress}
+            isStuck={round.stuckModuleId === node.moduleId}
+            isLast={index === nodes.length - 1}
+          />
+        );
+      })}
+    </div>
+    {round.errorMsg && (
+      <span className="max-w-[220px] truncate text-xs text-red-500" title={round.errorMsg}>
+        {round.errorMsg}
+      </span>
+    )}
+  </div>
+);
 
-const SimTypeFlowCard: React.FC<{
-  schemeResult: SimTypeResult;
-  schemeName: string;
+const ConditionFlowCard: React.FC<{
+  conditionResult: ConditionResultSummary;
+  conditionName: string;
   rounds: RoundItem[];
   nodes: WorkflowNode[];
   defaultExpanded?: boolean;
-}> = ({ schemeResult, schemeName, rounds, nodes, defaultExpanded = false }) => {
+}> = ({ conditionResult, conditionName, rounds, nodes, defaultExpanded = false }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const [statusFilter, setStatusFilter] = useState<'all' | 'running' | 'failed'>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const statusConfig = STATUS_CONFIG[conditionResult.status] || STATUS_CONFIG[0];
   const pageSize = 10;
-  const statusConfig = STATUS_CONFIG[schemeResult.status] || STATUS_CONFIG[0];
 
   const completedCount = rounds.filter(round => round.status === 2).length;
   const runningCount = rounds.filter(round => round.status === 1).length;
@@ -216,49 +211,49 @@ const SimTypeFlowCard: React.FC<{
   };
 
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className="overflow-hidden rounded-lg border">
       <div
-        className="flex items-center gap-4 p-4 bg-white dark:bg-slate-900 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50"
+        className="flex cursor-pointer items-center gap-4 bg-white p-4 hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800/50"
         onClick={() => setExpanded(!expanded)}
       >
         <button className="p-1">
           {expanded ? (
-            <ChevronDown className="w-5 h-5 text-slate-500" />
+            <ChevronDown className="h-5 w-5 text-slate-500" />
           ) : (
-            <ChevronRight className="w-5 h-5 text-slate-500" />
+            <ChevronRight className="h-5 w-5 text-slate-500" />
           )}
         </button>
-        <StatusIcon status={schemeResult.status} />
+        <StatusIcon status={conditionResult.status} />
         <div className="flex-1">
           <div className="flex items-center gap-3">
-            <span className="font-semibold">{schemeName}</span>
+            <span className="font-semibold">{conditionName}</span>
             <Badge variant={statusConfig.variant} size="sm">
               {statusConfig.label}
             </Badge>
           </div>
-          <div className="flex items-center gap-4 mt-1 text-xs text-slate-500">
-            <span>总轮次 {schemeResult.totalRounds}</span>
+          <div className="mt-1 flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+            <span>总轮次 {conditionResult.totalRounds}</span>
             <span className="text-green-600">完成 {completedCount}</span>
             {runningCount > 0 && <span className="text-amber-600">运行中 {runningCount}</span>}
             {failedCount > 0 && <span className="text-red-600">失败 {failedCount}</span>}
           </div>
         </div>
         <div className="w-48">
-          <ProgressBar progress={schemeResult.progress} status={schemeResult.status} />
+          <ProgressBar progress={conditionResult.progress} status={conditionResult.status} />
         </div>
       </div>
 
       {expanded && rounds.length > 0 && (
-        <div className="border-t bg-slate-50/50 dark:bg-slate-800/30 p-3 space-y-3">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Filter className="w-4 h-4 text-slate-400" />
+        <div className="space-y-3 border-t bg-slate-50/50 p-3 dark:bg-slate-800/30">
+          <div className="flex flex-wrap items-center gap-2">
+            <Filter className="h-4 w-4 text-slate-400" />
             <button
               onClick={() => handleFilterChange('all')}
               className={cn(
-                'px-3 py-1 text-xs rounded-full border transition-colors',
+                'rounded-full border px-3 py-1 text-xs transition-colors',
                 statusFilter === 'all'
-                  ? 'bg-slate-600 text-white border-slate-600'
-                  : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-100'
+                  ? 'border-slate-600 bg-slate-600 text-white'
+                  : 'border-slate-300 bg-white text-slate-600 hover:bg-slate-100'
               )}
             >
               全部 ({rounds.length})
@@ -267,14 +262,14 @@ const SimTypeFlowCard: React.FC<{
               <button
                 onClick={() => handleFilterChange('running')}
                 className={cn(
-                  'px-3 py-1 text-xs rounded-full border transition-colors',
+                  'rounded-full border px-3 py-1 text-xs transition-colors',
                   statusFilter === 'running'
-                    ? 'bg-amber-500 text-white border-amber-500'
-                    : 'bg-white text-amber-600 border-amber-300 hover:bg-amber-50'
+                    ? 'border-amber-500 bg-amber-500 text-white'
+                    : 'border-amber-300 bg-white text-amber-600 hover:bg-amber-50'
                 )}
               >
                 <span className="flex items-center gap-1">
-                  <Loader2 className="w-3 h-3" />
+                  <Loader2 className="h-3 w-3" />
                   运行中 ({runningCount})
                 </span>
               </button>
@@ -283,14 +278,14 @@ const SimTypeFlowCard: React.FC<{
               <button
                 onClick={() => handleFilterChange('failed')}
                 className={cn(
-                  'px-3 py-1 text-xs rounded-full border transition-colors',
+                  'rounded-full border px-3 py-1 text-xs transition-colors',
                   statusFilter === 'failed'
-                    ? 'bg-red-500 text-white border-red-500'
-                    : 'bg-white text-red-600 border-red-300 hover:bg-red-50'
+                    ? 'border-red-500 bg-red-500 text-white'
+                    : 'border-red-300 bg-white text-red-600 hover:bg-red-50'
                 )}
               >
                 <span className="flex items-center gap-1">
-                  <AlertTriangle className="w-3 h-3" />
+                  <AlertTriangle className="h-3 w-3" />
                   失败 ({failedCount})
                 </span>
               </button>
@@ -304,7 +299,7 @@ const SimTypeFlowCard: React.FC<{
               ))}
             </div>
           ) : (
-            <div className="text-center text-sm text-slate-500 py-4">无匹配的轮次</div>
+            <div className="py-4 text-center text-sm text-slate-500">无匹配的轮次</div>
           )}
 
           {totalPages > 1 && (
@@ -312,21 +307,21 @@ const SimTypeFlowCard: React.FC<{
               <button
                 onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
                 disabled={currentPage === 1}
-                className="p-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100"
+                className="rounded border p-1 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="text-sm text-slate-600">
+              <span className="text-sm text-slate-600 dark:text-slate-300">
                 {currentPage} / {totalPages}
               </span>
               <button
                 onClick={() => setCurrentPage(page => Math.min(totalPages, page + 1))}
                 disabled={currentPage === totalPages}
-                className="p-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-100"
+                className="rounded border p-1 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="h-4 w-4" />
               </button>
-              <span className="text-xs text-slate-400 ml-2">共 {filteredRounds.length} 条</span>
+              <span className="ml-2 text-xs text-slate-400">共 {filteredRounds.length} 条</span>
             </div>
           )}
         </div>
@@ -339,24 +334,24 @@ export const ProcessFlowView: React.FC<ProcessFlowViewProps> = ({
   orderId,
   orderStatus,
   orderProgress,
-  schemeResults,
-  schemeRoundGroups,
-  schemeLabelMap,
+  conditionResults,
+  conditionRoundGroups,
+  conditionLabelMap,
   workflowNodes,
   loading = false,
 }) => {
   const statusConfig = STATUS_CONFIG[orderStatus] || STATUS_CONFIG[0];
 
-  const totalRounds = schemeRoundGroups.reduce((sum, group) => sum + group.rounds.length, 0);
-  const completedRounds = schemeRoundGroups.reduce(
+  const totalRounds = conditionRoundGroups.reduce((sum, group) => sum + group.rounds.length, 0);
+  const completedRounds = conditionRoundGroups.reduce(
     (sum, group) => sum + group.rounds.filter(round => round.status === 2).length,
     0
   );
-  const runningRounds = schemeRoundGroups.reduce(
+  const runningRounds = conditionRoundGroups.reduce(
     (sum, group) => sum + group.rounds.filter(round => round.status === 1).length,
     0
   );
-  const failedRounds = schemeRoundGroups.reduce(
+  const failedRounds = conditionRoundGroups.reduce(
     (sum, group) => sum + group.rounds.filter(round => round.status === 3).length,
     0
   );
@@ -364,8 +359,8 @@ export const ProcessFlowView: React.FC<ProcessFlowViewProps> = ({
   if (loading) {
     return (
       <Card>
-        <div className="h-64 flex items-center justify-center text-slate-500">
-          <Loader2 className="w-6 h-6 animate-spin mr-2" />
+        <div className="flex h-64 items-center justify-center text-slate-500">
+          <Loader2 className="mr-2 h-6 w-6 animate-spin" />
           加载中...
         </div>
       </Card>
@@ -377,8 +372,8 @@ export const ProcessFlowView: React.FC<ProcessFlowViewProps> = ({
       <Card>
         <div className="space-y-4">
           <div className="flex items-center gap-4">
-            <div className="p-3 rounded-full bg-brand-100 dark:bg-brand-900/30">
-              <PlayCircle className="w-8 h-8 text-brand-600" />
+            <div className="rounded-full bg-brand-100 p-3 dark:bg-brand-900/30">
+              <PlayCircle className="h-8 w-8 text-brand-600" />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-3">
@@ -387,8 +382,8 @@ export const ProcessFlowView: React.FC<ProcessFlowViewProps> = ({
                   {statusConfig.label}
                 </Badge>
               </div>
-              <div className="flex items-center gap-4 mt-1 text-sm text-slate-500">
-                <span>工况方案 {schemeResults.length}</span>
+              <div className="mt-1 flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
+                <span>工况 {conditionResults.length}</span>
                 <span>总轮次 {totalRounds}</span>
                 <span className="text-green-600">完成 {completedRounds}</span>
                 {runningRounds > 0 && (
@@ -405,16 +400,16 @@ export const ProcessFlowView: React.FC<ProcessFlowViewProps> = ({
           <div className="border-t" />
 
           <div className="space-y-3">
-            {schemeResults.map((result, index) => {
-              const schemeId = result.simTypeId;
+            {conditionResults.map((result, index) => {
+              const conditionId = result.simTypeId;
               const rounds =
-                schemeRoundGroups.find(group => group.schemeId === schemeId)?.rounds || [];
-              const schemeName = schemeLabelMap.get(schemeId) || `方案-${schemeId}`;
+                conditionRoundGroups.find(group => group.conditionId === conditionId)?.rounds || [];
+              const conditionName = conditionLabelMap.get(conditionId) || `工况-${conditionId}`;
               return (
-                <SimTypeFlowCard
+                <ConditionFlowCard
                   key={result.id}
-                  schemeResult={result}
-                  schemeName={schemeName}
+                  conditionResult={result}
+                  conditionName={conditionName}
                   rounds={rounds}
                   nodes={workflowNodes}
                   defaultExpanded={index === 0}
@@ -423,10 +418,8 @@ export const ProcessFlowView: React.FC<ProcessFlowViewProps> = ({
             })}
           </div>
 
-          {schemeResults.length === 0 && (
-            <div className="h-32 flex items-center justify-center text-slate-500">
-              暂无工况方案数据
-            </div>
+          {conditionResults.length === 0 && (
+            <div className="flex h-32 items-center justify-center text-slate-500">暂无工况数据</div>
           )}
         </div>
       </Card>

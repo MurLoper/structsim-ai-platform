@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui';
 import { PlusIcon, TrashIcon, StarIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { baseConfigApi } from '@/api/config/base';
+import { queryKeys } from '@/lib/queryClient';
 import type { FoldType, SimType, FoldTypeSimTypeRel } from '@/types/config';
 
 interface SimTypeRelItem {
@@ -15,6 +17,7 @@ interface SimTypeRelItem {
 }
 
 export const ConditionManagement: React.FC = () => {
+  const queryClient = useQueryClient();
   const [foldTypes, setFoldTypes] = useState<FoldType[]>([]);
   const [allSimTypes, setAllSimTypes] = useState<SimType[]>([]);
   const [relationsMap, setRelationsMap] = useState<Map<number, SimTypeRelItem[]>>(new Map());
@@ -114,6 +117,7 @@ export const ConditionManagement: React.FC = () => {
   const handleAddSimType = async (foldTypeId: number, simTypeId: number, isDefault: number) => {
     try {
       await baseConfigApi.addSimTypeToFoldType(foldTypeId, { simTypeId, isDefault });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.foldTypeSimTypeRels.all });
       await loadAllData();
       setShowAddModal(false);
       setEditingFoldTypeId(null);
@@ -127,6 +131,7 @@ export const ConditionManagement: React.FC = () => {
   const handleSetDefault = async (foldTypeId: number, simTypeId: number) => {
     try {
       await baseConfigApi.setDefaultSimTypeForFoldType(foldTypeId, simTypeId);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.foldTypeSimTypeRels.all });
       await loadAllData();
     } catch (error) {
       console.error('设置默认仿真类型失败:', error);
@@ -139,6 +144,7 @@ export const ConditionManagement: React.FC = () => {
     if (!confirm('确定要移除此工况配置吗？')) return;
     try {
       await baseConfigApi.removeSimTypeFromFoldType(foldTypeId, simTypeId);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.foldTypeSimTypeRels.all });
       await loadAllData();
     } catch (error) {
       console.error('移除仿真类型关联失败:', error);

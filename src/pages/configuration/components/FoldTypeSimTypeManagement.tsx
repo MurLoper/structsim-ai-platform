@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui';
 import { Plus, Trash2, Star } from 'lucide-react';
 import { baseConfigApi } from '@/api/config/base';
+import { queryKeys } from '@/lib/queryClient';
 import { useFormState } from '@/hooks/useFormState';
 import type { FoldType, SimType, FoldTypeSimTypeRel } from '@/types/config';
 
@@ -11,6 +13,7 @@ interface FoldTypeSimTypeRelWithDetail extends FoldTypeSimTypeRel {
 }
 
 export const FoldTypeSimTypeManagement: React.FC = () => {
+  const queryClient = useQueryClient();
   const [foldTypes, setFoldTypes] = useState<FoldType[]>([]);
   const [selectedFoldType, setSelectedFoldType] = useState<FoldType | null>(null);
   const [simTypeRels, setSimTypeRels] = useState<FoldTypeSimTypeRelWithDetail[]>([]);
@@ -67,6 +70,7 @@ export const FoldTypeSimTypeManagement: React.FC = () => {
     if (!selectedFoldType) return;
     try {
       await baseConfigApi.addSimTypeToFoldType(selectedFoldType.id, { simTypeId, isDefault });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.foldTypeSimTypeRels.all });
       loadFoldTypeSimTypes(selectedFoldType.id);
       setShowAddModal(false);
     } catch (error) {
@@ -80,6 +84,7 @@ export const FoldTypeSimTypeManagement: React.FC = () => {
     if (!selectedFoldType) return;
     try {
       await baseConfigApi.setDefaultSimTypeForFoldType(selectedFoldType.id, simTypeId);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.foldTypeSimTypeRels.all });
       loadFoldTypeSimTypes(selectedFoldType.id);
     } catch (error) {
       console.error('设置默认仿真类型失败:', error);
@@ -92,6 +97,7 @@ export const FoldTypeSimTypeManagement: React.FC = () => {
     if (!selectedFoldType || !confirm('确定要移除此关联吗？')) return;
     try {
       await baseConfigApi.removeSimTypeFromFoldType(selectedFoldType.id, simTypeId);
+      await queryClient.invalidateQueries({ queryKey: queryKeys.foldTypeSimTypeRels.all });
       loadFoldTypeSimTypes(selectedFoldType.id);
     } catch (error) {
       console.error('移除仿真类型关联失败:', error);

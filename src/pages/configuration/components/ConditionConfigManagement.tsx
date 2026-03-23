@@ -4,6 +4,7 @@ import { Link, Plus, Pencil, Trash2, X, Star } from 'lucide-react';
 import { Card, CardHeader, Button } from '@/components/ui';
 import { configApi } from '@/api';
 import { useToast, useConfirmDialog } from '@/hooks';
+import { queryKeys } from '@/lib/queryClient';
 import type { ConditionConfig } from '@/types';
 import type { ParamGroup, OutputGroup } from '@/types/configGroups';
 
@@ -55,7 +56,7 @@ export const ConditionConfigManagement: React.FC = () => {
   });
 
   const { data: conditionConfigs = [] } = useQuery({
-    queryKey: ['conditionConfigs'],
+    queryKey: queryKeys.conditionConfigs.list(),
     queryFn: () => configApi.getConditionConfigs().then(r => r.data),
   });
 
@@ -118,7 +119,7 @@ export const ConditionConfigManagement: React.FC = () => {
   const createMutation = useMutation({
     mutationFn: (data: Partial<ConditionConfig>) => configApi.createConditionConfig(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conditionConfigs'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.conditionConfigs.all });
       showToast('success', '创建成功');
       handleCloseModal();
     },
@@ -132,7 +133,7 @@ export const ConditionConfigManagement: React.FC = () => {
     mutationFn: ({ id, data }: { id: number; data: Partial<ConditionConfig> }) =>
       configApi.updateConditionConfig(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conditionConfigs'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.conditionConfigs.all });
       showToast('success', '更新成功');
       handleCloseModal();
     },
@@ -145,7 +146,7 @@ export const ConditionConfigManagement: React.FC = () => {
   const deleteMutation = useMutation({
     mutationFn: (id: number) => configApi.deleteConditionConfig(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['conditionConfigs'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.conditionConfigs.all });
       showToast('success', '删除成功');
     },
     onError: (err: unknown) => {
@@ -224,7 +225,7 @@ export const ConditionConfigManagement: React.FC = () => {
       // 切换当前工况的默认状态
       const newDefault = config.isDefault === 1 ? 0 : 1;
       await configApi.updateConditionConfig(config.id, { isDefault: newDefault });
-      queryClient.invalidateQueries({ queryKey: ['conditionConfigs'] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.conditionConfigs.all });
       showToast('success', newDefault === 1 ? '已设为默认' : '已取消默认');
     } catch {
       showToast('error', '设置默认失败');

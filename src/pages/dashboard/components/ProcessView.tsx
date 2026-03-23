@@ -1,17 +1,17 @@
 /**
  * 流程结果展示组件
  *
- * 展示工况方案下各轮次的流程执行状态。
+ * 展示工况下各轮次的流程执行状态。
  */
 import { useState, useMemo } from 'react';
 import { Card, Badge, Select } from '@/components/ui';
 import { RoundFlow, type WorkflowNode } from './RoundFlow';
-import type { RoundItem, SimTypeResult } from '@/api/results';
+import type { RoundItem, SimTypeResult as ConditionResultSummary } from '@/api/results';
 
 export interface ProcessViewProps {
-  schemeResults: SimTypeResult[];
-  schemeRoundGroups: Array<{ schemeId: number; rounds: RoundItem[] }>;
-  schemeLabelMap: Map<number, string>;
+  conditionResults: ConditionResultSummary[];
+  conditionRoundGroups: Array<{ conditionId: number; rounds: RoundItem[] }>;
+  conditionLabelMap: Map<number, string>;
   workflowNodes: WorkflowNode[];
   loading?: boolean;
 }
@@ -34,12 +34,12 @@ const STATUS_CONFIG: Record<
 };
 
 interface RoundFlowCardProps {
-  round: RoundItem & { schemeId: number; schemeName: string };
-  schemeName: string;
+  round: RoundItem & { conditionId: number; conditionName: string };
+  conditionName: string;
   workflowNodes: WorkflowNode[];
 }
 
-const RoundFlowCard: React.FC<RoundFlowCardProps> = ({ round, schemeName, workflowNodes }) => {
+const RoundFlowCard: React.FC<RoundFlowCardProps> = ({ round, conditionName, workflowNodes }) => {
   const statusConfig = STATUS_CONFIG[round.status] || STATUS_CONFIG[0];
 
   return (
@@ -49,7 +49,7 @@ const RoundFlowCard: React.FC<RoundFlowCardProps> = ({ round, schemeName, workfl
           <div className="flex items-center gap-3">
             <span className="font-medium">轮次 #{round.roundIndex}</span>
             <Badge variant="default" size="sm">
-              {schemeName}
+              {conditionName}
             </Badge>
             <Badge variant={statusConfig.variant} size="sm">
               {statusConfig.label}
@@ -74,39 +74,39 @@ const RoundFlowCard: React.FC<RoundFlowCardProps> = ({ round, schemeName, workfl
 };
 
 export const ProcessView: React.FC<ProcessViewProps> = ({
-  schemeResults,
-  schemeRoundGroups,
-  schemeLabelMap,
+  conditionResults,
+  conditionRoundGroups,
+  conditionLabelMap,
   workflowNodes,
   loading = false,
 }) => {
-  const [selectedScheme, setSelectedScheme] = useState<string>('all');
+  const [selectedCondition, setSelectedCondition] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [pageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
-  const schemeOptions = useMemo(() => {
-    const options = [{ value: 'all', label: '全部工况方案' }];
-    schemeResults.forEach(result => {
-      const schemeId = result.simTypeId;
+  const conditionOptions = useMemo(() => {
+    const options = [{ value: 'all', label: '全部工况' }];
+    conditionResults.forEach(result => {
+      const conditionId = result.simTypeId;
       options.push({
-        value: String(schemeId),
-        label: schemeLabelMap.get(schemeId) || `方案-${schemeId}`,
+        value: String(conditionId),
+        label: conditionLabelMap.get(conditionId) || `工况-${conditionId}`,
       });
     });
     return options;
-  }, [schemeResults, schemeLabelMap]);
+  }, [conditionResults, conditionLabelMap]);
 
   const filteredRounds = useMemo(() => {
-    let rounds: Array<RoundItem & { schemeId: number; schemeName: string }> = [];
+    let rounds: Array<RoundItem & { conditionId: number; conditionName: string }> = [];
 
-    schemeRoundGroups.forEach(group => {
-      if (selectedScheme !== 'all' && String(group.schemeId) !== selectedScheme) {
+    conditionRoundGroups.forEach(group => {
+      if (selectedCondition !== 'all' && String(group.conditionId) !== selectedCondition) {
         return;
       }
-      const schemeName = schemeLabelMap.get(group.schemeId) || `方案-${group.schemeId}`;
+      const conditionName = conditionLabelMap.get(group.conditionId) || `工况-${group.conditionId}`;
       group.rounds.forEach(round => {
-        rounds.push({ ...round, schemeId: group.schemeId, schemeName });
+        rounds.push({ ...round, conditionId: group.conditionId, conditionName });
       });
     });
 
@@ -116,7 +116,7 @@ export const ProcessView: React.FC<ProcessViewProps> = ({
     }
 
     return rounds;
-  }, [schemeRoundGroups, selectedScheme, statusFilter, schemeLabelMap]);
+  }, [conditionRoundGroups, selectedCondition, statusFilter, conditionLabelMap]);
 
   const paginatedRounds = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
@@ -139,13 +139,13 @@ export const ProcessView: React.FC<ProcessViewProps> = ({
         <div className="flex flex-wrap items-end gap-4">
           <div className="min-w-[180px]">
             <Select
-              label="工况方案"
-              value={selectedScheme}
+              label="工况"
+              value={selectedCondition}
               onChange={event => {
-                setSelectedScheme(event.target.value);
+                setSelectedCondition(event.target.value);
                 setCurrentPage(1);
               }}
-              options={schemeOptions}
+              options={conditionOptions}
             />
           </div>
           <div className="min-w-[140px]">
@@ -173,9 +173,9 @@ export const ProcessView: React.FC<ProcessViewProps> = ({
         <div className="space-y-3">
           {paginatedRounds.map(round => (
             <RoundFlowCard
-              key={`${round.schemeId}-${round.id}`}
+              key={`${round.conditionId}-${round.id}`}
               round={round}
-              schemeName={round.schemeName}
+              conditionName={round.conditionName}
               workflowNodes={workflowNodes}
             />
           ))}

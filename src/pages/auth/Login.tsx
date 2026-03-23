@@ -77,6 +77,13 @@ const Login: React.FC = () => {
           <div className="py-8 text-center text-slate-500">登录模式加载中...</div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
+            {loginMode.testAccountBypassEnabled && (
+              <div className="text-amber-700 text-sm bg-amber-50 border border-amber-200 p-3 rounded-lg">
+                当前环境已启用测试账号直登。仅对数据库中已存在且后端通过 `.env`
+                白名单放开的账号生效， 登录时会跳过密码校验。
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                 域账号

@@ -8,17 +8,28 @@ vi.mock('../hooks/useResultsData', () => ({
   useResultsData: vi.fn(),
 }));
 
+vi.mock('@/components/charts', () => ({
+  BarChart: () => <div data-testid="mock-bar-chart" />,
+}));
+
 const mockUseResultsData = async (overrides = {}) => {
   const module = await import('../hooks/useResultsData');
   vi.mocked(module.useResultsData).mockReturnValue({
     displayOrderId: '#1',
+    orderStatus: 2,
+    orderProgress: 100,
     metric: '1',
     setMetric: vi.fn(),
     metricOptions: [{ value: '1', label: 'Metric A' }],
     metricLabelMap: new Map([[1, 'Metric A']]),
-    schemeLabelMap: new Map([[1, 'Sim A']]),
-    selectedSchemeIds: [1],
-    toggleScheme: vi.fn(),
+    conditionLabelMap: new Map([[1, 'Condition A']]),
+    focusedConditionId: 1,
+    setFocusedConditionId: vi.fn(),
+    focusedCondition: null,
+    focusedConditionAnalysis: null,
+    focusedConditionResults: [],
+    selectedConditionIds: [1],
+    toggleCondition: vi.fn(),
     minValue: '',
     setMinValue: vi.fn(),
     maxValue: '',
@@ -27,14 +38,14 @@ const mockUseResultsData = async (overrides = {}) => {
     setMinIteration: vi.fn(),
     maxIteration: '',
     setMaxIteration: vi.fn(),
-    availableSchemes: [{ id: 1, name: 'Sim A' }],
+    availableConditions: [{ id: 1, name: 'Condition A' }],
     filteredResults: [],
     trendData: [],
-    avgByScheme: [],
-    schemeResults: [],
-    schemeRoundGroups: [],
+    avgByCondition: [],
+    conditionResults: [],
+    conditionRoundGroups: [],
     overviewStats: {
-      schemeCount: 0,
+      conditionCount: 0,
       totalRounds: 0,
       completedRounds: 0,
       failedRounds: 0,
@@ -45,6 +56,8 @@ const mockUseResultsData = async (overrides = {}) => {
     paramDefs: [],
     outputDefs: [],
     workflowNodes: [],
+    updateConditionRoundsPage: vi.fn(),
+    updateConditionRoundsPageSize: vi.fn(),
     isResultsLoading: false,
     resultsError: null,
     retryResults: vi.fn(),
@@ -69,8 +82,8 @@ describe('Results page', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('订单不存在')).toBeInTheDocument();
-    expect(screen.getByText('无效的订单 ID，请返回订单列表')).toBeInTheDocument();
+    expect(screen.getByText('申请单不存在')).toBeInTheDocument();
+    expect(screen.getByText('订单 ID 无效，请返回申请单列表重新进入。')).toBeInTheDocument();
   });
 
   it('should show error card and allow retry', async () => {

@@ -52,6 +52,7 @@ export interface User {
   roleCodes?: string[];
   permissionIds?: number[];
   permissionCodes?: string[];
+  departmentId?: number | null;
   department?: string;
   maxCpuCores?: number;
   maxBatchSize?: number;

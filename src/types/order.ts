@@ -6,6 +6,7 @@ export interface OrderListItem {
   projectId: number;
   projectName?: string;
   simTypeIds: number[];
+  /** @deprecated 后端会根据 inputJson.conditions 自动派生 */
   foldTypeIds?: number[];
   status: number;
   progress: number;
@@ -74,7 +75,8 @@ export interface OrderCreatePayload {
   foldTypeIds?: number[];
   participantIds?: string[];
   remark?: string;
-  simTypeIds: number[];
+  /** @deprecated 后端会根据 inputJson.conditions 自动派生 */
+  simTypeIds?: number[];
   /** @deprecated 使用 inputJson 替代 */
   optParam?: Record<string, unknown>;
   /** 提单完整数据（新版结构） */

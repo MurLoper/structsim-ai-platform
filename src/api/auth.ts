@@ -25,6 +25,7 @@ export interface HeartbeatResponse {
 export interface LoginModeResponse {
   ssoEnabled: boolean;
   ssoRedirectUrl: string;
+  testAccountBypassEnabled?: boolean;
   uidExpireSeconds: number;
 }
 

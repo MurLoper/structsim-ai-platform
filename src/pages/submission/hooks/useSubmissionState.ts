@@ -154,21 +154,26 @@ export const useSubmissionState = (
   const [activeFoldTypeId, setActiveFoldTypeId] = useState<number | null>(null);
   const [activeConditionId, setActiveConditionId] = useState<number | null>(null);
 
-  // 安全数据 - 使用 useMemo 优化性能
-  // 构建姿态及其关联仿真类型的完整数据结构（含 conditionId）
-  const foldTypesWithSimTypes = useMemo<FoldTypeWithSimTypes[]>(() => {
-    // 等待所有数据加载完成
-    if (!foldTypes.length || !simTypes.length || conditionConfigsLoading) return [];
+  const buildFoldTypeTree = useCallback(
+    (nextConditionConfigs: ConditionConfig[] = conditionConfigs): FoldTypeWithSimTypes[] => {
+      if (!foldTypes.length || !simTypes.length) return [];
 
-    return foldTypes.map(ft => {
-      // 从工况配置中获取该姿态关联的仿真类型
-      const configs = conditionConfigs.filter(c => c.foldTypeId === ft.id);
+      return foldTypes.map(ft => {
+        const configs = nextConditionConfigs
+          .filter(config => config.foldTypeId === ft.id)
+          .sort((a, b) => a.sort - b.sort);
 
-      let ftSimTypes: Array<SimType & { isDefault: boolean; relSort: number; conditionId: number }>;
+        if (configs.length === 0) {
+          return {
+            id: ft.id,
+            name: ft.name,
+            code: ft.code,
+            angle: ft.angle,
+            simTypes: [],
+          };
+        }
 
-      if (configs.length > 0) {
-        // 有工况配置，使用配置中的仿真类型（conditionId = config.id）
-        ftSimTypes = configs
+        const configSimTypes = configs
           .map((config, idx) => {
             const st = simTypes.find(s => s.id === config.simTypeId);
             if (!st) return null;
@@ -182,38 +187,42 @@ export const useSubmissionState = (
           .filter(
             (st): st is SimType & { isDefault: boolean; relSort: number; conditionId: number } =>
               st !== null
-          )
-          .sort((a, b) => a.relSort - b.relSort);
-      } else {
-        // 没有工况配置，使用负数 ID 作为临时 conditionId（-(foldTypeId * 10000 + simTypeId)）
-        ftSimTypes = simTypes.map((st, idx) => ({
-          ...st,
-          isDefault: idx === 0,
-          relSort: st.sort || idx * 10,
-          conditionId: -(ft.id * 10000 + st.id),
-        }));
-      }
+          );
 
-      return {
-        id: ft.id,
-        name: ft.name,
-        code: ft.code,
-        angle: ft.angle,
-        simTypes: ftSimTypes,
-      };
-    });
-  }, [foldTypes, simTypes, conditionConfigs, conditionConfigsLoading]);
+        return {
+          id: ft.id,
+          name: ft.name,
+          code: ft.code,
+          angle: ft.angle,
+          simTypes: configSimTypes,
+        };
+      });
+    },
+    [conditionConfigs, foldTypes, simTypes]
+  );
+
+  const conditionTree = useMemo<FoldTypeWithSimTypes[]>(() => {
+    if (!foldTypes.length || !simTypes.length || conditionConfigsLoading) return [];
+    return buildFoldTypeTree(conditionConfigs);
+  }, [
+    buildFoldTypeTree,
+    conditionConfigs,
+    conditionConfigsLoading,
+    foldTypes.length,
+    simTypes.length,
+  ]);
+
+  const foldTypesWithSimTypes = conditionTree;
 
   // 当前选中姿态的仿真类型（支持多姿态，含 conditionId）
   const safeSimTypes = useMemo(() => {
-    if (foldTypeIds.length === 0)
-      return (simTypes || []).map(st => ({ ...st, conditionId: -st.id }));
+    if (foldTypeIds.length === 0) return [];
     // 合并所有选中姿态的仿真类型（保留 conditionId）
     const allSimTypes: Array<
       SimType & { isDefault: boolean; relSort: number; conditionId: number }
     > = [];
     foldTypeIds.forEach(ftId => {
-      const foldTypeData = foldTypesWithSimTypes.find(ft => ft.id === ftId);
+      const foldTypeData = conditionTree.find(ft => ft.id === ftId);
       if (foldTypeData) {
         foldTypeData.simTypes.forEach(st => {
           // 注意：同一 simTypeId 在不同姿态下有不同 conditionId，所以用 conditionId 去重
@@ -224,7 +233,7 @@ export const useSubmissionState = (
       }
     });
     return allSimTypes;
-  }, [foldTypeIds, foldTypesWithSimTypes, simTypes]);
+  }, [foldTypeIds, conditionTree, simTypes]);
 
   const safeFoldTypes = useMemo(() => foldTypes || [], [foldTypes]);
   const safeSolvers = useMemo(() => solvers || [], [solvers]);
@@ -282,7 +291,7 @@ export const useSubmissionState = (
   // 初始化仿真类型配置（以 conditionId 为 key）
   const initSimTypeConfig = useCallback(
     (conditionId: number, simTypeId: number, foldTypeId: number) => {
-      const simType = safeSimTypes.find(st => st.id === simTypeId);
+      const simType = simTypes.find(st => st.id === simTypeId);
       if (!simType) return;
 
       // 尝试获取工况配置
@@ -355,7 +364,7 @@ export const useSubmissionState = (
         },
       }));
     },
-    [safeSimTypes, safeSolvers, safeParamGroups, getConditionConfig, normalizeDoeDataByHeads]
+    [simTypes, safeSolvers, safeParamGroups, getConditionConfig, normalizeDoeDataByHeads]
   );
 
   const paramGroupPrefillRef = useRef<Set<string>>(new Set());
@@ -553,7 +562,7 @@ export const useSubmissionState = (
   // 初始化默认选中的仿真类型
   // 当姿态变化时：1. 移除被取消姿态的仿真类型 2. 为新增姿态自动选择默认仿真类型
   useEffect(() => {
-    if (foldTypeIds.length === 0 || foldTypesWithSimTypes.length === 0) return;
+    if (foldTypeIds.length === 0 || conditionTree.length === 0) return;
 
     // 清理已移除姿态的"用户清空"记录
     userClearedFoldTypeIds.current.forEach(ftId => {
@@ -583,7 +592,7 @@ export const useSubmissionState = (
       // 为需要初始化的姿态添加默认仿真类型（含 conditionId）
       const newDefaults: SelectedSimType[] = [];
       foldTypeIdsNeedingDefaults.forEach(ftId => {
-        const foldTypeData = foldTypesWithSimTypes.find(ft => ft.id === ftId);
+        const foldTypeData = conditionTree.find(ft => ft.id === ftId);
         if (!foldTypeData?.simTypes.length) return;
 
         // 优先使用标记为默认的仿真类型
@@ -609,7 +618,7 @@ export const useSubmissionState = (
 
       return [...validPrev, ...newDefaults];
     });
-  }, [foldTypeIds, foldTypesWithSimTypes]);
+  }, [foldTypeIds, conditionTree]);
 
   // 为新选中的仿真类型初始化配置
   // 使用 useRef 跟踪已初始化的 conditionId，避免依赖 simTypeConfigs 导致无限循环
@@ -624,6 +633,24 @@ export const useSubmissionState = (
   const clearInitializedConditionIds = useCallback(() => {
     initializedConditionIds.current.clear();
   }, []);
+
+  const clearUserClearedFoldTypeIds = useCallback(() => {
+    userClearedFoldTypeIds.current.clear();
+  }, []);
+
+  const getDefaultSelections = useCallback(
+    (nextConditionConfigs: ConditionConfig[] = conditionConfigs) => {
+      const tree = buildFoldTypeTree(nextConditionConfigs);
+      const selected = tree.flatMap(ft =>
+        ft.simTypes
+          .filter(st => st.isDefault)
+          .map(st => ({ conditionId: st.conditionId, foldTypeId: ft.id, simTypeId: st.id }))
+      );
+      const foldTypeIds = [...new Set(selected.map(item => item.foldTypeId))];
+      return { selectedSimTypes: selected, foldTypeIds };
+    },
+    [buildFoldTypeTree, conditionConfigs]
+  );
 
   useEffect(() => {
     selectedSimTypes.forEach(item => {
@@ -734,15 +761,15 @@ export const useSubmissionState = (
 
   // 计算项目节点Y坐标（相对于所有姿态垂直居中）
   const getProjectNodeY = useCallback(() => {
-    if (foldTypesWithSimTypes.length === 0) return 300;
+    if (conditionTree.length === 0) return 300;
 
     // 计算所有姿态的总仿真类型数量
-    const totalSimTypes = foldTypesWithSimTypes.reduce(
+    const totalSimTypes = conditionTree.reduce(
       (sum, ft) => sum + Math.max(ft.simTypes.length, 1),
       0
     );
     // 姿态之间的间隙数量
-    const foldTypeGaps = Math.max(foldTypesWithSimTypes.length - 1, 0);
+    const foldTypeGaps = Math.max(conditionTree.length - 1, 0);
 
     // 总高度 = 仿真类型数量 * 间距 + 姿态间隙
     const startY = 100;
@@ -752,7 +779,7 @@ export const useSubmissionState = (
     const totalHeight = (totalSimTypes - 1) * simTypeSpacing + foldTypeGaps * foldTypeGap;
 
     return startY + totalHeight / 2;
-  }, [foldTypesWithSimTypes]);
+  }, [conditionTree]);
 
   const isConfigLoading =
     projectsLoading ||
@@ -790,6 +817,13 @@ export const useSubmissionState = (
     void refetchUsers();
   };
 
+  const refreshSubmissionConfig = useCallback(async () => {
+    const conditionConfigsResult = await refetchConditionConfigs();
+    return {
+      conditionConfigs: conditionConfigsResult.data ?? conditionConfigs,
+    };
+  }, [conditionConfigs, refetchConditionConfigs]);
+
   // 获取参数组的参数详情
   const fetchParamGroupParams = useCallback(async (groupId: number): Promise<ParamInGroup[]> => {
     try {
@@ -825,11 +859,13 @@ export const useSubmissionState = (
     safeParamGroups,
     safeOutputSets,
     safeConditionConfigs,
-    foldTypesWithSimTypes,
+    foldTypesWithSimTypes: conditionTree,
     selectedProject,
     isConfigLoading,
     configError,
     retryConfig,
+    refreshSubmissionConfig,
+    getDefaultSelections,
     // 画布状态
     transform,
     setTransform,
@@ -867,5 +903,6 @@ export const useSubmissionState = (
     fetchOutputGroupOutputs,
     markConditionIdsAsInitialized,
     clearInitializedConditionIds,
+    clearUserClearedFoldTypeIds,
   };
 };

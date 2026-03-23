@@ -26,6 +26,7 @@ const normalizeUser = (user: User): User => {
     permissions,
     roleIds,
     roleIdList: roleIds,
+    departmentId: user.departmentId ?? null,
     maxCpuCores: user.maxCpuCores ?? 192,
     maxBatchSize: user.maxBatchSize ?? 200,
     dailyRoundLimitDefault: user.dailyRoundLimitDefault ?? 500,
@@ -37,6 +38,7 @@ const normalizeUser = (user: User): User => {
 interface LoginMode {
   ssoEnabled: boolean;
   ssoRedirectUrl: string;
+  testAccountBypassEnabled: boolean;
   uidExpireSeconds: number;
 }
 
@@ -75,6 +77,7 @@ export const useAuthStore = create<AuthState>()(
       loginMode: {
         ssoEnabled: false,
         ssoRedirectUrl: '',
+        testAccountBypassEnabled: false,
         uidExpireSeconds: 1800,
       },
       isAuthenticated: false,
@@ -99,6 +102,7 @@ export const useAuthStore = create<AuthState>()(
         const mode: LoginMode = {
           ssoEnabled: !!payload?.ssoEnabled,
           ssoRedirectUrl: payload?.ssoRedirectUrl || '',
+          testAccountBypassEnabled: !!payload?.testAccountBypassEnabled,
           uidExpireSeconds: payload?.uidExpireSeconds || 1800,
         };
         set({ loginMode: mode });
