@@ -3,13 +3,16 @@ import 'echarts-gl';
 import React, { startTransition, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { EChartsOption } from 'echarts';
-import { BarChart3, Boxes, ChartColumnBig, ScanSearch, Sigma } from 'lucide-react';
+import { BarChart3, Boxes, ChartColumnBig, ScanSearch, Sigma, Download } from 'lucide-react';
 import { BaseChart } from '@/components/charts';
 import { VirtualTable } from '@/components/tables/VirtualTable';
-import { Badge, Card, Input, Select } from '@/components/ui';
+import { Badge, Card, Input, Select, Button } from '@/components/ui';
 import type { OrderConditionSummary, RoundItem } from '@/api/results';
+import { exportAoaToExcel } from '@/utils/excel';
 
-type ChartType = 'line2d' | 'scatter2d' | 'bar2d' | 'scatter3d' | 'bar3d' | 'surface3d';
+import { OverviewAnalysisReport } from './OverviewAnalysisReport';
+
+type ChartType = 'none' | 'line2d' | 'scatter2d' | 'bar2d' | 'scatter3d' | 'bar3d' | 'surface3d';
 
 type StylePreset = 'ocean' | 'ember' | 'graphite';
 
@@ -83,6 +86,7 @@ const STYLE_PRESETS: Record<
 };
 
 const CHART_OPTIONS: Array<{ value: ChartType; label: string }> = [
+  { value: 'none', label: '暂无图表 (请选择)' },
   { value: 'line2d', label: '二维折线' },
   { value: 'scatter2d', label: '二维散点' },
   { value: 'bar2d', label: '二维柱状' },
@@ -378,7 +382,7 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
   );
   const axisOptions = useMemo(() => buildAxisOptions(fieldOptions), [fieldOptions]);
 
-  const [chartType, setChartType] = useState<ChartType>('scatter2d');
+  const [chartType, setChartType] = useState<ChartType>('none');
   const [stylePreset, setStylePreset] = useState<StylePreset>('ocean');
   const [sampleLimit, setSampleLimit] = useState('2000');
   const [xField, setXField] = useState('roundIndex');
@@ -433,6 +437,17 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
         return { x, y, z, row };
       })
       .filter(item => item.x !== null && item.y !== null);
+
+    if (chartType === 'none') {
+      return {
+        title: {
+          text: '当前未生成图表，请在上方选择所需的图形类型、数据轴和样式进行分析',
+          left: 'center',
+          top: 'middle',
+          textStyle: { fontSize: 14, color: '#64748b', fontWeight: 'normal' },
+        },
+      } as EChartsOption;
+    }
 
     if (!points.length) {
       return {
@@ -683,6 +698,62 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
   const previewRows = useMemo(() => sampleRows(rows, 2000), [rows]);
   const deferredPreviewRows = useDeferredValue(previewRows);
 
+  const handleExport = async () => {
+    const aoa: any[][] = [];
+
+    const headerRow1: string[] = [];
+    const headerRow2: string[] = [];
+    const merges: any[] = [];
+    let colIndex = 0;
+
+    previewColumns.forEach(col => {
+      const headerText = typeof col.header === 'string' ? col.header : String(col.id);
+
+      if (col.id === 'xField' || col.id === 'yField' || col.id === 'zField') {
+        headerRow1.push('坐标数据');
+        headerRow2.push(headerText);
+      } else if (col.accessorKey === 'roundIndex') {
+        headerRow1.push('基本信息');
+        headerRow2.push(headerText);
+      } else if (col.accessorKey === 'status') {
+        headerRow1.push('状态信息');
+        headerRow2.push(headerText);
+      } else {
+        headerRow1.push('其他');
+        headerRow2.push(headerText);
+      }
+      colIndex++;
+    });
+
+    // Merge coordinates group
+    const coordsStart = previewColumns.findIndex(
+      c => c.id === 'xField' || c.id === 'yField' || c.id === 'zField'
+    );
+    const coordsEnd = previewColumns.findLastIndex(
+      c => c.id === 'xField' || c.id === 'yField' || c.id === 'zField'
+    );
+    if (coordsStart !== -1 && coordsEnd > coordsStart) {
+      merges.push({ s: { r: 0, c: coordsStart }, e: { r: 0, c: coordsEnd } });
+    }
+
+    aoa.push(headerRow1);
+    aoa.push(headerRow2);
+
+    deferredPreviewRows.forEach(row => {
+      const rowData = previewColumns.map(col => {
+        if (col.id === 'xField') return getNumericValue(row, xField) ?? '-';
+        if (col.id === 'yField') return getNumericValue(row, yField) ?? '-';
+        if (col.id === 'zField') return getNumericValue(row, zField) ?? '-';
+        if (col.accessorKey === 'roundIndex') return row.roundIndex;
+        if (col.accessorKey === 'status') return STATUS_LABELS[row.status] || '未知';
+        return '-';
+      });
+      aoa.push(rowData);
+    });
+
+    await exportAoaToExcel(aoa, `${resolvedConditionTitle}-绘图数据预览`, merges);
+  };
+
   const narrative = useMemo(() => {
     const lines = [
       `当前以 ${currentYLabel} 作为分析目标，覆盖 ${total.toLocaleString()} 轮结果，绘图采样 ${sampledRows.length.toLocaleString()} 点。`,
@@ -810,6 +881,8 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
         </div>
       </Card>
 
+      <OverviewAnalysisReport rounds={rounds} metricLabelMap={metricLabelMap} />
+
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_380px]">
         <Card className="shadow-none">
           <div className="space-y-3">
@@ -826,7 +899,7 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-medium text-slate-900 dark:text-white">
                 <Sigma className="h-4 w-4 text-brand-500" />
-                <span>自动结果报告</span>
+                <span>图表分析结论</span>
               </div>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 <div className="rounded-2xl bg-slate-50 px-4 py-4 dark:bg-slate-900/50">
@@ -921,13 +994,23 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
               <BarChart3 className="h-4 w-4 text-brand-500" />
               <span>绘图数据预览</span>
             </div>
-            <div className="flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
               <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
                 预览行数 {deferredPreviewRows.length.toLocaleString()}
               </span>
               <span className="rounded-full bg-slate-100 px-3 py-1 dark:bg-slate-800">
                 当前图形 {CHART_OPTIONS.find(option => option.value === chartType)?.label}
               </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                className="ml-2 h-7 px-3 text-xs"
+                disabled={deferredPreviewRows.length === 0}
+              >
+                <Download className="h-3.5 w-3.5 mr-1.5" />
+                导出 Excel
+              </Button>
             </div>
           </div>
 

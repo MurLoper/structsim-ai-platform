@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { ChevronLeft, ChevronRight, Sigma } from 'lucide-react';
-import { Badge, Select } from '@/components/ui';
+import { ChevronLeft, ChevronRight, Sigma, Download } from 'lucide-react';
+import { Badge, Select, Button } from '@/components/ui';
 import { VirtualTable } from '@/components/tables/VirtualTable';
 import type { OrderConditionRoundColumn, OrderConditionSummary, RoundItem } from '@/api/results';
+import { exportAoaToExcel } from '@/utils/excel';
 
 const STATUS_MAP: Record<
   number,
@@ -229,6 +230,121 @@ export const ConditionResultTable: React.FC<ConditionResultTableProps> = ({
     `结果源 ${String(resultSource).toUpperCase()}`,
   ].filter(Boolean);
 
+  const handleExport = async () => {
+    const aoa: any[][] = [];
+    const merges: any[] = [];
+
+    // Group columns for multi-level header
+    const baseCols = tableColumns.filter(
+      c =>
+        !c.id?.startsWith('param_') &&
+        !c.id?.startsWith('output_') &&
+        c.id !== 'status' &&
+        c.id !== 'isBest'
+    );
+    const paramCols = tableColumns.filter(c => c.id?.startsWith('param_'));
+    const outputCols = tableColumns.filter(c => c.id?.startsWith('output_'));
+    const metaCols = tableColumns.filter(c => c.id === 'status' || c.id === 'isBest');
+
+    // Has multi-level headers if we have param or output cols
+    const hasGroups = paramCols.length > 0 || outputCols.length > 0;
+
+    if (hasGroups) {
+      const headerRow1: string[] = [];
+      const headerRow2: string[] = [];
+      let colIndex = 0;
+
+      // Base cols
+      baseCols.forEach(col => {
+        headerRow1.push('基本信息');
+        headerRow2.push(typeof col.header === 'string' ? col.header : String(col.id));
+        colIndex++;
+      });
+      // Merge '基本信息'
+      if (baseCols.length > 1) {
+        merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: baseCols.length - 1 } });
+      }
+
+      // Param cols
+      if (paramCols.length > 0) {
+        const startIdx = colIndex;
+        paramCols.forEach(col => {
+          headerRow1.push('参数配置 (Params)');
+          headerRow2.push(typeof col.header === 'string' ? col.header : String(col.id));
+          colIndex++;
+        });
+        if (paramCols.length > 1) {
+          merges.push({ s: { r: 0, c: startIdx }, e: { r: 0, c: colIndex - 1 } });
+        }
+      }
+
+      // Output cols
+      if (outputCols.length > 0) {
+        const startIdx = colIndex;
+        outputCols.forEach(col => {
+          headerRow1.push('输出结果 (Outputs)');
+          headerRow2.push(typeof col.header === 'string' ? col.header : String(col.id));
+          colIndex++;
+        });
+        if (outputCols.length > 1) {
+          merges.push({ s: { r: 0, c: startIdx }, e: { r: 0, c: colIndex - 1 } });
+        }
+      }
+
+      // Meta cols
+      if (metaCols.length > 0) {
+        const startIdx = colIndex;
+        metaCols.forEach(col => {
+          headerRow1.push('其他信息');
+          headerRow2.push(typeof col.header === 'string' ? col.header : String(col.id));
+          colIndex++;
+        });
+        if (metaCols.length > 1) {
+          merges.push({ s: { r: 0, c: startIdx }, e: { r: 0, c: colIndex - 1 } });
+        }
+      }
+
+      aoa.push(headerRow1);
+      aoa.push(headerRow2);
+    } else {
+      const headerRow = tableColumns.map(col =>
+        typeof col.header === 'string' ? col.header : String(col.id)
+      );
+      aoa.push(headerRow);
+    }
+
+    const orderedCols = hasGroups
+      ? [...baseCols, ...paramCols, ...outputCols, ...metaCols]
+      : tableColumns;
+
+    rounds.forEach(row => {
+      const rowData = orderedCols.map(col => {
+        if (col.id === 'roundIndex') return row.roundIndex;
+        if (col.id === 'runningModule') return row.runningModule || '-';
+        if (col.id === 'process') return `${row.progress}%`;
+        if (col.id === 'finalResult') return row.finalResult ?? '-';
+        if (col.id?.startsWith('param_')) {
+          const key = col.id.replace('param_', '');
+          return row.paramValues?.[key] ?? '-';
+        }
+        if (col.id?.startsWith('output_')) {
+          const key = col.id.replace('output_', '');
+          return row.outputResults?.[key] ?? '-';
+        }
+        if (col.id === 'status') {
+          return STATUS_MAP[row.status]?.label || '未知';
+        }
+        if (col.id === 'isBest') {
+          return bestRoundIndex === row.roundIndex ? '最优' : '';
+        }
+        return '-';
+      });
+      aoa.push(rowData);
+    });
+
+    await exportAoaToExcel(aoa, `${conditionName}-明细结果`, merges);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
@@ -245,6 +361,16 @@ export const ConditionResultTable: React.FC<ConditionResultTableProps> = ({
                 最优轮次 #{bestRoundIndex}
               </Badge>
             ) : null}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExport}
+              className="ml-2"
+              disabled={rounds.length === 0}
+            >
+              <Download className="h-4 w-4 mr-1.5" />
+              导出 Excel
+            </Button>
           </div>
           <div className="flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
             {metaItems.map(item => (

@@ -52,11 +52,13 @@ export const useSubmissionPersistence = ({
   setGlobalSolver,
   setInpSets,
   isConfigLoaded,
-}: UseSubmissionPersistenceProps): UseSubmissionPersistenceReturn => {
+  orderId: propOrderId,
+}: UseSubmissionPersistenceProps & { orderId?: number | null }): UseSubmissionPersistenceReturn => {
   const [searchParams] = useSearchParams();
 
   // 从 URL 获取申请单 ID（编辑模式）
-  const orderId = searchParams.get('orderId') ? Number(searchParams.get('orderId')) : null;
+  const urlOrderId = searchParams.get('orderId') ? Number(searchParams.get('orderId')) : null;
+  const orderId = propOrderId !== undefined ? propOrderId : urlOrderId;
   const isEditMode = orderId !== null;
 
   // 加载状态

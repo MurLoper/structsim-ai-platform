@@ -60,12 +60,18 @@ const getConditionTitle = (
   fallbackLabel?: string | null
 ) => `工况${index} / ${getBaseConditionTitle(condition, fallbackLabel)}`;
 
-const Results: React.FC = () => {
+interface ResultsProps {
+  orderId?: number;
+  onOpenEdit?: (orderId: number) => void;
+  onClose?: () => void;
+}
+
+const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onClose }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { language } = useUIStore();
   const t = useCallback((key: string) => RESOURCES[language]?.[key] || key, [language]);
-  const orderId = Number(id);
+  const orderId = propOrderId !== undefined ? propOrderId : Number(id);
   const resolvedOrderId = Number.isFinite(orderId) ? orderId : null;
   const [activeTab, setActiveTab] = useState('overview');
 
@@ -241,7 +247,14 @@ const Results: React.FC = () => {
             </div>
             <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-slate-50 p-5">
               <div className="text-sm text-slate-600">{t('res.error_desc')}</div>
-              <Button className="mt-4" variant="secondary" onClick={() => navigate('/orders')}>
+              <Button
+                className="mt-4"
+                variant="secondary"
+                onClick={() => {
+                  if (onClose) onClose();
+                  else navigate('/orders');
+                }}
+              >
                 {t('res.back_to_orders')}
               </Button>
             </div>
@@ -252,77 +265,100 @@ const Results: React.FC = () => {
   }
 
   return (
-    <div className="animate-fade-in space-y-5">
-      <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.98)_0%,rgba(239,246,255,0.95)_100%)] px-5 py-4 shadow-[0_14px_34px_-26px_rgba(15,23,42,0.32)]">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                to="/orders"
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 transition-colors hover:border-slate-300 hover:text-slate-900"
-              >
-                <ArrowLeftIcon className="h-4 w-4" />
-                {t('res.back_to_orders')}
-              </Link>
-              <Badge variant={sourceVariant} size="sm">
-                {sourceLabel}
-              </Badge>
-              <Badge variant={orderStatusMeta.variant} size="sm">
-                {orderStatusMeta.label}
-              </Badge>
-              <Badge variant="info" size="sm">
-                进度 {derivedOrderProgress}%
-              </Badge>
-            </div>
-
-            {focusedCard ? (
-              <div className="rounded-full border border-slate-200 bg-white/85 px-3 py-1.5 text-xs text-slate-600">
-                当前工况：{focusedCard.label}
-              </div>
-            ) : null}
-          </div>
-
-          <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
-            <div className="space-y-1.5">
-              <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
-                {t('res.summary.order_id')}
-              </p>
-              <h1 className="text-2xl font-semibold tracking-tight text-slate-900 lg:text-[30px]">
-                结果页 / {displayOrderId}
-              </h1>
-              <p className="max-w-3xl text-sm text-slate-600">
-                页面保留一屏概览、明细结果、数据分析三段工作流，顶部只保留必要状态，把主要可视区域让给下方
-                tab 内容。
-              </p>
-            </div>
-
-            <div className="grid gap-2 sm:grid-cols-2 xl:min-w-[560px] xl:grid-cols-4">
-              {summaryCards.map(card => (
-                <div
-                  key={card.label}
-                  className="rounded-2xl border border-slate-200/80 bg-white/85 px-3 py-3"
+    <div className="animate-fade-in space-y-4">
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.98)_0%,rgba(239,246,255,0.95)_100%)] px-4 py-2.5 shadow-sm">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {!propOrderId && (
+                <Link
+                  to="/orders"
+                  className="inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-900 transition-colors"
+                  title={t('res.back_to_orders')}
                 >
-                  <div className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-slate-500">
-                    {card.icon}
-                    <span>{card.label}</span>
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold tabular-nums text-slate-900">
-                    {card.value}
+                  <ArrowLeftIcon className="h-5 w-5" />
+                </Link>
+              )}
+
+              <div className="flex items-center gap-1.5 text-base font-semibold text-slate-900">
+                <span className="text-slate-500 font-normal">结果概览</span>
+                <span className="text-slate-300 font-normal">/</span>
+                {onOpenEdit && resolvedOrderId ? (
+                  <button
+                    onClick={() => onOpenEdit(resolvedOrderId)}
+                    className="text-brand-600 hover:text-brand-700 hover:underline transition-colors font-mono"
+                  >
+                    {displayOrderId}
+                  </button>
+                ) : (
+                  <span className="font-mono">{displayOrderId}</span>
+                )}
+              </div>
+
+              <div className="h-4 w-px bg-slate-300 hidden sm:block"></div>
+
+              <div className="flex items-center gap-1.5">
+                <Badge
+                  variant={sourceVariant}
+                  size="sm"
+                  className="px-1.5 py-0 text-[10px] h-5 leading-5 font-medium"
+                >
+                  {sourceLabel}
+                </Badge>
+                <Badge
+                  variant={orderStatusMeta.variant}
+                  size="sm"
+                  className="px-1.5 py-0 text-[10px] h-5 leading-5 font-medium"
+                >
+                  {orderStatusMeta.label}
+                </Badge>
+                <Badge
+                  variant="info"
+                  size="sm"
+                  className="px-1.5 py-0 text-[10px] h-5 leading-5 font-medium"
+                >
+                  进度 {derivedOrderProgress}%
+                </Badge>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4 sm:gap-5">
+              {summaryCards.map(card => (
+                <div key={card.label} className="flex items-center gap-1.5">
+                  <span className="text-slate-400 hidden sm:inline-flex scale-90">{card.icon}</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-xs text-slate-500">{card.label}</span>
+                    <span className="text-sm font-semibold tabular-nums text-slate-900">
+                      {card.value}
+                    </span>
                   </div>
                 </div>
               ))}
+              {focusedCard ? (
+                <>
+                  <div className="hidden sm:block h-4 w-px bg-slate-300"></div>
+                  <div
+                    className="hidden sm:block text-xs text-slate-600 truncate max-w-[200px]"
+                    title={focusedCard.label}
+                  >
+                    当前工况：{focusedCard.label}
+                  </div>
+                </>
+              ) : null}
             </div>
+          </div>
+
+          <div className="flex items-center">
+            <Tabs
+              items={tabs}
+              activeKey={activeTab}
+              onChange={setActiveTab}
+              variant="pills"
+              className="inline-flex w-auto rounded-lg border border-slate-200 bg-white shadow-sm"
+            />
           </div>
         </div>
       </section>
-
-      <Tabs
-        items={tabs}
-        activeKey={activeTab}
-        onChange={setActiveTab}
-        variant="pills"
-        className="inline-flex w-auto rounded-xl border border-slate-200 bg-white shadow-none"
-      />
 
       {resultsError && (
         <Card className="border-red-200 bg-red-50 text-red-700 shadow-none">
@@ -340,67 +376,59 @@ const Results: React.FC = () => {
 
       {activeTab === 'overview' && (
         <div className="space-y-6">
-          <section className="grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_360px]">
+          <section className="grid gap-6 xl:grid-cols-[1fr_400px]">
             <Card className="shadow-none">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-sm font-medium text-slate-900 dark:text-white">
                   <Sparkles className="h-4 w-4 text-brand-500" />
-                  <span>一屏总览</span>
+                  <span>核心指标</span>
                 </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400">
-                  第一屏只看全局：工况数量、轮次规模、订单状态和当前聚焦工况。
-                </p>
-                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  <div className="rounded-2xl bg-slate-50 px-4 py-4 dark:bg-slate-900/50">
-                    <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                      订单进度
-                    </div>
-                    <div className="mt-2 text-2xl font-semibold tabular-nums">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50/50 px-4 py-4 dark:border-slate-800 dark:bg-slate-900/50">
+                    <div className="text-xs font-medium text-slate-500">订单进度</div>
+                    <div className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
                       {derivedOrderProgress}%
                     </div>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-4 dark:bg-slate-900/50">
-                    <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                      运行轮次
-                    </div>
-                    <div className="mt-2 text-2xl font-semibold tabular-nums">
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50/50 px-4 py-4 dark:border-slate-800 dark:bg-slate-900/50">
+                    <div className="text-xs font-medium text-slate-500">运行轮次</div>
+                    <div className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
                       {overviewStats.runningRounds}
                     </div>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-4 dark:bg-slate-900/50">
-                    <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                      流程节点
-                    </div>
-                    <div className="mt-2 text-2xl font-semibold tabular-nums">
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50/50 px-4 py-4 dark:border-slate-800 dark:bg-slate-900/50">
+                    <div className="text-xs font-medium text-slate-500">流程节点</div>
+                    <div className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
                       {workflowNodes.length}
                     </div>
                   </div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-4 dark:bg-slate-900/50">
-                    <div className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                      当前工况
+                  <div className="rounded-2xl border border-slate-100 bg-slate-50/50 px-4 py-4 dark:border-slate-800 dark:bg-slate-900/50">
+                    <div className="text-xs font-medium text-slate-500">当前聚焦工况</div>
+                    <div
+                      className="mt-2 text-base font-semibold text-slate-900 dark:text-white truncate"
+                      title={focusConditionLabel}
+                    >
+                      {focusConditionLabel}
                     </div>
-                    <div className="mt-2 text-sm font-semibold">{focusConditionLabel}</div>
                   </div>
                 </div>
               </div>
             </Card>
 
-            <Card className="shadow-none">
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-sm font-medium text-slate-900 dark:text-white">
-                  <Gauge className="h-4 w-4 text-brand-500" />
-                  <span>轮次规模分布</span>
-                </div>
-                <div className="h-[280px]">
-                  <BarChart
-                    data={scaleChartData}
-                    xField="conditionName"
-                    yField="value"
-                    showLegend={false}
-                    barWidth={26}
-                    height={280}
-                  />
-                </div>
+            <Card className="shadow-none flex flex-col">
+              <div className="flex items-center gap-2 mb-4 text-sm font-medium text-slate-900 dark:text-white">
+                <Gauge className="h-4 w-4 text-brand-500" />
+                <span>轮次规模分布</span>
+              </div>
+              <div className="flex-1 min-h-[160px]">
+                <BarChart
+                  data={scaleChartData}
+                  xField="conditionName"
+                  yField="value"
+                  showLegend={false}
+                  barWidth={24}
+                  height={160}
+                />
               </div>
             </Card>
           </section>

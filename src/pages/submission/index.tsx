@@ -154,7 +154,12 @@ const estimateRoundsFromConditions = (conditions: Array<Record<string, unknown>>
   }, 0);
 };
 
-const Submission: React.FC = () => {
+export interface SubmissionProps {
+  orderId?: number;
+  onClose?: () => void;
+}
+
+const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { language } = useUIStore();
@@ -168,7 +173,8 @@ const Submission: React.FC = () => {
   const { data: configCareDevices = [] } = useCareDevices();
 
   // 编辑模式：从 URL 获取申请单 ID
-  const orderId = searchParams.get('orderId') ? Number(searchParams.get('orderId')) : null;
+  const urlOrderId = searchParams.get('orderId') ? Number(searchParams.get('orderId')) : null;
+  const orderId = propOrderId !== undefined ? propOrderId : urlOrderId;
   const isEditMode = orderId !== null;
   const hasInitializedRef = useRef(false);
   const isLoadingDraftRef = useRef(false); // 防止加载草稿期间保存空数据
@@ -830,7 +836,8 @@ const Submission: React.FC = () => {
         }
 
         queryClient.invalidateQueries({ queryKey: queryKeys.orders.list() });
-        navigate('/orders');
+        if (onClose) onClose();
+        else navigate('/orders');
       } catch (error) {
         console.error('提交订单失败:', error);
         const message = (error as { message?: string })?.message || t('sub.submit_fail');

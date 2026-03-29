@@ -14,7 +14,13 @@ import type { ColumnDef } from '@tanstack/react-table';
 import type { OrderListItem } from '@/types/order';
 import type { OrdersQueryParams } from '@/api/orders';
 
-const OrderList: React.FC = () => {
+interface OrderListProps {
+  onOpenResult?: (orderId: number) => void;
+  onOpenEdit?: (orderId: number) => void;
+  onCreate?: () => void;
+}
+
+const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreate }) => {
   const navigate = useNavigate();
   const { language } = useUIStore();
 
@@ -131,9 +137,15 @@ const OrderList: React.FC = () => {
         header: t('orders.col.id'),
         accessorKey: 'orderNo',
         cell: ({ row }) => (
-          <span className="font-mono text-xs text-slate-500 eyecare:text-muted-foreground">
+          <button
+            onClick={() => {
+              if (onOpenResult) onOpenResult(row.original.id);
+              else window.open(`/#/results/${row.original.id}`, '_blank');
+            }}
+            className="font-mono text-xs text-brand-600 hover:text-brand-700 hover:underline transition-colors text-left"
+          >
             {row.original.orderNo || row.original.id}
-          </span>
+          </button>
         ),
       },
       {
@@ -227,13 +239,16 @@ const OrderList: React.FC = () => {
           <div className="flex justify-end gap-2">
             <button
               onClick={() => navigate(`/create?orderId=${row.original.id}`)}
-              className="text-slate-600 hover:text-slate-700 dark:text-slate-400 eyecare:text-muted-foreground dark:hover:text-slate-300 font-medium text-sm flex items-center gap-1"
+              className="text-slate-600 hover:text-slate-700 dark:text-slate-400 eyecare:text-muted-foreground dark:hover:text-slate-300 font-medium text-sm flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               {t('common.edit')} <Pencil className="w-4 h-4" />
             </button>
             <button
-              onClick={() => navigate(`/results/${row.original.id}`)}
-              className="text-brand-600 hover:text-brand-700 font-medium text-sm flex items-center gap-1"
+              onClick={() => {
+                if (onOpenResult) onOpenResult(row.original.id);
+                else window.open(`/#/results/${row.original.id}`, '_blank');
+              }}
+              className="text-brand-600 hover:text-brand-700 font-medium text-sm flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-brand-50 dark:hover:bg-brand-500/10"
             >
               {t('orders.view_results')} <ArrowRight className="w-4 h-4" />
             </button>
@@ -256,7 +271,13 @@ const OrderList: React.FC = () => {
             {t('orders.subtitle')}
           </p>
         </div>
-        <Button onClick={() => navigate('/create')} icon={<Beaker className="w-5 h-5" />}>
+        <Button
+          onClick={() => {
+            if (onCreate) onCreate();
+            else navigate('/create');
+          }}
+          icon={<Beaker className="w-5 h-5" />}
+        >
           {t('orders.new_order')}
         </Button>
       </div>

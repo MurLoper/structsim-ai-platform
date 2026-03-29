@@ -3,7 +3,7 @@ import clsx from 'clsx';
 
 interface TabItem {
   key: string;
-  label: string;
+  label: React.ReactNode;
   icon?: React.ReactNode;
   disabled?: boolean;
 }

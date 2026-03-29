@@ -332,12 +332,11 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
       {/* Main Content */}
       <main
         className={clsx(
-          'flex-1 overflow-y-auto h-screen transition-all duration-300',
-          sidebarCollapsed ? 'ml-16' : 'ml-64',
-          !noContainer && 'p-8'
+          'flex-1 overflow-y-auto h-screen transition-all duration-300 relative',
+          sidebarCollapsed ? 'ml-16' : 'ml-64'
         )}
       >
-        {children}
+        <div className={clsx('h-full', !noContainer && 'p-8')}>{children}</div>
       </main>
     </div>
   );
