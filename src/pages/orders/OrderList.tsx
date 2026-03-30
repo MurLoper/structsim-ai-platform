@@ -238,7 +238,10 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
         cell: ({ row }) => (
           <div className="flex justify-end gap-2">
             <button
-              onClick={() => navigate(`/create?orderId=${row.original.id}`)}
+              onClick={() => {
+                if (onOpenEdit) onOpenEdit(row.original.id);
+                else navigate(`/create?orderId=${row.original.id}`);
+              }}
               className="text-slate-600 hover:text-slate-700 dark:text-slate-400 eyecare:text-muted-foreground dark:hover:text-slate-300 font-medium text-sm flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               {t('common.edit')} <Pencil className="w-4 h-4" />
@@ -256,7 +259,7 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
         ),
       },
     ],
-    [navigate, t, projectMap, simTypeMap, getStatusBadge]
+    [navigate, onOpenEdit, onOpenResult, t, projectMap, simTypeMap, getStatusBadge]
   );
 
   return (

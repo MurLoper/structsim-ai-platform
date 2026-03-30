@@ -719,7 +719,6 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
     async values => {
       try {
         // 提取所有选中的 simTypeId（去重）
-        const selectedSimTypeIds = [...new Set(state.selectedSimTypes.map(item => item.simTypeId))];
 
         // 构建新版 InputJson（以 conditionId 为核心的 conditions 数组）
         const conditions = state.selectedSimTypes.map(item => {
@@ -762,21 +761,6 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
           );
           return;
         }
-
-        // 兼容旧版 optParam（以 simTypeId 为 key）
-        const optParam = selectedSimTypeIds.reduce<Record<string, unknown>>((acc, simTypeId) => {
-          // 找到该 simTypeId 对应的第一个 conditionId 的配置
-          const item = state.selectedSimTypes.find(s => s.simTypeId === simTypeId);
-          const config = item ? state.simTypeConfigs[item.conditionId] : undefined;
-          if (config) {
-            acc[String(simTypeId)] = {
-              params: config.params,
-              output: config.output,
-              solver: config.solver,
-            };
-          }
-          return acc;
-        }, {});
 
         const originFile = {
           type: values.originFile.type,

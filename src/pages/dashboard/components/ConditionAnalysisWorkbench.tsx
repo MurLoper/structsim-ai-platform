@@ -1,5 +1,3 @@
-import 'echarts-gl';
-
 import React, { startTransition, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { EChartsOption } from 'echarts';
@@ -8,13 +6,14 @@ import { BaseChart } from '@/components/charts';
 import { VirtualTable } from '@/components/tables/VirtualTable';
 import { Badge, Card, Input, Select, Button } from '@/components/ui';
 import type { OrderConditionSummary, RoundItem } from '@/api/results';
-import { exportAoaToExcel } from '@/utils/excel';
+import { exportAoaToExcel, type ExcelCellValue, type ExcelMergeRange } from '@/utils/excel';
 
 import { OverviewAnalysisReport } from './OverviewAnalysisReport';
 
 type ChartType = 'none' | 'line2d' | 'scatter2d' | 'bar2d' | 'scatter3d' | 'bar3d' | 'surface3d';
 
 type StylePreset = 'ocean' | 'ember' | 'graphite';
+type ThreeDViewMode = 'perspective' | 'orthographic';
 
 interface FlatRoundRow {
   id: string;
@@ -107,6 +106,38 @@ const SAMPLE_OPTIONS = [
   { value: '5000', label: '5000 点' },
   { value: '20000', label: '20000 点' },
 ];
+
+const THREE_D_VIEW_OPTIONS = [
+  { value: 'perspective', label: '3D 透视' },
+  { value: 'orthographic', label: '正交平面' },
+] satisfies Array<{ value: ThreeDViewMode; label: string }>;
+
+type EchartsGlWindow = Window &
+  typeof globalThis & {
+    __structsimEchartsGlPromise__?: Promise<unknown>;
+    __structsimEchartsGlLoaded__?: boolean;
+  };
+
+const ensureEchartsGl = async () => {
+  const scopedWindow = window as EchartsGlWindow;
+  if (scopedWindow.__structsimEchartsGlLoaded__) {
+    return;
+  }
+
+  if (!scopedWindow.__structsimEchartsGlPromise__) {
+    scopedWindow.__structsimEchartsGlPromise__ = import('echarts-gl')
+      .then(module => {
+        scopedWindow.__structsimEchartsGlLoaded__ = true;
+        return module;
+      })
+      .catch(error => {
+        scopedWindow.__structsimEchartsGlPromise__ = undefined;
+        throw error;
+      });
+  }
+
+  await scopedWindow.__structsimEchartsGlPromise__;
+};
 
 const toNumber = (value: unknown): number | null => {
   if (typeof value === 'number') {
@@ -365,6 +396,37 @@ const buildGridBins = (
   return { xLabels, yLabels, matrix };
 };
 
+const buildGrid3DConfig = (
+  mode: ThreeDViewMode,
+  boxWidth = 110,
+  boxDepth = 90,
+  ambientIntensity = 0.3
+) => ({
+  boxWidth,
+  boxDepth,
+  light: { main: { intensity: 1.2 }, ambient: { intensity: ambientIntensity } },
+  viewControl:
+    mode === 'orthographic'
+      ? {
+          projection: 'orthographic' as const,
+          alpha: 18,
+          beta: 28,
+          distance: 180,
+          panSensitivity: 1,
+          rotateSensitivity: 1,
+          zoomSensitivity: 1,
+        }
+      : {
+          projection: 'perspective' as const,
+          alpha: 18,
+          beta: 32,
+          distance: 180,
+          panSensitivity: 1,
+          rotateSensitivity: 1,
+          zoomSensitivity: 1,
+        },
+});
+
 export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProps> = ({
   condition,
   conditionTitle,
@@ -389,6 +451,7 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
   const [yField, setYField] = useState('');
   const [zField, setZField] = useState('');
   const [chartTitle, setChartTitle] = useState('');
+  const [threeDViewMode, setThreeDViewMode] = useState<ThreeDViewMode>('perspective');
 
   useEffect(() => {
     if (!fieldOptions.length) return;
@@ -409,6 +472,36 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
     () => chartType === 'scatter3d' || chartType === 'bar3d' || chartType === 'surface3d',
     [chartType]
   );
+  const [isEchartsGlReady, setIsEchartsGlReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!is3DChart) {
+      setIsEchartsGlReady(true);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setIsEchartsGlReady(false);
+    void ensureEchartsGl()
+      .then(() => {
+        if (!cancelled) {
+          setIsEchartsGlReady(true);
+        }
+      })
+      .catch(error => {
+        console.error('echarts-gl load failed', error);
+        if (!cancelled) {
+          setIsEchartsGlReady(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [is3DChart]);
 
   const deferredRows = useDeferredValue(rows);
   const sampledRows = useMemo(
@@ -426,9 +519,20 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
   const currentYLabel = axisOptions.find(option => option.value === yField)?.label || yField;
   const currentZLabel = axisOptions.find(option => option.value === zField)?.label || zField;
   const resolvedConditionTitle = resolveConditionTitle(condition, conditionTitle);
+  const chartInstanceKey = `${chartType}-${is3DChart ? threeDViewMode : '2d'}-${isEchartsGlReady ? 'ready' : 'loading'}`;
 
   const chartOption = useMemo<EChartsOption>(() => {
     const title = chartTitle.trim() || `${currentYLabel} 分析`;
+    if (is3DChart && !isEchartsGlReady) {
+      return {
+        title: {
+          text: '3D 图形组件加载中...',
+          left: 'center',
+          top: 'middle',
+          textStyle: { fontSize: 14, color: '#64748b', fontWeight: 'normal' },
+        },
+      } as EChartsOption;
+    }
     const points = sampledRows
       .map(row => {
         const x = getNumericValue(row, xField);
@@ -553,12 +657,7 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
         xAxis3D: { type: 'value', name: currentXLabel },
         yAxis3D: { type: 'value', name: currentYLabel },
         zAxis3D: { type: 'value', name: currentZLabel },
-        grid3D: {
-          boxWidth: 120,
-          boxDepth: 80,
-          light: { main: { intensity: 1.1 }, ambient: { intensity: 0.35 } },
-          viewControl: { projection: 'perspective' },
-        },
+        grid3D: buildGrid3DConfig(threeDViewMode, 120, 80, 0.35),
         visualMap: {
           min: Math.min(...threeDPoints.map(item => item.z), 0),
           max: Math.max(...threeDPoints.map(item => item.z), 1),
@@ -588,12 +687,7 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
         xAxis3D: { type: 'category', name: currentXLabel, data: gridBins.xLabels },
         yAxis3D: { type: 'category', name: currentYLabel, data: gridBins.yLabels },
         zAxis3D: { type: 'value', name: currentZLabel },
-        grid3D: {
-          boxWidth: 110,
-          boxDepth: 90,
-          light: { main: { intensity: 1.2 }, ambient: { intensity: 0.3 } },
-          viewControl: { projection: 'perspective' },
-        },
+        grid3D: buildGrid3DConfig(threeDViewMode, 110, 90, 0.3),
         visualMap: {
           max: Math.max(...gridBins.matrix.map(item => item[2]), 1),
           calculable: true,
@@ -618,12 +712,7 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
       xAxis3D: { type: 'category', name: currentXLabel, data: gridBins.xLabels },
       yAxis3D: { type: 'category', name: currentYLabel, data: gridBins.yLabels },
       zAxis3D: { type: 'value', name: currentZLabel },
-      grid3D: {
-        boxWidth: 110,
-        boxDepth: 90,
-        light: { main: { intensity: 1.2 }, ambient: { intensity: 0.28 } },
-        viewControl: { projection: 'perspective' },
-      },
+      grid3D: buildGrid3DConfig(threeDViewMode, 110, 90, 0.28),
       visualMap: {
         max: Math.max(...gridBins.matrix.map(item => item[2]), 1),
         calculable: true,
@@ -649,11 +738,28 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
     currentYLabel,
     currentZLabel,
     is3DChart,
+    isEchartsGlReady,
     sampledRows,
+    threeDViewMode,
     xField,
     yField,
     zField,
   ]);
+
+  const effectiveChartOption = useMemo<EChartsOption>(() => {
+    if (!is3DChart || isEchartsGlReady) {
+      return chartOption;
+    }
+
+    return {
+      title: {
+        text: '3D 图形组件加载中...',
+        left: 'center',
+        top: 'middle',
+        textStyle: { fontSize: 14, color: '#64748b', fontWeight: 'normal' },
+      },
+    } as EChartsOption;
+  }, [chartOption, is3DChart, isEchartsGlReady]);
 
   const previewColumns = useMemo<ColumnDef<FlatRoundRow>[]>(() => {
     const columns: ColumnDef<FlatRoundRow>[] = [
@@ -697,41 +803,44 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
 
   const previewRows = useMemo(() => sampleRows(rows, 2000), [rows]);
   const deferredPreviewRows = useDeferredValue(previewRows);
+  const previewExportColumns = useMemo(
+    () => [
+      { id: 'roundIndex', header: '轮次', group: 'basic' as const },
+      { id: 'xField', header: currentXLabel, group: 'coords' as const },
+      { id: 'yField', header: currentYLabel, group: 'coords' as const },
+      ...(is3DChart ? [{ id: 'zField', header: currentZLabel, group: 'coords' as const }] : []),
+      { id: 'status', header: '状态', group: 'meta' as const },
+    ],
+    [currentXLabel, currentYLabel, currentZLabel, is3DChart]
+  );
 
   const handleExport = async () => {
-    const aoa: any[][] = [];
+    const aoa: ExcelCellValue[][] = [];
 
     const headerRow1: string[] = [];
     const headerRow2: string[] = [];
-    const merges: any[] = [];
-    let colIndex = 0;
+    const merges: ExcelMergeRange[] = [];
 
-    previewColumns.forEach(col => {
-      const headerText = typeof col.header === 'string' ? col.header : String(col.id);
-
-      if (col.id === 'xField' || col.id === 'yField' || col.id === 'zField') {
+    previewExportColumns.forEach(col => {
+      if (col.group === 'coords') {
         headerRow1.push('坐标数据');
-        headerRow2.push(headerText);
-      } else if (col.accessorKey === 'roundIndex') {
+      } else if (col.group === 'basic') {
         headerRow1.push('基本信息');
-        headerRow2.push(headerText);
-      } else if (col.accessorKey === 'status') {
-        headerRow1.push('状态信息');
-        headerRow2.push(headerText);
       } else {
-        headerRow1.push('其他');
-        headerRow2.push(headerText);
+        headerRow1.push('状态信息');
       }
-      colIndex++;
+      headerRow2.push(col.header);
     });
 
     // Merge coordinates group
-    const coordsStart = previewColumns.findIndex(
-      c => c.id === 'xField' || c.id === 'yField' || c.id === 'zField'
-    );
-    const coordsEnd = previewColumns.findLastIndex(
-      c => c.id === 'xField' || c.id === 'yField' || c.id === 'zField'
-    );
+    const coordsStart = previewExportColumns.findIndex(col => col.group === 'coords');
+    let coordsEnd = -1;
+    for (let index = previewExportColumns.length - 1; index >= 0; index -= 1) {
+      if (previewExportColumns[index].group === 'coords') {
+        coordsEnd = index;
+        break;
+      }
+    }
     if (coordsStart !== -1 && coordsEnd > coordsStart) {
       merges.push({ s: { r: 0, c: coordsStart }, e: { r: 0, c: coordsEnd } });
     }
@@ -740,12 +849,12 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
     aoa.push(headerRow2);
 
     deferredPreviewRows.forEach(row => {
-      const rowData = previewColumns.map(col => {
+      const rowData = previewExportColumns.map(col => {
         if (col.id === 'xField') return getNumericValue(row, xField) ?? '-';
         if (col.id === 'yField') return getNumericValue(row, yField) ?? '-';
         if (col.id === 'zField') return getNumericValue(row, zField) ?? '-';
-        if (col.accessorKey === 'roundIndex') return row.roundIndex;
-        if (col.accessorKey === 'status') return STATUS_LABELS[row.status] || '未知';
+        if (col.id === 'roundIndex') return row.roundIndex;
+        if (col.id === 'status') return STATUS_LABELS[row.status] || '未知';
         return '-';
       });
       aoa.push(rowData);
@@ -825,7 +934,7 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
 
           <div
             className={`grid gap-4 md:grid-cols-2 ${
-              is3DChart ? 'xl:grid-cols-6' : 'xl:grid-cols-5'
+              is3DChart ? 'xl:grid-cols-7' : 'xl:grid-cols-5'
             }`}
           >
             <Select
@@ -854,6 +963,16 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
                 value={zField}
                 options={axisOptions}
                 onChange={event => startTransition(() => setZField(event.target.value))}
+              />
+            ) : null}
+            {is3DChart ? (
+              <Select
+                label="视图"
+                value={threeDViewMode}
+                options={THREE_D_VIEW_OPTIONS}
+                onChange={event =>
+                  startTransition(() => setThreeDViewMode(event.target.value as ThreeDViewMode))
+                }
               />
             ) : null}
             <Select
@@ -890,7 +1009,13 @@ export const ConditionAnalysisWorkbench: React.FC<ConditionAnalysisWorkbenchProp
               <ChartColumnBig className="h-4 w-4 text-brand-500" />
               <span>自定义图形</span>
             </div>
-            <BaseChart option={chartOption} height={520} loading={loading} largeData />
+            <BaseChart
+              key={chartInstanceKey}
+              option={effectiveChartOption}
+              height={520}
+              loading={loading || (is3DChart && !isEchartsGlReady)}
+              largeData
+            />
           </div>
         </Card>
 

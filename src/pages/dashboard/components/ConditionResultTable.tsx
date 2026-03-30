@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Sigma, Download } from 'lucide-react';
 import { Badge, Select, Button } from '@/components/ui';
 import { VirtualTable } from '@/components/tables/VirtualTable';
 import type { OrderConditionRoundColumn, OrderConditionSummary, RoundItem } from '@/api/results';
-import { exportAoaToExcel } from '@/utils/excel';
+import { exportAoaToExcel, type ExcelCellValue, type ExcelMergeRange } from '@/utils/excel';
 
 const STATUS_MAP: Record<
   number,
@@ -231,8 +231,8 @@ export const ConditionResultTable: React.FC<ConditionResultTableProps> = ({
   ].filter(Boolean);
 
   const handleExport = async () => {
-    const aoa: any[][] = [];
-    const merges: any[] = [];
+    const aoa: ExcelCellValue[][] = [];
+    const merges: ExcelMergeRange[] = [];
 
     // Group columns for multi-level header
     const baseCols = tableColumns.filter(

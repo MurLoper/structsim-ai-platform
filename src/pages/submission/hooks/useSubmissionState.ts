@@ -212,8 +212,6 @@ export const useSubmissionState = (
     simTypes.length,
   ]);
 
-  const foldTypesWithSimTypes = conditionTree;
-
   // 当前选中姿态的仿真类型（支持多姿态，含 conditionId）
   const safeSimTypes = useMemo(() => {
     if (foldTypeIds.length === 0) return [];
@@ -233,7 +231,7 @@ export const useSubmissionState = (
       }
     });
     return allSimTypes;
-  }, [foldTypeIds, conditionTree, simTypes]);
+  }, [foldTypeIds, conditionTree]);
 
   const safeFoldTypes = useMemo(() => foldTypes || [], [foldTypes]);
   const safeSolvers = useMemo(() => solvers || [], [solvers]);

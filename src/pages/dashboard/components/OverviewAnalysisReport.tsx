@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Card, Badge, Button } from '@/components/ui';
+import { Card, Badge } from '@/components/ui';
 import {
   Sigma,
   ChevronDown,
@@ -10,16 +10,17 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import type { RoundItem } from '@/api/results';
-import { clsx } from 'clsx';
 
 interface Props {
   rounds: RoundItem[];
   metricLabelMap: Map<string, string>;
 }
 
-const formatNumber = (val: any) => {
+const formatNumber = (val: unknown) => {
   if (typeof val === 'number') return Number.isFinite(val) ? val.toFixed(4) : '--';
-  return val ?? '--';
+  if (typeof val === 'string') return val;
+  if (val === null || val === undefined) return '--';
+  return String(val);
 };
 
 export const OverviewAnalysisReport: React.FC<Props> = ({ rounds, metricLabelMap }) => {

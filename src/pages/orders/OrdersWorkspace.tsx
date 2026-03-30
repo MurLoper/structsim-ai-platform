@@ -1,5 +1,4 @@
-import React, { useState, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState } from 'react';
 import { Tabs } from '@/components/ui';
 import { FileText, Boxes, PlusSquare } from 'lucide-react';
 import OrderList from './OrderList';
@@ -18,8 +17,6 @@ interface TabItem {
 
 const OrdersWorkspace: React.FC = () => {
   const { language } = useUIStore();
-  const [searchParams] = useSearchParams();
-  const initialOrderId = searchParams.get('orderId') ? Number(searchParams.get('orderId')) : null;
 
   const [tabs, setTabs] = useState<TabItem[]>([
     {
@@ -88,43 +85,48 @@ const OrdersWorkspace: React.FC = () => {
     });
   };
 
-  const tabItems = useMemo(() => {
-    return tabs.map(tab => ({
-      key: tab.key,
-      label: (
-        <div className="flex items-center gap-2 group">
-          {tab.icon}
-          <span>{tab.label}</span>
-          {tab.key !== 'list' && (
-            <button
-              onClick={e => {
+  const tabItems = tabs.map(tab => ({
+    key: tab.key,
+    label: (
+      <div className="flex items-center gap-2 group">
+        {tab.icon}
+        <span>{tab.label}</span>
+        {tab.key !== 'list' && (
+          <span
+            role="button"
+            tabIndex={0}
+            onClick={e => {
+              e.stopPropagation();
+              removeTab(tab.key);
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
                 e.stopPropagation();
                 removeTab(tab.key);
-              }}
-              className="opacity-0 group-hover:opacity-100 ml-1 rounded-full p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-all"
+              }
+            }}
+            className="opacity-0 group-hover:opacity-100 ml-1 rounded-full p-0.5 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-all"
+          >
+            <svg
+              className="w-3 h-3"
+              viewBox="0 0 14 14"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
             >
-              <svg
-                className="w-3 h-3"
-                viewBox="0 0 14 14"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M1 1L13 13M1 13L13 1L1 13Z"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
-          )}
-        </div>
-      ),
-    }));
-  }, [tabs]);
-
-  const activeTab = tabs.find(t => t.key === activeKey);
+              <path
+                d="M1 1L13 13M1 13L13 1L1 13Z"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </span>
+        )}
+      </div>
+    ),
+  }));
 
   return (
     <div className="flex flex-col h-full animate-fade-in bg-slate-50 dark:bg-slate-950 eyecare:bg-background">
