@@ -3,112 +3,29 @@ import { useQuery } from '@tanstack/react-query';
 import { useOutputDefs, useParamDefs } from '@/features/config/queries';
 import { ordersApi, resultsApi } from '@/api';
 import { queryKeys } from '@/lib/queryClient';
-import { PAGINATION, RESULTS_CHART_MAX_POINTS, RESULTS_PAGE_SIZE } from '@/constants';
+import { PAGINATION, RESULTS_PAGE_SIZE } from '@/constants';
+import type { OrderConditionSummary } from '@/api/results';
+import {
+  RESULTS_ANALYSIS_PAGE_SIZE,
+  buildAvgByCondition,
+  buildConditionLabel,
+  buildConditionResults,
+  buildFocusedConditionResults,
+  buildMetricLabelMap,
+  buildOverviewStats,
+  buildResultRecords,
+  buildTrendData,
+  buildWorkflowNodesFromRounds,
+  filterResultRecords,
+  mapMockRoundToLegacyRound,
+  sampleChartResults,
+} from './resultsDataUtils';
 import type {
-  ModuleDetail,
-  OrderConditionRoundColumn,
-  OrderConditionRoundsResponse,
-  OrderConditionSummary,
-  RoundItem,
-  SimTypeResult as ConditionResultSummary,
-} from '@/api/results';
-import type { WorkflowNode } from '../components/ProcessFlowView';
-
-export interface ResultRecord {
-  iteration: number;
-  conditionId: number;
-  metricKey: string;
-  value: number;
-  conditionName: string;
-}
-
-interface ConditionRoundsGroup {
-  conditionId: number;
-  rounds: RoundItem[];
-  orderCondition: OrderConditionSummary;
-  resultSource: string;
-  columns: OrderConditionRoundColumn[];
-  statistics?: OrderConditionRoundsResponse['statistics'];
-  page: number;
-  pageSize: number;
-  total: number;
-  totalPages: number;
-}
-
-interface FullConditionRoundsGroup extends ConditionRoundsGroup {
-  sampled: boolean;
-}
-
-interface ConditionRoundPagingState {
-  page: number;
-  pageSize: number;
-}
-
-interface ResultsOverviewStats {
-  conditionCount: number;
-  totalRounds: number;
-  completedRounds: number;
-  failedRounds: number;
-  runningRounds: number;
-  resultSource: string;
-  runningModules: string[];
-}
-
-const RESULTS_ANALYSIS_PAGE_SIZE = 20000;
-
-const buildConditionLabel = (condition: OrderConditionSummary) => {
-  const fold = condition.foldTypeName || `工况类型-${condition.foldTypeId ?? '-'}`;
-  const sim = condition.simTypeName || `仿真类型-${condition.simTypeId}`;
-  return `${fold} / ${sim}`;
-};
-
-const buildModuleProgress = (moduleDetails?: ModuleDetail[]) => {
-  if (!moduleDetails?.length) return null;
-  return moduleDetails.reduce<Record<string, number>>((acc, item, index) => {
-    acc[item.moduleCode || `node_${index + 1}`] = Number(item.progress ?? 0);
-    return acc;
-  }, {});
-};
-
-const mapMockRoundToLegacyRound = (
-  conditionId: number,
-  item: OrderConditionRoundsResponse['items'][number]
-): RoundItem => ({
-  id: item.id,
-  simTypeResultId: conditionId,
-  roundIndex: item.roundIndex,
-  status: item.status,
-  progress: Math.round(Number(item.process ?? 0)),
-  paramValues: item.params ?? null,
-  outputResults: item.outputs ?? null,
-  errorMsg: item.status === 3 ? 'mock 轮次执行失败' : undefined,
-  runningModule: item.runningModule,
-  finalResult: item.finalResult ?? null,
-  moduleDetails: item.moduleDetails,
-  flowNodeProgress: buildModuleProgress(item.moduleDetails),
-});
-
-const buildWorkflowNodesFromRounds = (groups: ConditionRoundsGroup[]): WorkflowNode[] => {
-  const seen = new Set<string>();
-  const nodes: WorkflowNode[] = [];
-
-  groups.forEach(group => {
-    group.rounds.forEach(round => {
-      round.moduleDetails?.forEach(detail => {
-        const nodeId = detail.moduleCode || detail.moduleName;
-        if (!nodeId || seen.has(nodeId)) return;
-        seen.add(nodeId);
-        nodes.push({
-          id: nodeId,
-          moduleId: nodes.length + 1,
-          name: detail.moduleName || detail.moduleCode,
-        });
-      });
-    });
-  });
-
-  return nodes;
-};
+  ConditionRoundPagingState,
+  ConditionRoundsGroup,
+  FullConditionRoundsGroup,
+  ResultRecord,
+} from './resultsDataUtils';
 
 export const useResultsData = (
   orderId: number | null,
@@ -285,7 +202,7 @@ export const useResultsData = (
           pageSize: response.data?.pageSize || paging.pageSize,
           total: response.data?.total || 0,
           totalPages: response.data?.totalPages || 0,
-        } as ConditionRoundsGroup,
+        } satisfies ConditionRoundsGroup,
       ];
     },
     enabled: !!resolvedOrderId && !!focusedCondition && shouldFetchDetailRounds,
@@ -336,36 +253,10 @@ export const useResultsData = (
     staleTime: 30 * 1000,
   });
 
-  const metricLabelMap = useMemo(() => {
-    const map = new Map<string, string>();
-
-    conditionRoundGroups.forEach(({ rounds }) => {
-      rounds.forEach(round => {
-        Object.keys(round.outputResults || {}).forEach(key => {
-          if (!map.has(key)) {
-            map.set(key, key);
-          }
-        });
-      });
-    });
-
-    focusedConditionAnalysis?.rounds.forEach(round => {
-      Object.keys(round.outputResults || {}).forEach(key => {
-        if (!map.has(key)) {
-          map.set(key, key);
-        }
-      });
-    });
-
-    outputDefs.forEach(def => {
-      const key = String(def.id);
-      if (!map.has(key)) {
-        map.set(key, def.name);
-      }
-    });
-
-    return map;
-  }, [conditionRoundGroups, focusedConditionAnalysis, outputDefs]);
+  const metricLabelMap = useMemo(
+    () => buildMetricLabelMap(conditionRoundGroups, focusedConditionAnalysis, outputDefs),
+    [conditionRoundGroups, focusedConditionAnalysis, outputDefs]
+  );
 
   const metricOptions = useMemo(
     () =>
@@ -383,171 +274,48 @@ export const useResultsData = (
     }
   }, [metric, metricLabelMap, metricOptions]);
 
-  const conditionResults = useMemo<ConditionResultSummary[]>(() => {
-    const groupConditionMap = new Map(
-      conditionRoundGroups.map(group => [group.orderCondition.id, group.orderCondition])
-    );
+  const conditionResults = useMemo(
+    () => buildConditionResults(orderConditions, conditionRoundGroups),
+    [orderConditions, conditionRoundGroups]
+  );
 
-    return orderConditions.map(condition => {
-      const resolvedCondition = groupConditionMap.get(condition.id) || condition;
-      const statistics = resolvedCondition.statistics as
-        | {
-            totalRounds?: number;
-            completedRounds?: number;
-            failedRounds?: number;
-          }
-        | undefined;
+  const overviewStats = useMemo(() => buildOverviewStats(orderConditions), [orderConditions]);
 
-      return {
-        id: resolvedCondition.id,
-        orderId: resolvedCondition.orderId,
-        simTypeId: resolvedCondition.id,
-        simTypeName: buildConditionLabel(resolvedCondition),
-        status: resolvedCondition.status,
-        progress: Math.round(Number(resolvedCondition.process ?? 0)),
-        totalRounds: Number(statistics?.totalRounds ?? resolvedCondition.roundTotal ?? 0),
-        completedRounds: Number(statistics?.completedRounds ?? 0),
-        failedRounds: Number(statistics?.failedRounds ?? 0),
-        bestRoundIndex: null,
-        createdAt: resolvedCondition.createdAt,
-        updatedAt: resolvedCondition.updatedAt,
-      };
-    });
-  }, [orderConditions, conditionRoundGroups]);
+  const results = useMemo(
+    () => buildResultRecords(metric, conditionRoundGroups),
+    [metric, conditionRoundGroups]
+  );
 
-  const overviewStats = useMemo<ResultsOverviewStats>(() => {
-    const runningModuleSet = new Set<string>();
-    const stats = orderConditions.reduce<ResultsOverviewStats>(
-      (acc, condition) => {
-        const summary = (condition.statistics as
-          | {
-              totalRounds?: number;
-              completedRounds?: number;
-              failedRounds?: number;
-              runningRounds?: number;
-            }
-          | undefined) || { totalRounds: condition.roundTotal };
+  const filteredResults = useMemo(
+    () =>
+      filterResultRecords(
+        results,
+        metric,
+        selectedConditionIds,
+        minValue,
+        maxValue,
+        minIteration,
+        maxIteration
+      ),
+    [results, metric, selectedConditionIds, minValue, maxValue, minIteration, maxIteration]
+  );
 
-        acc.totalRounds += Number(summary.totalRounds ?? condition.roundTotal ?? 0);
-        acc.completedRounds += Number(summary.completedRounds ?? 0);
-        acc.failedRounds += Number(summary.failedRounds ?? 0);
-        acc.runningRounds += Number(summary.runningRounds ?? 0);
-        if (condition.status === 1 && condition.runningModule) {
-          runningModuleSet.add(condition.runningModule);
-        }
-        return acc;
-      },
-      {
-        conditionCount: orderConditions.length,
-        totalRounds: 0,
-        completedRounds: 0,
-        failedRounds: 0,
-        runningRounds: 0,
-        resultSource: 'mock',
-        runningModules: [],
-      }
-    );
-
-    return {
-      ...stats,
-      runningModules: Array.from(runningModuleSet),
-    };
-  }, [orderConditions]);
-
-  const results = useMemo(() => {
-    if (!metric || conditionRoundGroups.length === 0) return [] as ResultRecord[];
-
-    return conditionRoundGroups.flatMap(({ conditionId, rounds, orderCondition }) =>
-      rounds
-        .map(round => {
-          const outputs = round.outputResults || {};
-          const rawValue = outputs[metric];
-          if (rawValue === undefined || rawValue === null) return null;
-          const value = typeof rawValue === 'number' ? rawValue : Number(rawValue);
-          if (!Number.isFinite(value)) return null;
-          return {
-            iteration: round.roundIndex,
-            conditionId,
-            metricKey: metric,
-            value,
-            conditionName: buildConditionLabel(orderCondition),
-          } as ResultRecord;
-        })
-        .filter((item): item is ResultRecord => Boolean(item))
-    );
-  }, [metric, conditionRoundGroups]);
-
-  const filteredResults = useMemo(() => {
-    const minVal = minValue ? Number(minValue) : Number.NEGATIVE_INFINITY;
-    const maxVal = maxValue ? Number(maxValue) : Number.POSITIVE_INFINITY;
-    const minIter = minIteration ? Number(minIteration) : Number.NEGATIVE_INFINITY;
-    const maxIter = maxIteration ? Number(maxIteration) : Number.POSITIVE_INFINITY;
-    const conditionSet = new Set(selectedConditionIds);
-
-    return results.filter(record => {
-      if (metric && record.metricKey !== metric) return false;
-      if (conditionSet.size > 0 && !conditionSet.has(record.conditionId)) return false;
-      if (record.value < minVal || record.value > maxVal) return false;
-      if (record.iteration < minIter || record.iteration > maxIter) return false;
-      return true;
-    });
-  }, [results, metric, selectedConditionIds, minValue, maxValue, minIteration, maxIteration]);
-
-  const chartResults = useMemo(() => {
-    if (filteredResults.length <= RESULTS_CHART_MAX_POINTS) {
-      return filteredResults;
-    }
-    const step = Math.ceil(filteredResults.length / RESULTS_CHART_MAX_POINTS);
-    return filteredResults.filter((_, index) => index % step === 0);
-  }, [filteredResults]);
+  const chartResults = useMemo(() => sampleChartResults(filteredResults), [filteredResults]);
 
   const trendData = useMemo(
-    () =>
-      chartResults.map(record => ({
-        iteration: record.iteration,
-        conditionName: conditionLabelMap.get(record.conditionId) || String(record.conditionId),
-        value: record.value,
-      })),
+    () => buildTrendData(chartResults, conditionLabelMap),
     [chartResults, conditionLabelMap]
   );
 
-  const avgByCondition = useMemo(() => {
-    const map = new Map<number, { total: number; count: number }>();
-    filteredResults.forEach(record => {
-      const current = map.get(record.conditionId) || { total: 0, count: 0 };
-      map.set(record.conditionId, {
-        total: current.total + record.value,
-        count: current.count + 1,
-      });
-    });
-    return Array.from(map.entries()).map(([conditionId, stats]) => ({
-      conditionName: conditionLabelMap.get(conditionId) || String(conditionId),
-      value: stats.count ? Math.round((stats.total / stats.count) * 100) / 100 : 0,
-    }));
-  }, [filteredResults, conditionLabelMap]);
+  const avgByCondition = useMemo(
+    () => buildAvgByCondition(filteredResults, conditionLabelMap),
+    [filteredResults, conditionLabelMap]
+  );
 
-  const focusedConditionResults = useMemo<ResultRecord[]>(() => {
-    if (!metric || !focusedConditionAnalysis) return [];
-    const condition = focusedConditionAnalysis.orderCondition;
-    const conditionName = buildConditionLabel(condition);
-
-    return focusedConditionAnalysis.rounds
-      .map(round => {
-        const outputs = round.outputResults || {};
-        const rawValue = outputs[metric];
-        if (rawValue === undefined || rawValue === null) return null;
-        const value = typeof rawValue === 'number' ? rawValue : Number(rawValue);
-        if (!Number.isFinite(value)) return null;
-        return {
-          iteration: round.roundIndex,
-          conditionId: focusedConditionAnalysis.conditionId,
-          metricKey: metric,
-          value,
-          conditionName,
-        } as ResultRecord;
-      })
-      .filter((item): item is ResultRecord => Boolean(item));
-  }, [focusedConditionAnalysis, metric]);
+  const focusedConditionResults = useMemo<ResultRecord[]>(
+    () => buildFocusedConditionResults(metric, focusedConditionAnalysis),
+    [focusedConditionAnalysis, metric]
+  );
 
   const toggleCondition = (value: number) => {
     setSelectedConditionIds(prev =>

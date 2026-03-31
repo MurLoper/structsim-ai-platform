@@ -1,33 +1,19 @@
-import React, { useState, useMemo } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link, Plus, Pencil, Trash2, X, Star } from 'lucide-react';
-import { Card, CardHeader, Button } from '@/components/ui';
+import React, { useMemo, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, Pencil, Plus, Star, Trash2 } from 'lucide-react';
+import { Button, Card, CardHeader } from '@/components/ui';
 import { configApi } from '@/api';
-import { useToast, useConfirmDialog } from '@/hooks';
+import { useConfirmDialog, useToast } from '@/hooks';
 import { queryKeys } from '@/lib/queryClient';
 import type { ConditionConfig } from '@/types';
-import type { ParamGroup, OutputGroup } from '@/types/configGroups';
-
-interface ConditionFormData {
-  name: string;
-  code: string;
-  foldTypeId: number | null;
-  simTypeId: number | null;
-  paramGroupIds: number[];
-  outputGroupIds: number[];
-  defaultParamGroupId: number | null;
-  defaultOutputGroupId: number | null;
-  defaultSolverId: number | null;
-  sort: number;
-  remark: string;
-}
+import type { OutputGroup, ParamGroup } from '@/types/configGroups';
+import { ConditionFormData, ConditionFormModal } from './conditions/ConditionFormModal';
 
 export const ConditionConfigManagement: React.FC = () => {
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
 
-  // 弹窗状态
   const [showModal, setShowModal] = useState(false);
   const [editingConfig, setEditingConfig] = useState<ConditionConfig | null>(null);
   const [formData, setFormData] = useState<ConditionFormData>({
@@ -44,78 +30,80 @@ export const ConditionConfigManagement: React.FC = () => {
     remark: '',
   });
 
-  // 获取基础数据
   const { data: foldTypes = [] } = useQuery({
     queryKey: ['foldTypes'],
-    queryFn: () => configApi.getFoldTypes().then(r => r.data),
+    queryFn: () => configApi.getFoldTypes().then(response => response.data),
   });
 
   const { data: simTypes = [] } = useQuery({
     queryKey: ['simTypes'],
-    queryFn: () => configApi.getSimTypes().then(r => r.data),
+    queryFn: () => configApi.getSimTypes().then(response => response.data),
   });
 
   const { data: conditionConfigs = [] } = useQuery({
     queryKey: queryKeys.conditionConfigs.list(),
-    queryFn: () => configApi.getConditionConfigs().then(r => r.data),
+    queryFn: () => configApi.getConditionConfigs().then(response => response.data),
   });
 
   const { data: paramGroups = [] } = useQuery<ParamGroup[]>({
     queryKey: ['paramGroups'],
     queryFn: async (): Promise<ParamGroup[]> => {
-      const r = await configApi.getParamGroups();
-      return (r.data || []) as ParamGroup[];
+      const response = await configApi.getParamGroups();
+      return (response.data || []) as ParamGroup[];
     },
   });
 
   const { data: outputGroups = [] } = useQuery<OutputGroup[]>({
     queryKey: ['outputGroups'],
     queryFn: async (): Promise<OutputGroup[]> => {
-      const r = await configApi.getOutputGroups();
-      return (r.data || []) as OutputGroup[];
+      const response = await configApi.getOutputGroups();
+      return (response.data || []) as OutputGroup[];
     },
   });
 
   const { data: solvers = [] } = useQuery({
     queryKey: ['solvers'],
-    queryFn: () => configApi.getSolvers().then(r => r.data),
+    queryFn: () => configApi.getSolvers().then(response => response.data),
   });
 
-  // 按姿态分组的工况配置
   const groupedByFoldType = useMemo(() => {
     const grouped: Record<number, ConditionConfig[]> = {};
-    foldTypes.forEach(ft => {
-      grouped[ft.id] = conditionConfigs.filter(c => c.foldTypeId === ft.id);
+    foldTypes.forEach(foldType => {
+      grouped[foldType.id] = conditionConfigs.filter(config => config.foldTypeId === foldType.id);
     });
     return grouped;
-  }, [foldTypes, conditionConfigs]);
+  }, [conditionConfigs, foldTypes]);
 
-  // 获取名称的辅助函数
-  const getFoldTypeName = (id: number) => foldTypes.find(f => f.id === id)?.name || '-';
-  const getSimTypeName = (id: number) => simTypes.find(s => s.id === id)?.name || '-';
-  const getSolverName = (id: number) => solvers.find(s => s.id === id)?.name || '-';
+  const getFoldTypeName = (id: number) => foldTypes.find(item => item.id === id)?.name || '-';
+  const getSimTypeName = (id: number) => simTypes.find(item => item.id === id)?.name || '-';
+  const getSolverName = (id: number) => solvers.find(item => item.id === id)?.name || '-';
   const getParamGroupName = (id: number) =>
-    paramGroups.find((p: ParamGroup) => p.id === id)?.name || '-';
+    paramGroups.find((item: ParamGroup) => item.id === id)?.name || '-';
   const getOutputGroupName = (id: number) =>
-    outputGroups.find((o: OutputGroup) => o.id === id)?.name || '-';
+    outputGroups.find((item: OutputGroup) => item.id === id)?.name || '-';
 
-  // 检查姿态+仿真类型组合是否已存在
   const isDuplicateCombo = (foldTypeId: number | null, simTypeId: number | null) => {
     if (!foldTypeId || !simTypeId) return false;
     return conditionConfigs.some(
-      c => c.foldTypeId === foldTypeId && c.simTypeId === simTypeId && c.id !== editingConfig?.id
+      config =>
+        config.foldTypeId === foldTypeId &&
+        config.simTypeId === simTypeId &&
+        config.id !== editingConfig?.id
     );
   };
 
-  // 自动生成工况名称
   const autoGenerateName = (foldId: number | null, simId: number | null) => {
     if (!foldId || !simId) return '';
-    const fName = foldTypes.find(f => f.id === foldId)?.name || '';
-    const sName = simTypes.find(s => s.id === simId)?.name || '';
-    return fName && sName ? `${fName}-${sName}` : '';
+    const foldName = foldTypes.find(item => item.id === foldId)?.name || '';
+    const simName = simTypes.find(item => item.id === simId)?.name || '';
+    return foldName && simName ? `${foldName}-${simName}` : '';
   };
 
-  // Mutations
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setEditingConfig(null);
+  };
+
   const createMutation = useMutation({
     mutationFn: (data: Partial<ConditionConfig>) => configApi.createConditionConfig(data),
     onSuccess: () => {
@@ -123,9 +111,9 @@ export const ConditionConfigManagement: React.FC = () => {
       showToast('success', '创建成功');
       handleCloseModal();
     },
-    onError: (err: unknown) => {
-      const msg = (err as { message?: string })?.message || '创建失败';
-      showToast('error', msg);
+    onError: (error: unknown) => {
+      const message = (error as { message?: string })?.message || '创建失败';
+      showToast('error', message);
     },
   });
 
@@ -137,9 +125,9 @@ export const ConditionConfigManagement: React.FC = () => {
       showToast('success', '更新成功');
       handleCloseModal();
     },
-    onError: (err: unknown) => {
-      const msg = (err as { message?: string })?.message || '更新失败';
-      showToast('error', msg);
+    onError: (error: unknown) => {
+      const message = (error as { message?: string })?.message || '更新失败';
+      showToast('error', message);
     },
   });
 
@@ -149,18 +137,16 @@ export const ConditionConfigManagement: React.FC = () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.conditionConfigs.all });
       showToast('success', '删除成功');
     },
-    onError: (err: unknown) => {
-      const msg = (err as { message?: string })?.message || '删除失败';
-      showToast('error', msg);
+    onError: (error: unknown) => {
+      const message = (error as { message?: string })?.message || '删除失败';
+      showToast('error', message);
     },
   });
 
-  // 打开新增弹窗
   const handleAdd = (presetFoldTypeId?: number) => {
     setEditingConfig(null);
-    const autoName = presetFoldTypeId ? autoGenerateName(presetFoldTypeId, null) : '';
     setFormData({
-      name: autoName,
+      name: presetFoldTypeId ? autoGenerateName(presetFoldTypeId, null) : '',
       code: '',
       foldTypeId: presetFoldTypeId ?? null,
       simTypeId: null,
@@ -175,7 +161,6 @@ export const ConditionConfigManagement: React.FC = () => {
     setShowModal(true);
   };
 
-  // 打开编辑弹窗
   const handleEdit = (config: ConditionConfig) => {
     setEditingConfig(config);
     setFormData({
@@ -194,17 +179,10 @@ export const ConditionConfigManagement: React.FC = () => {
     setShowModal(true);
   };
 
-  // 关闭弹窗
-  const handleCloseModal = () => {
-    setShowModal(false);
-    setEditingConfig(null);
-  };
-
-  // 删除工况
   const handleDelete = (id: number, name: string) => {
     showConfirm(
       '确认删除',
-      `确定要删除工况「${name}」吗？`,
+      `确定要删除工况“${name}”吗？`,
       () => {
         deleteMutation.mutate(id);
       },
@@ -212,17 +190,17 @@ export const ConditionConfigManagement: React.FC = () => {
     );
   };
 
-  // 设置默认仿真类型
   const handleSetDefault = async (config: ConditionConfig) => {
     try {
-      // 同一姿态下的其他工况取消默认
       const sameGroup = conditionConfigs.filter(
-        c => c.foldTypeId === config.foldTypeId && c.id !== config.id && c.isDefault === 1
+        item =>
+          item.foldTypeId === config.foldTypeId && item.id !== config.id && item.isDefault === 1
       );
-      for (const c of sameGroup) {
-        await configApi.updateConditionConfig(c.id, { isDefault: 0 });
+
+      for (const item of sameGroup) {
+        await configApi.updateConditionConfig(item.id, { isDefault: 0 });
       }
-      // 切换当前工况的默认状态
+
       const newDefault = config.isDefault === 1 ? 0 : 1;
       await configApi.updateConditionConfig(config.id, { isDefault: newDefault });
       queryClient.invalidateQueries({ queryKey: queryKeys.conditionConfigs.all });
@@ -232,7 +210,6 @@ export const ConditionConfigManagement: React.FC = () => {
     }
   };
 
-  // 保存
   const handleSave = () => {
     if (!formData.name.trim()) {
       showToast('error', '请输入工况名称');
@@ -246,11 +223,10 @@ export const ConditionConfigManagement: React.FC = () => {
       showToast('error', '请选择仿真类型');
       return;
     }
-    // 检查重复组合
     if (isDuplicateCombo(formData.foldTypeId, formData.simTypeId)) {
       showToast(
         'error',
-        `「${getFoldTypeName(formData.foldTypeId!)}」+「${getSimTypeName(formData.simTypeId!)}」的组合已存在`
+        `“${getFoldTypeName(formData.foldTypeId)} / ${getSimTypeName(formData.simTypeId)}” 的组合已存在`
       );
       return;
     }
@@ -271,9 +247,10 @@ export const ConditionConfigManagement: React.FC = () => {
 
     if (editingConfig) {
       updateMutation.mutate({ id: editingConfig.id, data });
-    } else {
-      createMutation.mutate(data);
+      return;
     }
+
+    createMutation.mutate(data);
   };
 
   return (
@@ -281,7 +258,7 @@ export const ConditionConfigManagement: React.FC = () => {
       <CardHeader
         title="工况组合配置"
         icon={<Link className="w-5 h-5" />}
-        subtitle="配置姿态+仿真类型+参数组+输出组的关联关系"
+        subtitle="配置姿态、仿真类型、参数组、输出组与默认求解器之间的关联关系"
         action={
           <Button size="sm" onClick={() => handleAdd()}>
             <Plus className="w-4 h-4 mr-1" />
@@ -314,12 +291,12 @@ export const ConditionConfigManagement: React.FC = () => {
               const rowSpan = Math.max(configs.length, 1);
 
               return configs.length > 0 ? (
-                configs.map((config, idx) => (
+                configs.map((config, index) => (
                   <tr
                     key={config.id}
                     className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50"
                   >
-                    {idx === 0 && (
+                    {index === 0 && (
                       <td
                         className="p-3 font-medium border dark:border-slate-600 bg-slate-50 dark:bg-slate-800"
                         rowSpan={rowSpan}
@@ -390,7 +367,11 @@ export const ConditionConfigManagement: React.FC = () => {
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => handleSetDefault(config)}
-                          className={`p-1 ${config.isDefault === 1 ? 'text-amber-500' : 'text-slate-400 hover:text-amber-500'}`}
+                          className={`p-1 ${
+                            config.isDefault === 1
+                              ? 'text-amber-500'
+                              : 'text-slate-400 hover:text-amber-500'
+                          }`}
                           title={config.isDefault === 1 ? '取消默认' : '设为默认'}
                         >
                           <Star
@@ -443,335 +424,22 @@ export const ConditionConfigManagement: React.FC = () => {
         </table>
       </div>
 
-      {/* 新增/编辑弹窗 */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b dark:border-slate-700">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white eyecare:text-foreground">
-                {editingConfig ? '编辑工况配置' : '新增工况配置'}
-              </h3>
-              <button
-                onClick={handleCloseModal}
-                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-4 space-y-4 overflow-y-auto max-h-[60vh]">
-              {/* 基本信息 */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                    工况名称 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
-                    placeholder="如：展开态-静力分析"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                    工况编码
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.code}
-                    onChange={e => setFormData(prev => ({ ...prev, code: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
-                    placeholder="如：DEPLOY_STATIC"
-                  />
-                </div>
-              </div>
-
-              {/* 姿态和仿真类型 */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                    目标姿态 <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formData.foldTypeId?.toString() || ''}
-                    onChange={e => {
-                      const fId = e.target.value ? Number(e.target.value) : null;
-                      setFormData(prev => {
-                        const generated = autoGenerateName(fId, prev.simTypeId);
-                        return {
-                          ...prev,
-                          foldTypeId: fId,
-                          name:
-                            prev.name === autoGenerateName(prev.foldTypeId, prev.simTypeId)
-                              ? generated
-                              : prev.name,
-                        };
-                      });
-                    }}
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
-                    disabled={!!editingConfig}
-                  >
-                    <option value="">请选择姿态</option>
-                    {foldTypes.map(ft => (
-                      <option key={ft.id} value={ft.id.toString()}>
-                        {ft.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                    仿真类型 <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={formData.simTypeId?.toString() || ''}
-                    onChange={e => {
-                      const sId = e.target.value ? Number(e.target.value) : null;
-                      setFormData(prev => {
-                        const generated = autoGenerateName(prev.foldTypeId, sId);
-                        return {
-                          ...prev,
-                          simTypeId: sId,
-                          name:
-                            prev.name === autoGenerateName(prev.foldTypeId, prev.simTypeId) ||
-                            prev.name === ''
-                              ? generated
-                              : prev.name,
-                        };
-                      });
-                    }}
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
-                    disabled={!!editingConfig}
-                  >
-                    <option value="">请选择仿真类型</option>
-                    {simTypes.map(st => (
-                      <option key={st.id} value={st.id.toString()}>
-                        {st.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              {/* 重复组合警告 */}
-              {isDuplicateCombo(formData.foldTypeId, formData.simTypeId) && (
-                <div className="px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-sm text-amber-700 dark:text-amber-400">
-                  ⚠ 该姿态+仿真类型的组合已存在，保存时将被拒绝
-                </div>
-              )}
-
-              {/* 参数组选择 */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                  可用参数组
-                </label>
-                <div className="border rounded-lg p-3 dark:border-slate-600 max-h-32 overflow-y-auto">
-                  {paramGroups.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {paramGroups.map(pg => (
-                        <label key={pg.id} className="flex items-center gap-1.5 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.paramGroupIds.includes(pg.id)}
-                            onChange={e => {
-                              if (e.target.checked) {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  paramGroupIds: [...prev.paramGroupIds, pg.id],
-                                }));
-                              } else {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  paramGroupIds: prev.paramGroupIds.filter(id => id !== pg.id),
-                                  defaultParamGroupId:
-                                    prev.defaultParamGroupId === pg.id
-                                      ? null
-                                      : prev.defaultParamGroupId,
-                                }));
-                              }
-                            }}
-                            className="rounded"
-                          />
-                          <span className="text-sm">{pg.name}</span>
-                        </label>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-slate-400 text-sm">暂无参数组</span>
-                  )}
-                </div>
-              </div>
-
-              {/* 输出组选择 */}
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                  可用输出组
-                </label>
-                <div className="border rounded-lg p-3 dark:border-slate-600 max-h-32 overflow-y-auto">
-                  {outputGroups.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {outputGroups.map(og => (
-                        <label key={og.id} className="flex items-center gap-1.5 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={formData.outputGroupIds.includes(og.id)}
-                            onChange={e => {
-                              if (e.target.checked) {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  outputGroupIds: [...prev.outputGroupIds, og.id],
-                                }));
-                              } else {
-                                setFormData(prev => ({
-                                  ...prev,
-                                  outputGroupIds: prev.outputGroupIds.filter(id => id !== og.id),
-                                  defaultOutputGroupId:
-                                    prev.defaultOutputGroupId === og.id
-                                      ? null
-                                      : prev.defaultOutputGroupId,
-                                }));
-                              }
-                            }}
-                            className="rounded"
-                          />
-                          <span className="text-sm">{og.name}</span>
-                        </label>
-                      ))}
-                    </div>
-                  ) : (
-                    <span className="text-slate-400 text-sm">暂无输出组</span>
-                  )}
-                </div>
-              </div>
-
-              {/* 默认配置 */}
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                    默认参数组
-                  </label>
-                  <select
-                    value={formData.defaultParamGroupId || ''}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        defaultParamGroupId: Number(e.target.value) || null,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border text-sm"
-                  >
-                    <option value="">不设置</option>
-                    {formData.paramGroupIds.map(id => {
-                      const pg = paramGroups.find(p => p.id === id);
-                      return pg ? (
-                        <option key={id} value={id}>
-                          {pg.name}
-                        </option>
-                      ) : null;
-                    })}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                    默认输出组
-                  </label>
-                  <select
-                    value={formData.defaultOutputGroupId || ''}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        defaultOutputGroupId: Number(e.target.value) || null,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border text-sm"
-                  >
-                    <option value="">不设置</option>
-                    {formData.outputGroupIds.map(id => {
-                      const og = outputGroups.find(o => o.id === id);
-                      return og ? (
-                        <option key={id} value={id}>
-                          {og.name}
-                        </option>
-                      ) : null;
-                    })}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                    默认求解器
-                  </label>
-                  <select
-                    value={formData.defaultSolverId || ''}
-                    onChange={e =>
-                      setFormData(prev => ({
-                        ...prev,
-                        defaultSolverId: Number(e.target.value) || null,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border text-sm"
-                  >
-                    <option value="">不设置</option>
-                    {solvers.map(s => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* 排序和备注 */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                    排序
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.sort}
-                    onChange={e =>
-                      setFormData(prev => ({ ...prev, sort: Number(e.target.value) || 0 }))
-                    }
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border text-sm"
-                    min={0}
-                    step={10}
-                  />
-                  <p className="text-xs text-slate-400 mt-0.5">值越小越靠前</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                    备注
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.remark}
-                    onChange={e => setFormData(prev => ({ ...prev, remark: e.target.value }))}
-                    className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border text-sm"
-                    placeholder="可选备注信息"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
-              <button
-                onClick={handleCloseModal}
-                className="px-4 py-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
-              >
-                取消
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={createMutation.isPending || updateMutation.isPending}
-                className="px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 disabled:opacity-50"
-              >
-                {createMutation.isPending || updateMutation.isPending ? '保存中...' : '保存'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConditionFormModal
+        showModal={showModal}
+        editingConfig={editingConfig}
+        formData={formData}
+        foldTypes={foldTypes}
+        simTypes={simTypes}
+        paramGroups={paramGroups}
+        outputGroups={outputGroups}
+        solvers={solvers}
+        isDuplicateCombo={isDuplicateCombo(formData.foldTypeId, formData.simTypeId)}
+        pending={createMutation.isPending || updateMutation.isPending}
+        autoGenerateName={autoGenerateName}
+        setFormData={setFormData}
+        onClose={handleCloseModal}
+        onSave={handleSave}
+      />
       <ConfirmDialogComponent />
     </Card>
   );

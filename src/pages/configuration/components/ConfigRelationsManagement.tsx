@@ -11,6 +11,18 @@ import type {
   OutputGroup,
 } from '@/types/configGroups';
 import type { SimType, Solver } from '@/types/config';
+import {
+  managementFieldClass,
+  managementModalOverlayClass,
+  managementModalPanelClass,
+  managementPrimaryButtonClass,
+  managementPrimaryButtonDisabledClass,
+  managementSecondaryButtonClass,
+} from './sharedManagementStyles';
+
+const relationTabBaseClass = 'px-4 py-2 rounded-lg transition-colors';
+const relationTabInactiveClass =
+  'bg-slate-100 dark:bg-slate-700 eyecare:bg-muted text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600';
 
 export const ConfigRelationsManagement: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'paramGroups' | 'outputGroups' | 'solvers'>(
@@ -240,7 +252,7 @@ export const ConfigRelationsManagement: React.FC = () => {
       <div className="lg:col-span-3">
         {!selectedSimType ? (
           <Card>
-            <div className="p-12 text-center text-slate-500">请从左侧选择一个仿真类型</div>
+            <div className="p-12 text-center text-slate-500">请选择左侧仿真类型以查看关联配置</div>
           </Card>
         ) : (
           <>
@@ -248,30 +260,24 @@ export const ConfigRelationsManagement: React.FC = () => {
             <div className="flex gap-2 mb-4">
               <button
                 onClick={() => setActiveTab('paramGroups')}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeTab === 'paramGroups'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 eyecare:bg-muted text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                className={`${relationTabBaseClass} ${
+                  activeTab === 'paramGroups' ? 'bg-blue-600 text-white' : relationTabInactiveClass
                 }`}
               >
                 参数组合
               </button>
               <button
                 onClick={() => setActiveTab('outputGroups')}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeTab === 'outputGroups'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 eyecare:bg-muted text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                className={`${relationTabBaseClass} ${
+                  activeTab === 'outputGroups' ? 'bg-blue-600 text-white' : relationTabInactiveClass
                 }`}
               >
                 输出组合
               </button>
               <button
                 onClick={() => setActiveTab('solvers')}
-                className={`px-4 py-2 rounded-lg transition-colors ${
-                  activeTab === 'solvers'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-slate-100 dark:bg-slate-700 eyecare:bg-muted text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                className={`${relationTabBaseClass} ${
+                  activeTab === 'solvers' ? 'bg-blue-600 text-white' : relationTabInactiveClass
                 }`}
               >
                 求解器
@@ -285,7 +291,7 @@ export const ConfigRelationsManagement: React.FC = () => {
                   <h3 className="text-lg font-semibold">{selectedSimType.name} - 参数组合关联</h3>
                   <button
                     onClick={() => setShowAddParamGroupModal(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    className={managementPrimaryButtonClass}
                   >
                     <Plus className="w-4 h-4" />
                     添加关联
@@ -293,7 +299,7 @@ export const ConfigRelationsManagement: React.FC = () => {
                 </div>
                 <div className="p-4">
                   {paramGroupRels.length === 0 ? (
-                    <div className="text-center py-12 text-slate-500">暂无关联的参数组合</div>
+                    <div className="text-center py-12 text-slate-500">暂无参数组合关联</div>
                   ) : (
                     <div className="space-y-2">
                       {paramGroupRels.map(rel => (
@@ -325,7 +331,7 @@ export const ConfigRelationsManagement: React.FC = () => {
                                   ? 'text-yellow-500 cursor-not-allowed'
                                   : 'text-slate-400 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/30'
                               }`}
-                              title="设为默认"
+                              title={rel.isDefault === 1 ? '已是默认' : '设为默认'}
                             >
                               {rel.isDefault === 1 ? (
                                 <Star className="w-5 h-5 fill-current" />
@@ -355,7 +361,7 @@ export const ConfigRelationsManagement: React.FC = () => {
                   <h3 className="text-lg font-semibold">{selectedSimType.name} - 输出组合关联</h3>
                   <button
                     onClick={() => setShowAddOutputGroupModal(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    className={managementPrimaryButtonClass}
                   >
                     <Plus className="w-4 h-4" />
                     添加关联
@@ -363,7 +369,7 @@ export const ConfigRelationsManagement: React.FC = () => {
                 </div>
                 <div className="p-4">
                   {outputGroupRels.length === 0 ? (
-                    <div className="text-center py-12 text-slate-500">暂无关联的输出组合</div>
+                    <div className="text-center py-12 text-slate-500">暂无输出组合关联</div>
                   ) : (
                     <div className="space-y-2">
                       {outputGroupRels.map(rel => (
@@ -395,7 +401,7 @@ export const ConfigRelationsManagement: React.FC = () => {
                                   ? 'text-yellow-500 cursor-not-allowed'
                                   : 'text-slate-400 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/30'
                               }`}
-                              title="设为默认"
+                              title={rel.isDefault === 1 ? '已是默认' : '设为默认'}
                             >
                               {rel.isDefault === 1 ? (
                                 <Star className="w-5 h-5 fill-current" />
@@ -425,7 +431,7 @@ export const ConfigRelationsManagement: React.FC = () => {
                   <h3 className="text-lg font-semibold">{selectedSimType.name} - 求解器关联</h3>
                   <button
                     onClick={() => setShowAddSolverModal(true)}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    className={managementPrimaryButtonClass}
                   >
                     <Plus className="w-4 h-4" />
                     添加关联
@@ -433,7 +439,7 @@ export const ConfigRelationsManagement: React.FC = () => {
                 </div>
                 <div className="p-4">
                   {solverRels.length === 0 ? (
-                    <div className="text-center py-12 text-slate-500">暂无关联的求解器</div>
+                    <div className="text-center py-12 text-slate-500">暂无求解器关联</div>
                   ) : (
                     <div className="space-y-2">
                       {solverRels.map(rel => (
@@ -463,7 +469,7 @@ export const ConfigRelationsManagement: React.FC = () => {
                                   ? 'text-yellow-500 cursor-not-allowed'
                                   : 'text-slate-400 hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/30'
                               }`}
-                              title="设为默认"
+                              title={rel.isDefault === 1 ? '已是默认' : '设为默认'}
                             >
                               {rel.isDefault === 1 ? (
                                 <Star className="w-5 h-5 fill-current" />
@@ -563,8 +569,8 @@ const AddRelationModal: React.FC<{
   const selectedId = formData.selectedId ?? null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-lg p-6 w-full max-w-md">
+    <div className={managementModalOverlayClass}>
+      <div className={`${managementModalPanelClass} p-6 w-full max-w-md`}>
         <h3 className="text-lg font-semibold mb-4">{title}</h3>
         <div className="space-y-4">
           <div>
@@ -577,7 +583,7 @@ const AddRelationModal: React.FC<{
                   e.target.value ? Number(e.target.value) : (null as number | null)
                 )
               }
-              className="w-full px-3 py-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
+              className={managementFieldClass}
             >
               <option value="">请选择</option>
               {availableItems.map(item => (
@@ -602,16 +608,13 @@ const AddRelationModal: React.FC<{
           </div>
         </div>
         <div className="flex justify-end gap-2 mt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
-          >
+          <button onClick={onClose} className={managementSecondaryButtonClass}>
             取消
           </button>
           <button
             onClick={() => selectedId && onAdd(selectedId, formData.isDefault ?? 0)}
             disabled={!selectedId}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className={managementPrimaryButtonDisabledClass}
           >
             添加
           </button>

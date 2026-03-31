@@ -7,3 +7,5 @@ export { SolverDrawerContent } from './SolverDrawerContent';
 export { CareDevicesDrawerContent } from './CareDevicesDrawerContent';
 export { SimTypeConfigBox } from './SimTypeConfigBox';
 export { DoeVerifyModal } from './DoeVerifyModal';
+export { SubmissionCanvas } from './SubmissionCanvas';
+export { SubmissionDrawerContent } from './SubmissionDrawerContent';

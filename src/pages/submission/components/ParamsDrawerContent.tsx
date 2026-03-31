@@ -1,17 +1,21 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
-import {
-  DocumentArrowDownIcon,
-  DocumentArrowUpIcon,
-  PlusIcon,
-  TrashIcon,
-  CheckCircleIcon,
-} from '@heroicons/react/24/outline';
-import { FormItem, Alert, Button } from '@/components/ui';
+﻿import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { configApi } from '@/api';
 import type { SimTypeConfig, OptParams, ParamDomain, CustomBatchSize } from '../types';
 import { AlgorithmType as AlgType } from '../types';
 import type { ParamDef, ConditionConfig } from '@/types/config';
 import type { ParamGroup, ParamInGroup } from '@/types/configGroups';
+import {
+  buildDoeCombinations,
+  mergeDoeFileByHeads,
+  mergeDomainWithGroup,
+  normalizeDoeDataByHeads,
+} from './paramDrawerUtils';
+import { ParamsAlgorithmSelector } from './params/ParamsAlgorithmSelector';
+import { ParamsBatchConfigSection } from './params/ParamsBatchConfigSection';
+import { ParamsDoeFileSection } from './params/ParamsDoeFileSection';
+import { ParamsDomainSection } from './params/ParamsDomainSection';
+import { ParamsGroupSection } from './params/ParamsGroupSection';
+import { useDoeFileState } from '../hooks/useDoeFileState';
 
 interface ParamsDrawerContentProps {
   config: SimTypeConfig;
@@ -24,6 +28,17 @@ interface ParamsDrawerContentProps {
   t?: (key: string) => string;
 }
 
+const tableTextInputClass =
+  'w-full px-1 py-1 text-sm border-0 bg-transparent focus:ring-1 focus:ring-ring rounded';
+
+const tableNumberInputClass = `${tableTextInputClass} text-center`;
+
+const tableCompactNumberInputClass =
+  'w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-ring rounded text-center';
+
+const doePasteTextareaClass =
+  'w-full px-2 py-2 text-xs font-mono border rounded-lg bg-background border-input';
+
 export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
   config,
   simTypeId: _simTypeId,
@@ -34,31 +49,27 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
   onFetchGroupParams,
   t = (key: string) => key,
 }) => {
-  // DOE 文件上传状态
-  const [doeFileName, setDoeFileName] = useState<string>('');
-  const [doePasteText, setDoePasteText] = useState('');
   const [loadingGroup, setLoadingGroup] = useState(false);
-  // DOE 验证错误信息
+  // DOE 楠岃瘉閿欒淇℃伅
   const [doeValidationError, setDoeValidationError] = useState<string | null>(null);
-  // 参数组选择状态
+  // 鍙傛暟缁勯€夋嫨鐘舵€?
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(
     config.params.templateSetId || null
   );
-  // 核验状态: null=未核验, true=通过, false=失败
+  // 鏍搁獙鐘舵€? null=鏈牳楠? true=閫氳繃, false=澶辫触
   const [verifyStatus, setVerifyStatus] = useState<boolean | null>(null);
   const [verifyMessage, setVerifyMessage] = useState<string>('');
-  // 自动应用标记
+  // 鑷姩搴旂敤鏍囪
   const autoAppliedRef = useRef(false);
-  const doeFileInputRef = useRef<HTMLInputElement>(null);
 
-  // 获取当前算法类型
+  // 鑾峰彇褰撳墠绠楁硶绫诲瀷
   const currentAlgType = config.params.optParams?.algType ?? AlgType.DOE;
 
-  // 根据工况配置 + 算法类型筛选参数组
+  // 鏍规嵁宸ュ喌閰嶇疆 + 绠楁硶绫诲瀷绛涢€夊弬鏁扮粍
   const filteredParamGroups = useMemo(() => {
     let groups = paramGroups;
 
-    // 1. 按工况配置过滤
+    // 1. 鎸夊伐鍐甸厤缃繃婊?
     if (conditionConfig?.paramGroupIds?.length) {
       groups = groups.filter(g => conditionConfig.paramGroupIds.includes(g.id));
     }
@@ -66,7 +77,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     return groups;
   }, [paramGroups, conditionConfig]);
 
-  // 更新 optParams 的辅助函数
+  // 鏇存柊 optParams 鐨勮緟鍔╁嚱鏁?
   const updateOptParams = (updates: Partial<OptParams>) => {
     const currentOptParams = config.params.optParams || {
       algType: AlgType.DOE,
@@ -82,35 +93,25 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     });
   };
 
-  const toCamelKey = (key: string): string =>
-    key.replace(/_([a-zA-Z])/g, (_, ch: string) => ch.toUpperCase());
+  const {
+    clearDoeFile,
+    doeFileDisplayName,
+    doeFileDownloadUrl,
+    doeFileInputRef,
+    doePasteText,
+    handleDoeTextareaPaste,
+    handleFileChange,
+    hasDoeFile,
+    setDoePasteText,
+  } = useDoeFileState({
+    currentAlgType,
+    templateSetId: config.params.templateSetId,
+    paramGroups,
+    optParams: config.params.optParams,
+    updateOptParams,
+  });
 
-  const getDoeCellValue = (row: Record<string, number | string>, head: string): string => {
-    const direct = row[head];
-    if (direct !== undefined && direct !== null) return String(direct);
-    const camel = row[toCamelKey(head)];
-    if (camel !== undefined && camel !== null) return String(camel);
-    return '';
-  };
-
-  const normalizeDoeDataByHeads = (
-    heads: string[],
-    rows: Array<Record<string, number | string> | Array<string | number>>
-  ): Array<Record<string, number | string>> =>
-    rows.map(row => {
-      const normalized: Record<string, number | string> = {};
-      heads.forEach((head, idx) => {
-        if (Array.isArray(row)) {
-          const cell = row[idx];
-          normalized[head] = cell === undefined || cell === null ? '' : String(cell);
-          return;
-        }
-        normalized[head] = getDoeCellValue(row, head);
-      });
-      return normalized;
-    });
-
-  // 更新参数域的辅助函数
+  // 鏇存柊鍙傛暟鍩熺殑杈呭姪鍑芥暟
   const updateDomain = (index: number, updates: Partial<ParamDomain>) => {
     const currentDomain = config.params.optParams?.domain || [];
     const newDomain = [...currentDomain];
@@ -118,7 +119,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     updateOptParams({ domain: newDomain });
   };
 
-  // 添加参数域
+  // 娣诲姞鍙傛暟鍩?
   const addDomain = () => {
     const currentDomain = config.params.optParams?.domain || [];
     const newParam: ParamDomain = {
@@ -132,13 +133,13 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     updateOptParams({ domain: [...currentDomain, newParam] });
   };
 
-  // 删除参数域
+  // 鍒犻櫎鍙傛暟鍩?
   const removeDomain = (index: number) => {
     const currentDomain = config.params.optParams?.domain || [];
     updateOptParams({ domain: currentDomain.filter((_, i) => i !== index) });
   };
 
-  // 生成 DOE 全组合
+  // 鐢熸垚 DOE 鍏ㄧ粍鍚?
   const generateDoeCombinations = () => {
     setDoeValidationError(null);
     const domain = config.params.optParams?.domain || [];
@@ -148,7 +149,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
       return;
     }
 
-    // 检查参数名是否为空
+    // 妫€鏌ュ弬鏁板悕鏄惁涓虹┖
     const emptyNameIndex = domain.findIndex(d => !d.paramName || d.paramName.trim() === '');
     if (emptyNameIndex >= 0) {
       setDoeValidationError(
@@ -157,7 +158,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
       return;
     }
 
-    // 检查参数名是否重复
+    // 妫€鏌ュ弬鏁板悕鏄惁閲嶅
     const paramNames = domain.map(d => d.paramName.trim());
     const duplicates = paramNames.filter((name, idx) => paramNames.indexOf(name) !== idx);
     if (duplicates.length > 0) {
@@ -167,15 +168,15 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
       return;
     }
 
-    // 提取表头（参数名）
+    // 鎻愬彇琛ㄥご锛堝弬鏁板悕锛?
     const heads = paramNames;
 
-    // 提取每个参数的取值列表
+    // 鎻愬彇姣忎釜鍙傛暟鐨勫彇鍊煎垪琛?
     const valueLists = domain.map(d => {
       if (d.rangeList && d.rangeList.length > 0) {
         return d.rangeList;
       }
-      // 如果没有 rangeList，尝试从 range 字符串解析
+      // 濡傛灉娌℃湁 rangeList锛屽皾璇曚粠 range 瀛楃涓茶В鏋?
       if (d.range) {
         return d.range
           .split(',')
@@ -185,7 +186,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
       return [];
     });
 
-    // 检查是否所有参数都有取值
+    // 妫€鏌ユ槸鍚︽墍鏈夊弬鏁伴兘鏈夊彇鍊?
     const emptyValueIndex = valueLists.findIndex(list => list.length === 0);
     if (emptyValueIndex >= 0) {
       setDoeValidationError(
@@ -194,7 +195,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
       return;
     }
 
-    // 生成笛卡尔积（全组合）
+    // 鐢熸垚绗涘崱灏旂Н锛堝叏缁勫悎锛?
     const cartesian = (...arrays: number[][]): number[][] => {
       return arrays.reduce<number[][]>(
         (acc, arr) => acc.flatMap(x => arr.map(y => [...x, y])),
@@ -204,7 +205,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
 
     const combinations = cartesian(...valueLists);
 
-    // 转换为 Record 格式
+    // 杞崲涓?Record 鏍煎紡
     const data: Record<string, number | string>[] = combinations.map(combo => {
       const row: Record<string, number | string> = {};
       heads.forEach((h, i) => {
@@ -213,11 +214,11 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
       return row;
     });
 
-    // 更新 optParams
+    // 鏇存柊 optParams
     updateOptParams({ doeParamHeads: heads, doeParamData: data });
   };
 
-  // DOE 表格操作
+  // DOE 琛ㄦ牸鎿嶄綔
   const updateDoeCell = (rowIdx: number, head: string, value: string) => {
     const heads = config.params.optParams?.doeParamHeads || [];
     const data = normalizeDoeDataByHeads(heads, [...(config.params.optParams?.doeParamData || [])]);
@@ -239,32 +240,32 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     updateOptParams({ doeParamData: data.filter((_, i) => i !== rowIdx) });
   };
 
-  // 批次配置相关
+  // 鎵规閰嶇疆鐩稿叧
   const batchSizeType = config.params.optParams?.batchSizeType ?? 1;
   const batchSizeList = config.params.optParams?.batchSize || [{ value: 7 }, { value: 5 }];
   const customBatchSizeList = config.params.optParams?.customBatchSize || [];
 
-  // 添加批次
+  // 娣诲姞鎵规
   const addBatchSize = () => {
     const newList = [...batchSizeList, { value: 5 }];
     updateOptParams({ batchSize: newList, maxIter: newList.length });
   };
 
-  // 删除批次
+  // 鍒犻櫎鎵规
   const removeBatchSize = (index: number) => {
-    if (batchSizeList.length <= 2) return; // 最少保留2个
+    if (batchSizeList.length <= 2) return; // 鏈€灏戜繚鐣?涓?
     const newList = batchSizeList.filter((_, i) => i !== index);
     updateOptParams({ batchSize: newList, maxIter: newList.length });
   };
 
-  // 更新批次值
+  // 鏇存柊鎵规鍊?
   const updateBatchSize = (index: number, value: number) => {
     const newList = [...batchSizeList];
     newList[index] = { value };
     updateOptParams({ batchSize: newList });
   };
 
-  // 添加自定义批次
+  // 娣诲姞鑷畾涔夋壒娆?
   const addCustomBatchSize = () => {
     const lastItem = customBatchSizeList[customBatchSizeList.length - 1];
     const startIndex = lastItem ? lastItem.endIndex + 1 : 1;
@@ -272,10 +273,10 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     updateOptParams({ customBatchSize: [...customBatchSizeList, newItem] });
   };
 
-  // 删除自定义批次
+  // 鍒犻櫎鑷畾涔夋壒娆?
   const removeCustomBatchSize = (index: number) => {
     const newList = customBatchSizeList.filter((_, i) => i !== index);
-    // 重新调整后续批次的起始值，确保连续
+    // 閲嶆柊璋冩暣鍚庣画鎵规鐨勮捣濮嬪€硷紝纭繚杩炵画
     for (let i = index; i < newList.length; i++) {
       if (i === 0) {
         newList[i] = { ...newList[i], startIndex: 1 };
@@ -286,12 +287,12 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     updateOptParams({ customBatchSize: newList });
   };
 
-  // 更新自定义批次
+  // 鏇存柊鑷畾涔夋壒娆?
   const updateCustomBatchSize = (index: number, updates: Partial<CustomBatchSize>) => {
     const newList = [...customBatchSizeList];
     newList[index] = { ...newList[index], ...updates };
 
-    // 如果修改了结束值，自动调整下一个批次的起始值
+    // 濡傛灉淇敼浜嗙粨鏉熷€硷紝鑷姩璋冩暣涓嬩竴涓壒娆＄殑璧峰鍊?
     if (updates.endIndex !== undefined && index < newList.length - 1) {
       newList[index + 1] = { ...newList[index + 1], startIndex: updates.endIndex + 1 };
     }
@@ -299,185 +300,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     updateOptParams({ customBatchSize: newList });
   };
 
-  const parseDoeText = (
-    text: string,
-    csvPath?: string
-  ): { heads: string[]; data: Array<Record<string, number | string>> } | null => {
-    const lines = text
-      .split(/\r?\n/)
-      .map(line => line.trim())
-      .filter(Boolean);
-    if (lines.length < 2) return null;
-
-    const splitLine = (line: string): string[] => {
-      const delimiter = line.includes('\t') ? '\t' : ',';
-      return line.split(delimiter).map(item => item.trim());
-    };
-
-    const heads = splitLine(lines[0]).filter(Boolean);
-    if (heads.length === 0) return null;
-
-    const data: Array<Record<string, number | string>> = lines.slice(1).map(line => {
-      const values = splitLine(line);
-      const row: Record<string, number | string> = {};
-      heads.forEach((head, idx) => {
-        const raw = values[idx] ?? '';
-        const num = Number(raw);
-        row[head] = raw !== '' && Number.isFinite(num) ? num : raw;
-      });
-      return row;
-    });
-
-    const normalized = normalizeDoeDataByHeads(heads, data);
-    setDoeFileName(csvPath || `pasted_doe_${Date.now()}.csv`);
-    updateOptParams({ doeParamHeads: heads, doeParamData: normalized, doeParamCsvPath: csvPath });
-    return { heads, data: normalized };
-  };
-
-  // 解析 CSV 文件
-  const parseCsvFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      const text = e.target?.result as string;
-      if (!text) return;
-      parseDoeText(text, file.name);
-    };
-    reader.readAsText(file);
-  };
-
-  const handleDoeTextareaPaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-    const textarea = e.currentTarget;
-    setTimeout(() => {
-      const text = textarea.value;
-      setDoePasteText(text);
-      parseDoeText(text);
-    }, 0);
-  };
-
-  // 处理文件选择
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      parseCsvFile(file);
-    }
-  };
-
-  const doeFileDownloadUrl =
-    config.params.templateSetId && currentAlgType === AlgType.DOE_FILE
-      ? configApi.getParamGroupDoeDownloadUrl(config.params.templateSetId)
-      : '';
-
-  const doeFileDisplayName = useMemo(() => {
-    const raw = String(doeFileName || '').trim();
-    if (!raw) return '';
-    if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('/')) {
-      const selectedGroup = paramGroups.find(g => g.id === config.params.templateSetId);
-      if (selectedGroup?.doeFileName) return selectedGroup.doeFileName;
-      try {
-        const pathname = new URL(raw, window.location.origin).pathname;
-        const name = decodeURIComponent(pathname.split('/').pop() || '');
-        return name && name !== 'download' ? name : 'DOE文件.csv';
-      } catch {
-        return 'DOE文件.csv';
-      }
-    }
-    return raw;
-  }, [doeFileName, paramGroups, config.params.templateSetId]);
-
-  useEffect(() => {
-    if (config.params.optParams?.doeParamCsvPath) {
-      setDoeFileName(String(config.params.optParams.doeParamCsvPath));
-    }
-  }, [config.params.optParams?.doeParamCsvPath]);
-
-  const clearDoeFile = () => {
-    setDoeFileName('');
-    setDoePasteText('');
-    updateOptParams({ doeParamHeads: [], doeParamData: [], doeParamCsvPath: undefined });
-    if (doeFileInputRef.current) {
-      doeFileInputRef.current.value = '';
-    }
-  };
-
-  const hasDoeFile = Boolean(doeFileDisplayName);
-
-  // 从 domain 列表生成 DOE 全组合数据（纯函数，不操作 state）
-  const buildDoeCombinations = (domain: ParamDomain[]) => {
-    const heads = domain.map(d => d.paramName.trim()).filter(Boolean);
-    if (heads.length !== domain.length) return null;
-
-    const valueLists = domain.map(d => {
-      if (d.rangeList && d.rangeList.length > 0) return d.rangeList;
-      if (d.range) {
-        return d.range
-          .split(',')
-          .map(v => Number(v.trim()))
-          .filter(v => !isNaN(v));
-      }
-      return [];
-    });
-    if (valueLists.some(list => list.length === 0)) return null;
-
-    const cartesian = (...arrays: number[][]): number[][] =>
-      arrays.reduce<number[][]>((acc, arr) => acc.flatMap(x => arr.map(y => [...x, y])), [[]]);
-    const combinations = cartesian(...valueLists);
-    const data: Record<string, number | string>[] = combinations.map(combo => {
-      const row: Record<string, number | string> = {};
-      heads.forEach((h, i) => {
-        row[h] = combo[i];
-      });
-      return row;
-    });
-    return { doeParamHeads: heads, doeParamData: data };
-  };
-
-  const mergeDomainWithGroup = (groupDomain: ParamDomain[], currentDomain: ParamDomain[]) => {
-    const groupKeySet = new Set(groupDomain.map(item => item.paramName.trim()).filter(Boolean));
-    const customDomain = currentDomain.filter(item => {
-      const key = item.paramName.trim();
-      return key && !groupKeySet.has(key);
-    });
-    return [...groupDomain, ...customDomain];
-  };
-
-  const mergeDoeFileByHeads = (
-    baseHeads: string[],
-    baseData: Array<Record<string, number | string>>,
-    currentHeads: string[],
-    currentData: Array<Record<string, number | string>>
-  ) => {
-    const normalizedBaseHeads = baseHeads.map(h => h.trim()).filter(Boolean);
-    const normalizedCurrentHeads = currentHeads.map(h => h.trim()).filter(Boolean);
-    const mergedHeads = [
-      ...normalizedBaseHeads,
-      ...normalizedCurrentHeads.filter(h => !normalizedBaseHeads.includes(h)),
-    ];
-    const rowCount = Math.max(baseData.length, currentData.length);
-    const mergedData: Array<Record<string, number | string>> = [];
-
-    for (let i = 0; i < rowCount; i += 1) {
-      const baseRow = baseData[i] || {};
-      const currentRow = currentData[i] || {};
-      const row: Record<string, number | string> = {};
-      mergedHeads.forEach(head => {
-        const hasBase = Object.prototype.hasOwnProperty.call(baseRow, head);
-        if (hasBase) {
-          row[head] = baseRow[head];
-          return;
-        }
-        if (Object.prototype.hasOwnProperty.call(currentRow, head)) {
-          row[head] = currentRow[head];
-          return;
-        }
-        row[head] = '';
-      });
-      mergedData.push(row);
-    }
-
-    return { mergedHeads, mergedData };
-  };
-
-  // 应用参数组（从下拉选择的组），返回生成的 domain 供后续使用
+  // 搴旂敤鍙傛暟缁勶紙浠庝笅鎷夐€夋嫨鐨勭粍锛夛紝杩斿洖鐢熸垚鐨?domain 渚涘悗缁娇鐢??domain 渚涘悗缁娇鐢?
   const applyParamGroup = async (
     groupId: number,
     autoMode = false
@@ -507,7 +330,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
           const paramDef = paramDefs.find(def => def.id === p.paramDefId);
           const defaultValStr = p.defaultValue || paramDef?.defaultVal || '';
           const defaultVal = parseFloat(defaultValStr);
-          // DOE模式：优先使用枚举值，否则用默认值
+          // DOE妯″紡锛氫紭鍏堜娇鐢ㄦ灇涓惧€硷紝鍚﹀垯鐢ㄩ粯璁ゅ€?
           const enumStr = p.enumValues || '';
           const useEnum = defaultAlgType === AlgType.DOE && enumStr.trim().length > 0;
           const rangeStr = useEnum ? enumStr : defaultValStr;
@@ -529,7 +352,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
         const currentDomain = config.params.optParams?.domain || [];
         const mergedDomain = mergeDomainWithGroup(groupDomain, currentDomain);
 
-        // DOE 模式下一次性生成全组合，和 domain 一起写入，避免 stale closure
+        // DOE 妯″紡涓嬩竴娆℃€х敓鎴愬叏缁勫悎锛屽拰 domain 涓€璧峰啓鍏ワ紝閬垮厤 stale closure
         let doeExtras: Partial<OptParams> = {};
         if (defaultAlgType === AlgType.DOE) {
           const result = buildDoeCombinations(mergedDomain);
@@ -571,7 +394,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
                 doeParamCsvPath: undefined,
               };
 
-        // 一次性更新 templateSetId + domain + DOE数据
+        // 涓€娆℃€ф洿鏂?templateSetId + domain + DOE鏁版嵁
         onUpdate({
           params: {
             ...config.params,
@@ -601,28 +424,28 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
     return null;
   };
 
-  // DOE 全组合生成（可接受外部 domain 参数，用于自动应用场景）
-  // 自动应用默认参数组（首次加载时）
+  // DOE 鍏ㄧ粍鍚堢敓鎴愶紙鍙帴鍙楀閮?domain 鍙傛暟锛岀敤浜庤嚜鍔ㄥ簲鐢ㄥ満鏅級
+  // 鑷姩搴旂敤榛樿鍙傛暟缁勶紙棣栨鍔犺浇鏃讹級
   useEffect(() => {
     if (autoAppliedRef.current) return;
     if (!onFetchGroupParams || filteredParamGroups.length === 0) return;
-    // 如果已有 domain 数据，不自动覆盖
+    // 濡傛灉宸叉湁 domain 鏁版嵁锛屼笉鑷姩瑕嗙洊
     if ((config.params.optParams?.domain || []).length > 0) return;
 
     autoAppliedRef.current = true;
-    // 优先使用当前已选参数组，否则取第一个
+    // 浼樺厛浣跨敤褰撳墠宸查€夊弬鏁扮粍锛屽惁鍒欏彇绗竴涓?
     const defaultGroup =
       filteredParamGroups.find(
         group => group.id === (selectedGroupId || config.params.templateSetId)
       ) || filteredParamGroups[0];
     setSelectedGroupId(defaultGroup.id);
 
-    // applyParamGroup 内部已一次性完成 domain + DOE 组合生成
+    // applyParamGroup 鍐呴儴宸蹭竴娆℃€у畬鎴?domain + DOE 缁勫悎鐢熸垚
     applyParamGroup(defaultGroup.id, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filteredParamGroups, onFetchGroupParams]);
 
-  // 核验参数域完整性
+  // 鏍搁獙鍙傛暟鍩熷畬鏁存€?
   const verifyParams = () => {
     const domain = config.params.optParams?.domain || [];
     if (domain.length === 0) {
@@ -641,7 +464,7 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
           errors.push(`${d.paramName || '#' + (idx + 1)}: ${t('sub.params.verify_no_values')}`);
         }
       } else {
-        // 贝叶斯模式检查 min < max
+        // 璐濆彾鏂ā寮忔鏌?min < max
         if (d.minValue >= d.maxValue) {
           errors.push(`${d.paramName}: ${t('sub.params.verify_range_error')}`);
         }
@@ -650,602 +473,96 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
 
     if (errors.length > 0) {
       setVerifyStatus(false);
-      setVerifyMessage(errors.join('；'));
+      setVerifyMessage(errors.join('; '));
     } else {
       setVerifyStatus(true);
       setVerifyMessage(
-        `${t('sub.params.verify_pass')}：${domain.length} ${t('sub.params.verify_params_count')}`
+        `${t('sub.params.verify_pass')}: ${domain.length} ${t('sub.params.verify_params_count')}`
       );
     }
   };
 
+  const domain = config.params.optParams?.domain || [];
+  const doeParamHeads = config.params.optParams?.doeParamHeads || [];
+  const doeParamData = config.params.optParams?.doeParamData || [];
   return (
     <div className="space-y-5 pb-6">
-      {/* 参数组选择+应用+核验 */}
-      {filteredParamGroups.length > 0 && (
-        <FormItem label={t('sub.params.apply_group')}>
-          <div className="flex gap-2 items-center">
-            <select
-              className="flex-1 p-2.5 border rounded-lg bg-background text-foreground border-input focus:outline-none focus:ring-2 focus:ring-ring text-sm"
-              value={selectedGroupId || ''}
-              onChange={e => {
-                const id = Number(e.target.value) || null;
-                setSelectedGroupId(id);
-                setVerifyStatus(null);
-                setVerifyMessage('');
-              }}
-            >
-              <option value="">-- {t('sub.params.select_group')} --</option>
-              {filteredParamGroups.map(group => (
-                <option key={group.id} value={group.id}>
-                  {group.name}
-                </option>
-              ))}
-            </select>
-            <Button
-              size="sm"
-              variant="primary"
-              disabled={!selectedGroupId || loadingGroup}
-              onClick={() => {
-                if (!selectedGroupId) return;
-                // applyParamGroup 内部已一次性完成 domain + DOE 组合生成
-                applyParamGroup(selectedGroupId);
-              }}
-            >
-              {loadingGroup ? t('sub.loading') : t('sub.params.apply')}
-            </Button>
-            <Button size="sm" variant="outline" onClick={verifyParams}>
-              <CheckCircleIcon className="w-4 h-4 mr-1" />
-              {t('sub.params.verify')}
-            </Button>
-          </div>
-          {/* 核验结果提示 */}
-          {verifyStatus !== null && (
-            <div
-              className={`mt-2 text-xs px-3 py-2 rounded-lg ${
-                verifyStatus
-                  ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400'
-                  : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400'
-              }`}
-            >
-              {verifyStatus ? '✓ ' : '✗ '}
-              {verifyMessage}
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground mt-1">{t('sub.params.apply_group_hint')}</p>
-        </FormItem>
-      )}
+      <ParamsGroupSection
+        filteredParamGroups={filteredParamGroups}
+        selectedGroupId={selectedGroupId}
+        loadingGroup={loadingGroup}
+        verifyStatus={verifyStatus}
+        verifyMessage={verifyMessage}
+        onChangeGroup={groupId => {
+          setSelectedGroupId(groupId);
+          setVerifyStatus(null);
+          setVerifyMessage('');
+        }}
+        onApplyGroup={() => {
+          if (!selectedGroupId) return;
+          applyParamGroup(selectedGroupId);
+        }}
+        onVerify={verifyParams}
+        t={t}
+      />
 
-      {/* 优化算法选择 */}
-      <FormItem label={t('sub.params.alg_type')}>
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            onClick={() => updateOptParams({ algType: AlgType.BAYESIAN })}
-            className={`p-3 rounded-lg border-2 transition-all ${
-              currentAlgType === AlgType.BAYESIAN
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/50'
-            }`}
-          >
-            <div className="text-sm font-bold text-primary">{t('sub.params.bayesian')}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {t('sub.params.bayesian_desc')}
-            </div>
-          </button>
-          <button
-            onClick={() => updateOptParams({ algType: AlgType.DOE })}
-            className={`p-3 rounded-lg border-2 transition-all ${
-              currentAlgType === AlgType.DOE
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/50'
-            }`}
-          >
-            <div className="text-sm font-bold text-primary">{t('sub.params.doe')}</div>
-            <div className="text-xs text-muted-foreground mt-1">{t('sub.params.doe_desc')}</div>
-          </button>
-          <button
-            onClick={() => updateOptParams({ algType: AlgType.DOE_FILE })}
-            className={`p-3 rounded-lg border-2 transition-all ${
-              currentAlgType === AlgType.DOE_FILE
-                ? 'border-primary bg-primary/5'
-                : 'border-border hover:border-primary/50'
-            }`}
-          >
-            <div className="text-sm font-bold text-primary">{t('sub.params.doe_file')}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {t('sub.params.doe_file_desc')}
-            </div>
-          </button>
-        </div>
-      </FormItem>
+      <ParamsAlgorithmSelector
+        currentAlgType={currentAlgType}
+        onChange={algType => updateOptParams({ algType })}
+        t={t}
+      />
 
-      {/* 参数域配置 - 贝叶斯和 DOE 模式显示 */}
-      {(currentAlgType === AlgType.BAYESIAN || currentAlgType === AlgType.DOE) && (
-        <div>
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-sm font-bold text-foreground">{t('sub.params.domain')}</span>
-            <button
-              onClick={addDomain}
-              className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"
-            >
-              <PlusIcon className="w-4 h-4" />
-              {t('sub.params.add_param')}
-            </button>
-          </div>
+      <ParamsDomainSection
+        currentAlgType={currentAlgType}
+        domain={domain}
+        doeParamHeads={doeParamHeads}
+        doeParamData={doeParamData}
+        doeValidationError={doeValidationError}
+        tableTextInputClass={tableTextInputClass}
+        tableNumberInputClass={tableNumberInputClass}
+        tableCompactNumberInputClass={tableCompactNumberInputClass}
+        onAddDomain={addDomain}
+        onRemoveDomain={removeDomain}
+        onUpdateDomain={updateDomain}
+        onGenerateDoeCombinations={generateDoeCombinations}
+        onAddDoeRow={addDoeRow}
+        onRemoveDoeRow={removeDoeRow}
+        onUpdateDoeCell={updateDoeCell}
+        t={t}
+      />
 
-          {/* 表格形式展示 */}
-          <div className="border border-border rounded-lg overflow-hidden">
-            {/* 表头 */}
-            <div
-              className={`grid ${currentAlgType === AlgType.DOE ? 'grid-cols-[100px_1fr_40px]' : 'grid-cols-[100px_1fr_1fr_1fr_40px]'} bg-muted text-xs font-medium text-muted-foreground`}
-            >
-              <div className="px-2 py-2 border-r border-border">{t('sub.params.param_name')}</div>
-              {currentAlgType === AlgType.DOE ? (
-                <div className="px-2 py-2 border-r border-border">{t('sub.values')}</div>
-              ) : (
-                <>
-                  <div className="px-2 py-2 border-r border-border text-center">{t('sub.min')}</div>
-                  <div className="px-2 py-2 border-r border-border text-center">{t('sub.max')}</div>
-                  <div className="px-2 py-2 border-r border-border text-center">
-                    {t('sub.params.init')}
-                  </div>
-                </>
-              )}
-              <div className="px-2 py-2"></div>
-            </div>
+      <ParamsDoeFileSection
+        currentAlgType={currentAlgType}
+        doeFileInputRef={doeFileInputRef}
+        doeFileDisplayName={doeFileDisplayName}
+        doeFileDownloadUrl={doeFileDownloadUrl}
+        doePasteText={doePasteText}
+        doePasteTextareaClass={doePasteTextareaClass}
+        hasDoeFile={hasDoeFile}
+        doeParamHeads={doeParamHeads}
+        doeParamData={doeParamData}
+        onFileChange={handleFileChange}
+        onClearFile={clearDoeFile}
+        onPasteTextChange={setDoePasteText}
+        onTextareaPaste={handleDoeTextareaPaste}
+        t={t}
+      />
 
-            {/* 表格内容 */}
-            <div className="max-h-[200px] overflow-y-auto custom-scrollbar">
-              {(config.params.optParams?.domain || []).length === 0 ? (
-                <div className="px-3 py-4 text-center text-sm text-muted-foreground">
-                  {t('sub.params.add_param')}
-                </div>
-              ) : (
-                (config.params.optParams?.domain || []).map((domain, idx) => (
-                  <div
-                    key={idx}
-                    className={`grid ${currentAlgType === AlgType.DOE ? 'grid-cols-[100px_1fr_40px]' : 'grid-cols-[100px_1fr_1fr_1fr_40px]'} border-t border-border hover:bg-muted/50`}
-                  >
-                    <div className="px-1 py-1 border-r border-border">
-                      <input
-                        type="text"
-                        className="w-full px-1 py-1 text-sm border-0 bg-transparent focus:ring-1 focus:ring-ring rounded"
-                        placeholder="name"
-                        value={domain.paramName}
-                        onChange={e => updateDomain(idx, { paramName: e.target.value })}
-                      />
-                    </div>
-                    {currentAlgType === AlgType.DOE ? (
-                      <div className="px-1 py-1 border-r border-border">
-                        <input
-                          type="text"
-                          className="w-full px-1 py-1 text-sm border-0 bg-transparent focus:ring-1 focus:ring-ring rounded"
-                          placeholder="0,15,30,45,60,75,90"
-                          value={domain.range}
-                          onChange={e => {
-                            const range = e.target.value;
-                            const rangeList = range
-                              .split(',')
-                              .map(v => Number(v.trim()))
-                              .filter(v => !isNaN(v));
-                            updateDomain(idx, { range, rangeList });
-                          }}
-                        />
-                      </div>
-                    ) : (
-                      <>
-                        <div className="px-1 py-1 border-r border-border">
-                          <input
-                            type="number"
-                            className="w-full px-1 py-1 text-sm border-0 bg-transparent focus:ring-1 focus:ring-ring rounded text-center"
-                            value={domain.minValue}
-                            onChange={e => updateDomain(idx, { minValue: Number(e.target.value) })}
-                          />
-                        </div>
-                        <div className="px-1 py-1 border-r border-border">
-                          <input
-                            type="number"
-                            className="w-full px-1 py-1 text-sm border-0 bg-transparent focus:ring-1 focus:ring-ring rounded text-center"
-                            value={domain.maxValue}
-                            onChange={e => updateDomain(idx, { maxValue: Number(e.target.value) })}
-                          />
-                        </div>
-                        <div className="px-1 py-1 border-r border-border">
-                          <input
-                            type="number"
-                            className="w-full px-1 py-1 text-sm border-0 bg-transparent focus:ring-1 focus:ring-ring rounded text-center"
-                            value={domain.initValue}
-                            onChange={e => updateDomain(idx, { initValue: Number(e.target.value) })}
-                          />
-                        </div>
-                      </>
-                    )}
-                    <div className="px-1 py-1 flex items-center justify-center">
-                      <button
-                        onClick={() => removeDomain(idx)}
-                        className="p-1 text-destructive hover:bg-destructive/10 rounded"
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* DOE 操作区 - 仅 DOE 模式显示 */}
-          {currentAlgType === AlgType.DOE && (
-            <div className="mt-3 space-y-3">
-              <Button
-                onClick={generateDoeCombinations}
-                disabled={(config.params.optParams?.domain || []).length === 0}
-                className="w-full"
-              >
-                <CheckCircleIcon className="w-4 h-4" />
-                {t('sub.params.doe_verify_btn')}
-              </Button>
-              {doeValidationError && <Alert type="error">{doeValidationError}</Alert>}
-
-              {/* DOE 参数组合表格 - 内联显示 */}
-              {config.params.optParams?.doeParamData &&
-                config.params.optParams?.doeParamData.length > 0 && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="text-sm text-primary">
-                        {t('sub.params.doe_total')}: {config.params.optParams?.doeParamData.length}{' '}
-                        {t('sub.params.doe_rounds')}
-                      </div>
-                      <button
-                        onClick={addDoeRow}
-                        className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"
-                      >
-                        <PlusIcon className="w-4 h-4" />
-                        {t('sub.params.doe_add_row')}
-                      </button>
-                    </div>
-                    <div className="border border-border rounded-lg overflow-hidden">
-                      <div className="max-h-[300px] overflow-auto custom-scrollbar">
-                        <div
-                          className="grid gap-px bg-border"
-                          style={{
-                            gridTemplateColumns: `50px repeat(${config.params.optParams?.doeParamHeads?.length || 0}, minmax(80px, 1fr)) 40px`,
-                          }}
-                        >
-                          {/* 表头 */}
-                          <div className="bg-muted px-2 py-2 text-xs font-medium text-center">
-                            #
-                          </div>
-                          {(config.params?.optParams?.doeParamHeads || []).map(h => (
-                            <div
-                              key={h}
-                              className="bg-muted px-2 py-2 text-xs font-medium text-center"
-                            >
-                              {h}
-                            </div>
-                          ))}
-                          <div className="bg-muted"></div>
-
-                          {/* 数据行 */}
-                          {config.params.optParams?.doeParamData.map((row, rowIdx) => (
-                            <React.Fragment key={rowIdx}>
-                              <div className="bg-card px-2 py-1 text-xs text-center text-muted-foreground">
-                                {rowIdx + 1}
-                              </div>
-                              {(config.params?.optParams?.doeParamHeads || []).map(h => (
-                                <div key={h} className="bg-card p-0.5">
-                                  <input
-                                    type="text"
-                                    className="w-full px-1 py-1 text-xs border-0 bg-transparent focus:ring-1 focus:ring-ring rounded text-center"
-                                    value={getDoeCellValue(row, h)}
-                                    onChange={e => updateDoeCell(rowIdx, h, e.target.value)}
-                                  />
-                                </div>
-                              ))}
-                              <div className="bg-card flex items-center justify-center">
-                                <button
-                                  onClick={() => removeDoeRow(rowIdx)}
-                                  className="p-1 text-destructive hover:bg-destructive/10 rounded"
-                                >
-                                  <TrashIcon className="w-3 h-3" />
-                                </button>
-                              </div>
-                            </React.Fragment>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* DOE 文件上传 - 仅 DOE_FILE 模式显示 */}
-      {currentAlgType === AlgType.DOE_FILE && (
-        <FormItem label={t('sub.params.doe_file_upload')}>
-          <input
-            ref={doeFileInputRef}
-            type="file"
-            accept=".csv"
-            className="hidden"
-            onChange={handleFileChange}
-          />
-
-          {hasDoeFile ? (
-            <div className="border rounded-lg px-3 py-2 bg-muted/30">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-sm text-primary break-all">{doeFileDisplayName}</p>
-                <div className="flex items-center gap-2 shrink-0">
-                  {doeFileDownloadUrl ? (
-                    <a
-                      href={doeFileDownloadUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-xs text-primary hover:text-primary/80 underline"
-                    >
-                      <DocumentArrowDownIcon className="w-3 h-3" />
-                      下载
-                    </a>
-                  ) : null}
-                  <button
-                    type="button"
-                    onClick={clearDoeFile}
-                    className="text-xs text-destructive hover:text-destructive/80 underline"
-                  >
-                    清除
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={() => doeFileInputRef.current?.click()}
-                className="w-full border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors"
-              >
-                <DocumentArrowUpIcon className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground">{t('sub.params.doe_file_hint')}</p>
-              </button>
-
-              <div className="mt-2">
-                <textarea
-                  value={doePasteText}
-                  onChange={e => setDoePasteText(e.target.value)}
-                  onPaste={handleDoeTextareaPaste}
-                  rows={4}
-                  className="w-full px-2 py-2 text-xs font-mono border rounded-lg bg-background border-input"
-                  placeholder="支持直接粘贴DOE表格：首行为key，第二行起为每轮数据（粘贴后自动解析）"
-                />
-              </div>
-            </>
-          )}
-
-          <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-            <span>
-              {t('sub.params.doe_total')}: {config.params.optParams?.doeParamData?.length || 0}{' '}
-              {t('sub.params.doe_rounds')}
-            </span>
-          </div>
-
-          {/* DOE 文件解析表格 - 只读显示 */}
-          {config.params.optParams?.doeParamData &&
-            config.params.optParams?.doeParamData.length > 0 && (
-              <div className="mt-3 space-y-2">
-                <div className="border border-border rounded-lg overflow-hidden">
-                  <div className="max-h-[300px] overflow-auto custom-scrollbar">
-                    <div
-                      className="grid gap-px bg-border"
-                      style={{
-                        gridTemplateColumns: `50px repeat(${config.params.optParams?.doeParamHeads?.length || 0}, minmax(80px, 1fr))`,
-                      }}
-                    >
-                      <div className="bg-muted px-2 py-2 text-xs font-medium text-center">#</div>
-                      {(config.params.optParams?.doeParamHeads || []).map(h => (
-                        <div key={h} className="bg-muted px-2 py-2 text-xs font-medium text-center">
-                          {h}
-                        </div>
-                      ))}
-
-                      {config.params.optParams?.doeParamData.map((row, rowIdx) => (
-                        <React.Fragment key={rowIdx}>
-                          <div className="bg-card px-2 py-1 text-xs text-center text-muted-foreground">
-                            {rowIdx + 1}
-                          </div>
-                          {(config.params?.optParams?.doeParamHeads || []).map(h => (
-                            <div key={h} className="bg-card px-2 py-1 text-xs text-center">
-                              {getDoeCellValue(row, h)}
-                            </div>
-                          ))}
-                        </React.Fragment>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-        </FormItem>
-      )}
-
-      {/* 批次配置 - 仅贝叶斯模式显示 */}
-      {currentAlgType === AlgType.BAYESIAN && (
-        <div>
-          <FormItem label={t('sub.params.batch_config')}>
-            {/* 批次类型切换 */}
-            <div className="flex bg-muted rounded-lg p-1 mb-3">
-              <button
-                onClick={() => updateOptParams({ batchSizeType: 1 })}
-                className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-                  batchSizeType === 1 ? 'bg-card shadow text-primary' : 'text-muted-foreground'
-                }`}
-              >
-                {t('sub.params.batch_fixed')}
-              </button>
-              <button
-                onClick={() => updateOptParams({ batchSizeType: 2 })}
-                className={`flex-1 py-2 text-sm font-medium rounded-md transition-all ${
-                  batchSizeType === 2 ? 'bg-card shadow text-primary' : 'text-muted-foreground'
-                }`}
-              >
-                {t('sub.params.batch_custom')}
-              </button>
-            </div>
-
-            {/* 固定批次配置 - 表格形式 */}
-            {batchSizeType === 1 && (
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs text-muted-foreground">
-                    {t('sub.params.batch_list')}
-                  </span>
-                  <button
-                    onClick={addBatchSize}
-                    className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"
-                  >
-                    <PlusIcon className="w-4 h-4" />
-                    {t('sub.params.add_batch')}
-                  </button>
-                </div>
-                <div className="border border-border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-[60px_1fr_40px] bg-muted text-xs font-medium text-muted-foreground">
-                    <div className="px-2 py-2 border-r border-border text-center">
-                      {t('sub.params.batch_round')}
-                    </div>
-                    <div className="px-2 py-2 border-r border-border text-center">
-                      {t('sub.params.batch_size')}
-                    </div>
-                    <div className="px-2 py-2"></div>
-                  </div>
-                  <div className="max-h-[150px] overflow-y-auto custom-scrollbar">
-                    {batchSizeList.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="grid grid-cols-[60px_1fr_40px] border-t border-border"
-                      >
-                        <div className="px-2 py-1 border-r border-border text-center text-sm text-muted-foreground">
-                          {idx + 1}
-                        </div>
-                        <div className="px-1 py-1 border-r border-border">
-                          <input
-                            type="number"
-                            min="1"
-                            className="w-full px-1 py-1 text-sm border-0 bg-transparent focus:ring-1 focus:ring-ring rounded text-center"
-                            value={item.value}
-                            onChange={e => updateBatchSize(idx, Number(e.target.value) || 1)}
-                          />
-                        </div>
-                        <div className="px-1 py-1 flex items-center justify-center">
-                          <button
-                            onClick={() => removeBatchSize(idx)}
-                            disabled={batchSizeList.length <= 2}
-                            className="p-1 text-destructive hover:bg-destructive/10 rounded disabled:opacity-30 disabled:cursor-not-allowed"
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 自定义批次配置 - 表格形式 */}
-            {batchSizeType === 2 && (
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs text-muted-foreground">
-                    {t('sub.params.custom_batch_list')}
-                  </span>
-                  <button
-                    onClick={addCustomBatchSize}
-                    className="flex items-center gap-1 text-xs text-primary hover:text-primary/80"
-                  >
-                    <PlusIcon className="w-4 h-4" />
-                    {t('sub.params.add_batch')}
-                  </button>
-                </div>
-                <div className="border border-border rounded-lg overflow-hidden">
-                  <div className="grid grid-cols-[70px_70px_1fr_40px] bg-muted text-xs font-medium text-muted-foreground">
-                    <div className="px-2 py-2 border-r border-border text-center">
-                      {t('sub.params.start_idx')}
-                    </div>
-                    <div className="px-2 py-2 border-r border-border text-center">
-                      {t('sub.params.end_idx')}
-                    </div>
-                    <div className="px-2 py-2 border-r border-border text-center">
-                      {t('sub.params.batch_size')}
-                    </div>
-                    <div className="px-2 py-2"></div>
-                  </div>
-                  <div className="max-h-[150px] overflow-y-auto custom-scrollbar">
-                    {customBatchSizeList.length === 0 ? (
-                      <div className="px-3 py-4 text-center text-sm text-muted-foreground">
-                        {t('sub.params.add_batch')}
-                      </div>
-                    ) : (
-                      customBatchSizeList.map((item, idx) => (
-                        <div
-                          key={idx}
-                          className="grid grid-cols-[70px_70px_1fr_40px] border-t border-border"
-                        >
-                          <div className="px-1 py-1 border-r border-border">
-                            <input
-                              type="number"
-                              min="0"
-                              className="w-full px-1 py-1 text-sm border-0 bg-transparent focus:ring-1 focus:ring-ring rounded text-center"
-                              value={item.startIndex}
-                              onChange={e =>
-                                updateCustomBatchSize(idx, {
-                                  startIndex: Number(e.target.value) || 0,
-                                })
-                              }
-                            />
-                          </div>
-                          <div className="px-1 py-1 border-r border-border">
-                            <input
-                              type="number"
-                              min="0"
-                              className="w-full px-1 py-1 text-sm border-0 bg-transparent focus:ring-1 focus:ring-ring rounded text-center"
-                              value={item.endIndex}
-                              onChange={e =>
-                                updateCustomBatchSize(idx, {
-                                  endIndex: Number(e.target.value) || 0,
-                                })
-                              }
-                            />
-                          </div>
-                          <div className="px-1 py-1 border-r border-border">
-                            <input
-                              type="number"
-                              min="1"
-                              className="w-full px-1 py-1 text-sm border-0 bg-transparent focus:ring-1 focus:ring-ring rounded text-center"
-                              value={item.value}
-                              onChange={e =>
-                                updateCustomBatchSize(idx, { value: Number(e.target.value) || 1 })
-                              }
-                            />
-                          </div>
-                          <div className="px-1 py-1 flex items-center justify-center">
-                            <button
-                              onClick={() => removeCustomBatchSize(idx)}
-                              className="p-1 text-destructive hover:bg-destructive/10 rounded"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-          </FormItem>
-        </div>
-      )}
+      <ParamsBatchConfigSection
+        currentAlgType={currentAlgType}
+        batchSizeType={batchSizeType}
+        batchSizeList={batchSizeList}
+        customBatchSizeList={customBatchSizeList}
+        tableNumberInputClass={tableNumberInputClass}
+        onBatchTypeChange={batchSizeType => updateOptParams({ batchSizeType })}
+        onAddBatchSize={addBatchSize}
+        onRemoveBatchSize={removeBatchSize}
+        onUpdateBatchSize={updateBatchSize}
+        onAddCustomBatchSize={addCustomBatchSize}
+        onRemoveCustomBatchSize={removeCustomBatchSize}
+        onUpdateCustomBatchSize={updateCustomBatchSize}
+        t={t}
+      />
     </div>
   );
 };

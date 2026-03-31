@@ -1,67 +1,21 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { MenuSquare, Pencil, Plus, RefreshCw, Shield, Trash2, Users } from 'lucide-react';
-import { BulkAssignPanel, PermissionMatrix, PermissionTree } from '@/components/access';
-import {
-  Badge,
-  Button,
-  Card,
-  CardHeader,
-  Checkbox,
-  Input,
-  Modal,
-  Select,
-  Table,
-  Textarea,
-  useToast,
-} from '@/components/ui';
+import { BulkAssignPanel, PermissionMatrix } from '@/components/access';
+import { Badge, Button, Card, CardHeader, Table, useToast } from '@/components/ui';
 import { rbacApi } from '@/api/rbac';
 import { useMenuStore } from '@/stores/menuStore';
 import type { MenuItem, PermissionItem, Role, User } from '@/types';
 import { ConfigTabs, type TabItem } from './components';
+import {
+  MenuFormModal,
+  RoleFormModal,
+  UserFormModal,
+  type MenuFormState,
+  type RoleFormState,
+  type UserFormState,
+} from './components/permissions/PermissionsFormModals';
 
 type ActiveTab = 'users' | 'roles' | 'menus';
-
-type UserFormState = {
-  id?: string;
-  email: string;
-  domainAccount: string;
-  lcUserId: string;
-  userName: string;
-  realName: string;
-  department: string;
-  dailyRoundLimit: string;
-  roleIds: number[];
-  valid: boolean;
-};
-
-type RoleFormState = {
-  id?: number;
-  name: string;
-  code: string;
-  description: string;
-  permissionIds: number[];
-  maxCpuCores: string;
-  maxBatchSize: string;
-  dailyRoundLimitDefault: string;
-  nodeList: string;
-  sort: string;
-  valid: boolean;
-};
-
-type MenuFormState = {
-  id?: number;
-  parentId: string;
-  name: string;
-  titleI18nKey: string;
-  icon: string;
-  path: string;
-  component: string;
-  menuType: string;
-  permissionCode: string;
-  hidden: boolean;
-  valid: boolean;
-  sort: string;
-};
 
 type MenuRow = MenuItem & { depth: number };
 type TableColumn<T extends object> = {
@@ -904,294 +858,36 @@ const PermissionsConfig: React.FC = () => {
         </Card>
       )}
 
-      <Modal
+      <UserFormModal
         isOpen={userModalOpen}
+        form={userForm}
+        roles={roles}
+        saving={saving}
         onClose={() => setUserModalOpen(false)}
-        title={userForm.id ? '编辑用户' : '新建用户'}
-        size="xl"
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input
-              label="域账号"
-              value={userForm.domainAccount}
-              onChange={event =>
-                setUserForm(prev => ({ ...prev, domainAccount: event.target.value }))
-              }
-              placeholder="例如 zhangsan"
-            />
-            <Input
-              label="邮箱"
-              value={userForm.email}
-              onChange={event => setUserForm(prev => ({ ...prev, email: event.target.value }))}
-              placeholder="例如 zhangsan@example.com"
-            />
-            <Input
-              label="显示名"
-              value={userForm.userName}
-              onChange={event => setUserForm(prev => ({ ...prev, userName: event.target.value }))}
-              placeholder="前端展示名称"
-            />
-            <Input
-              label="真实姓名"
-              value={userForm.realName}
-              onChange={event => setUserForm(prev => ({ ...prev, realName: event.target.value }))}
-              placeholder="例如 张三"
-            />
-            <Input
-              label="外部用户 ID"
-              value={userForm.lcUserId}
-              onChange={event => setUserForm(prev => ({ ...prev, lcUserId: event.target.value }))}
-              placeholder="后续可映射自动化系统用户"
-            />
-            <Input
-              label="部门"
-              value={userForm.department}
-              onChange={event => setUserForm(prev => ({ ...prev, department: event.target.value }))}
-              placeholder="例如 CAE 平台组"
-            />
-            <Input
-              label="日轮次上限"
-              type="number"
-              value={userForm.dailyRoundLimit}
-              onChange={event =>
-                setUserForm(prev => ({ ...prev, dailyRoundLimit: event.target.value }))
-              }
-              placeholder="留空则继承权限组默认值"
-            />
-          </div>
+        onSave={() => void handleSaveUser()}
+        onChange={setUserForm}
+      />
 
-          <div className="space-y-3">
-            <div className="text-sm font-medium text-foreground">分配权限组</div>
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              {roles.map(role => (
-                <label
-                  key={role.id}
-                  className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
-                >
-                  <div>
-                    <div className="text-sm font-medium text-foreground">{role.name}</div>
-                    <div className="text-xs text-muted-foreground">{role.code || '未配置编码'}</div>
-                  </div>
-                  <Checkbox
-                    checked={userForm.roleIds.includes(role.id)}
-                    onChange={event =>
-                      setUserForm(prev => ({
-                        ...prev,
-                        roleIds: event.target.checked
-                          ? [...prev.roleIds, role.id]
-                          : prev.roleIds.filter(id => id !== role.id),
-                      }))
-                    }
-                  />
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <Checkbox
-            label="启用该用户"
-            checked={userForm.valid}
-            onChange={event => setUserForm(prev => ({ ...prev, valid: event.target.checked }))}
-          />
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={() => setUserModalOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={() => void handleSaveUser()} loading={saving}>
-              保存
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
+      <RoleFormModal
         isOpen={roleModalOpen}
+        form={roleForm}
+        permissions={permissions}
+        saving={saving}
         onClose={() => setRoleModalOpen(false)}
-        title={roleForm.id ? '编辑权限组' : '新建权限组'}
-        size="xl"
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input
-              label="权限组名称"
-              value={roleForm.name}
-              onChange={event => setRoleForm(prev => ({ ...prev, name: event.target.value }))}
-              placeholder="例如 审批管理员"
-            />
-            <Input
-              label="编码"
-              value={roleForm.code}
-              onChange={event => setRoleForm(prev => ({ ...prev, code: event.target.value }))}
-              placeholder="例如 APPROVAL_ADMIN"
-            />
-            <Input
-              label="CPU 上限"
-              type="number"
-              value={roleForm.maxCpuCores}
-              onChange={event =>
-                setRoleForm(prev => ({ ...prev, maxCpuCores: event.target.value }))
-              }
-            />
-            <Input
-              label="批量提单上限"
-              type="number"
-              value={roleForm.maxBatchSize}
-              onChange={event =>
-                setRoleForm(prev => ({ ...prev, maxBatchSize: event.target.value }))
-              }
-            />
-            <Input
-              label="默认日轮次上限"
-              type="number"
-              value={roleForm.dailyRoundLimitDefault}
-              onChange={event =>
-                setRoleForm(prev => ({ ...prev, dailyRoundLimitDefault: event.target.value }))
-              }
-            />
-            <Input
-              label="节点列表"
-              value={roleForm.nodeList}
-              onChange={event => setRoleForm(prev => ({ ...prev, nodeList: event.target.value }))}
-              placeholder="例如 1,2,5"
-            />
-            <Input
-              label="排序"
-              type="number"
-              value={roleForm.sort}
-              onChange={event => setRoleForm(prev => ({ ...prev, sort: event.target.value }))}
-            />
-          </div>
+        onSave={() => void handleSaveRole()}
+        onChange={setRoleForm}
+      />
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">说明</label>
-            <Textarea
-              value={roleForm.description}
-              onChange={event =>
-                setRoleForm(prev => ({ ...prev, description: event.target.value }))
-              }
-              placeholder="说明这个权限组主要负责什么业务"
-            />
-          </div>
-
-          <div className="space-y-3">
-            <div className="text-sm font-medium text-foreground">配置权限</div>
-            <PermissionTree
-              permissions={permissions}
-              selectedIds={roleForm.permissionIds}
-              onChange={ids => setRoleForm(prev => ({ ...prev, permissionIds: ids }))}
-            />
-          </div>
-
-          <Checkbox
-            label="启用该权限组"
-            checked={roleForm.valid}
-            onChange={event => setRoleForm(prev => ({ ...prev, valid: event.target.checked }))}
-          />
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={() => setRoleModalOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={() => void handleSaveRole()} loading={saving}>
-              保存
-            </Button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
+      <MenuFormModal
         isOpen={menuModalOpen}
+        form={menuForm}
+        menuParentOptions={menuParentOptions}
+        menuTypeOptions={MENU_TYPE_OPTIONS}
+        saving={saving}
         onClose={() => setMenuModalOpen(false)}
-        title={menuForm.id ? '编辑菜单' : '新建菜单'}
-        size="xl"
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Select
-              label="父级菜单"
-              options={menuParentOptions}
-              value={menuForm.parentId}
-              onChange={event => setMenuForm(prev => ({ ...prev, parentId: event.target.value }))}
-            />
-            <Select
-              label="菜单类型"
-              options={MENU_TYPE_OPTIONS}
-              value={menuForm.menuType}
-              onChange={event => setMenuForm(prev => ({ ...prev, menuType: event.target.value }))}
-            />
-            <Input
-              label="菜单名称"
-              value={menuForm.name}
-              onChange={event => setMenuForm(prev => ({ ...prev, name: event.target.value }))}
-              placeholder="例如 申请单管理"
-            />
-            <Input
-              label="国际化 Key"
-              value={menuForm.titleI18nKey}
-              onChange={event =>
-                setMenuForm(prev => ({ ...prev, titleI18nKey: event.target.value }))
-              }
-              placeholder="例如 menu.order.list"
-            />
-            <Input
-              label="图标"
-              value={menuForm.icon}
-              onChange={event => setMenuForm(prev => ({ ...prev, icon: event.target.value }))}
-              placeholder="例如 FolderOpen"
-            />
-            <Input
-              label="权限码"
-              value={menuForm.permissionCode}
-              onChange={event =>
-                setMenuForm(prev => ({ ...prev, permissionCode: event.target.value }))
-              }
-              placeholder="例如 order:create"
-            />
-            <Input
-              label="路由 Path"
-              value={menuForm.path}
-              onChange={event => setMenuForm(prev => ({ ...prev, path: event.target.value }))}
-              placeholder="例如 /orders/create"
-            />
-            <Input
-              label="组件路径"
-              value={menuForm.component}
-              onChange={event => setMenuForm(prev => ({ ...prev, component: event.target.value }))}
-              placeholder="例如 orders/CreateOrderPage"
-            />
-            <Input
-              label="排序"
-              type="number"
-              value={menuForm.sort}
-              onChange={event => setMenuForm(prev => ({ ...prev, sort: event.target.value }))}
-            />
-          </div>
-
-          <div className="flex flex-wrap gap-6">
-            <Checkbox
-              label="隐藏菜单"
-              checked={menuForm.hidden}
-              onChange={event => setMenuForm(prev => ({ ...prev, hidden: event.target.checked }))}
-            />
-            <Checkbox
-              label="启用菜单"
-              checked={menuForm.valid}
-              onChange={event => setMenuForm(prev => ({ ...prev, valid: event.target.checked }))}
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-2">
-            <Button variant="outline" onClick={() => setMenuModalOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={() => void handleSaveMenu()} loading={saving}>
-              保存
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        onSave={() => void handleSaveMenu()}
+        onChange={setMenuForm}
+      />
     </div>
   );
 };

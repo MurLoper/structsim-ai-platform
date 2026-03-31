@@ -8,11 +8,19 @@ import {
 } from '@heroicons/react/24/outline';
 
 import { rbacApi } from '@/api';
-import { Badge, Button, Card, CardHeader, Input, Modal, Select, Tabs } from '@/components/ui';
+import { Badge, Button, Card, CardHeader, Input, Tabs } from '@/components/ui';
 import { BulkAssignPanel, PermissionMatrix, PermissionTree } from '@/components/access';
 import { VirtualTable } from '@/components/tables/VirtualTable';
 import type { ColumnDef } from '@tanstack/react-table';
 import type { PermissionItem, Role, User } from '@/types';
+import {
+  PasswordModal,
+  PermissionFormModal,
+  RoleFormModal,
+  RolePermissionModal,
+  UserFormModal,
+  UserRoleModal,
+} from './components/AccessModals';
 
 const getStatusVariant = (status?: string | number) => {
   if (status === 0 || status === 'disabled' || status === 'inactive') return 'error';
@@ -731,299 +739,86 @@ const AccessControl: React.FC = () => {
         )}
       </Card>
 
-      <Modal isOpen={!!editingUser} onClose={() => setEditingUser(null)} title="分配角色" size="lg">
-        <div className="space-y-4">
-          <div className="text-sm text-slate-500">
-            {editingUser ? getUserDisplayName(editingUser) : ''} ({editingUser?.email})
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {roles.map(role => {
-              const checked = selectedRoleIds.includes(role.id);
-              return (
-                <label
-                  key={role.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700"
-                >
-                  <input
-                    type="checkbox"
-                    className="h-4 w-4 accent-brand-600"
-                    checked={checked}
-                    onChange={() =>
-                      setSelectedRoleIds(prev =>
-                        checked ? prev.filter(id => id !== role.id) : [...prev, role.id]
-                      )
-                    }
-                  />
-                  <div>
-                    <div className="text-sm font-medium text-slate-900 dark:text-white">
-                      {role.name}
-                    </div>
-                    {role.description && (
-                      <div className="text-xs text-slate-500">{role.description}</div>
-                    )}
-                  </div>
-                </label>
-              );
-            })}
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setEditingUser(null)}>
-              取消
-            </Button>
-            <Button onClick={saveUserRoles}>保存</Button>
-          </div>
-        </div>
-      </Modal>
+      <UserRoleModal
+        editingUser={editingUser}
+        roles={roles}
+        selectedRoleIds={selectedRoleIds}
+        onClose={() => setEditingUser(null)}
+        onSave={saveUserRoles}
+        onToggleRole={(roleId, checked) =>
+          setSelectedRoleIds(prev =>
+            checked ? prev.filter(id => id !== roleId) : [...prev, roleId]
+          )
+        }
+        getUserDisplayName={getUserDisplayName}
+      />
 
-      <Modal
+      <UserFormModal
         isOpen={isUserModalOpen}
+        editingUserForm={editingUserForm}
+        userForm={userForm}
+        roles={roles}
         onClose={() => {
           setUserModalOpen(false);
           setEditingUserForm(null);
         }}
-        title={editingUserForm ? '编辑用户' : '新增用户'}
-        size="lg"
-      >
-        <div className="space-y-4">
-          <Input
-            label="域账号"
-            value={userForm.domainAccount}
-            onChange={event =>
-              setUserForm(prev => ({ ...prev, domainAccount: event.target.value }))
-            }
-          />
-          <Input
-            label="邮箱"
-            value={userForm.email}
-            onChange={event => setUserForm(prev => ({ ...prev, email: event.target.value }))}
-          />
-          <Input
-            label="显示名"
-            value={userForm.userName}
-            onChange={event => setUserForm(prev => ({ ...prev, userName: event.target.value }))}
-          />
-          <Input
-            label="真实姓名"
-            value={userForm.realName}
-            onChange={event => setUserForm(prev => ({ ...prev, realName: event.target.value }))}
-          />
-          <Input
-            label={editingUserForm ? '重置密码' : '初始密码'}
-            type="password"
-            value={userForm.password}
-            onChange={event => setUserForm(prev => ({ ...prev, password: event.target.value }))}
-            hint={editingUserForm ? '留空则不修改密码' : undefined}
-          />
-          <Select
-            label="启用状态"
-            options={[
-              { value: '1', label: '启用' },
-              { value: '0', label: '禁用' },
-            ]}
-            value={String(userForm.valid)}
-            onChange={event =>
-              setUserForm(prev => ({ ...prev, valid: Number(event.target.value) }))
-            }
-          />
-          <div>
-            <div className="text-sm font-medium text-slate-700 dark:text-slate-200 mb-2">
-              角色分配
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {roles.map(role => {
-                const checked = userForm.roleIds.includes(role.id);
-                return (
-                  <label
-                    key={role.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 dark:border-slate-700"
-                  >
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-brand-600"
-                      checked={checked}
-                      onChange={() =>
-                        setUserForm(prev => ({
-                          ...prev,
-                          roleIds: checked
-                            ? prev.roleIds.filter(id => id !== role.id)
-                            : [...prev.roleIds, role.id],
-                        }))
-                      }
-                    />
-                    <div>
-                      <div className="text-sm font-medium text-slate-900 dark:text-white">
-                        {role.name}
-                      </div>
-                      {role.description && (
-                        <div className="text-xs text-slate-500">{role.description}</div>
-                      )}
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setUserModalOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={saveUser}>{editingUserForm ? '保存' : '创建'}</Button>
-          </div>
-        </div>
-      </Modal>
+        onSave={saveUser}
+        onFieldChange={(field, value) => setUserForm(prev => ({ ...prev, [field]: value }))}
+        onToggleRole={(roleId, checked) =>
+          setUserForm(prev => ({
+            ...prev,
+            roleIds: checked ? prev.roleIds.filter(id => id !== roleId) : [...prev.roleIds, roleId],
+          }))
+        }
+      />
 
-      <Modal
+      <PasswordModal
         isOpen={isPasswordModalOpen}
+        passwordTarget={passwordTarget}
+        passwordValue={passwordValue}
         onClose={() => {
           setPasswordModalOpen(false);
           setPasswordTarget(null);
         }}
-        title="设置密码"
-        size="md"
-      >
-        <div className="space-y-4">
-          <div className="text-sm text-slate-500">
-            {passwordTarget ? getUserDisplayName(passwordTarget) : ''} ({passwordTarget?.email})
-          </div>
-          <Input
-            label="新密码"
-            type="password"
-            value={passwordValue}
-            onChange={event => setPasswordValue(event.target.value)}
-          />
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setPasswordModalOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={savePassword} disabled={!passwordValue}>
-              保存
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        onSave={savePassword}
+        onChange={setPasswordValue}
+        getUserDisplayName={getUserDisplayName}
+      />
 
-      <Modal
+      <RoleFormModal
         isOpen={isRoleModalOpen}
+        editingRole={editingRole}
+        roleForm={roleForm}
         onClose={() => {
           setRoleModalOpen(false);
           setEditingRole(null);
         }}
-        title="角色配置"
-        size="lg"
-      >
-        <div className="space-y-4">
-          <Input
-            label="角色名称"
-            value={roleForm.name}
-            onChange={event => setRoleForm(prev => ({ ...prev, name: event.target.value }))}
-          />
-          <Input
-            label="角色编码"
-            value={roleForm.code}
-            onChange={event => setRoleForm(prev => ({ ...prev, code: event.target.value }))}
-          />
-          <Input
-            label="角色描述"
-            value={roleForm.description}
-            onChange={event => setRoleForm(prev => ({ ...prev, description: event.target.value }))}
-          />
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setRoleModalOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={saveRole}>{editingRole ? '保存' : '创建'}</Button>
-          </div>
-        </div>
-      </Modal>
+        onSave={saveRole}
+        onFieldChange={(field, value) => setRoleForm(prev => ({ ...prev, [field]: value }))}
+      />
 
-      <Modal
+      <RolePermissionModal
         isOpen={isRolePermissionModalOpen}
+        rolePermissionTarget={rolePermissionTarget}
+        rolePermissionIds={rolePermissionIds}
+        permissions={permissions}
         onClose={() => {
           setRolePermissionTarget(null);
           setRolePermissionModalOpen(false);
         }}
-        title="配置权限"
-        size="xl"
-      >
-        {rolePermissionTarget && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium text-slate-900 dark:text-white">
-                  {rolePermissionTarget.name}
-                </div>
-                <div className="text-xs text-slate-500">{rolePermissionTarget.code}</div>
-              </div>
-              <Badge size="sm">{rolePermissionIds.length} 权限</Badge>
-            </div>
+        onSave={saveRolePermissions}
+        onChange={setRolePermissionIds}
+      />
 
-            <PermissionTree
-              permissions={permissions}
-              selectedIds={rolePermissionIds}
-              onChange={setRolePermissionIds}
-            />
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setRolePermissionTarget(null);
-                  setRolePermissionModalOpen(false);
-                }}
-              >
-                取消
-              </Button>
-
-              <Button onClick={saveRolePermissions}>保存权限</Button>
-            </div>
-          </div>
-        )}
-      </Modal>
-
-      <Modal
+      <PermissionFormModal
         isOpen={isPermissionModalOpen}
+        editingPermission={editingPermission}
+        permissionForm={permissionForm}
+        permissionTypeOptions={permissionTypeOptions}
         onClose={() => setPermissionModalOpen(false)}
-        title={editingPermission ? '编辑权限' : '新增权限'}
-        size="lg"
-      >
-        <div className="space-y-4">
-          <Input
-            label="权限名称"
-            value={permissionForm.name}
-            onChange={event => setPermissionForm(prev => ({ ...prev, name: event.target.value }))}
-          />
-          <Input
-            label="权限编码"
-            value={permissionForm.code}
-            onChange={event => setPermissionForm(prev => ({ ...prev, code: event.target.value }))}
-          />
-          <Select
-            label="权限类型"
-            options={permissionTypeOptions}
-            value={permissionForm.type}
-            onChange={event => setPermissionForm(prev => ({ ...prev, type: event.target.value }))}
-          />
-          <Input
-            label="资源标识"
-            value={permissionForm.resource}
-            onChange={event =>
-              setPermissionForm(prev => ({ ...prev, resource: event.target.value }))
-            }
-          />
-          <Input
-            label="权限描述"
-            value={permissionForm.description}
-            onChange={event =>
-              setPermissionForm(prev => ({ ...prev, description: event.target.value }))
-            }
-          />
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setPermissionModalOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={savePermission}>{editingPermission ? '保存' : '创建'}</Button>
-          </div>
-        </div>
-      </Modal>
+        onSave={savePermission}
+        onFieldChange={(field, value) => setPermissionForm(prev => ({ ...prev, [field]: value }))}
+      />
     </div>
   );
 };
