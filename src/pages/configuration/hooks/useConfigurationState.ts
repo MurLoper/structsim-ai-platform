@@ -1,245 +1,53 @@
 import { useState, useCallback, useMemo } from 'react';
-import {
-  useProjects,
-  useCreateProject,
-  useUpdateProject,
-  useDeleteProject,
-  useSimTypes,
-  useCreateSimType,
-  useUpdateSimType,
-  useDeleteSimType,
-  useParamDefs,
-  useCreateParamDef,
-  useUpdateParamDef,
-  useDeleteParamDef,
-  useSolvers,
-  useCreateSolver,
-  useUpdateSolver,
-  useDeleteSolver,
-  useConditionDefs,
-  useCreateConditionDef,
-  useUpdateConditionDef,
-  useDeleteConditionDef,
-  useOutputDefs,
-  useCreateOutputDef,
-  useUpdateOutputDef,
-  useDeleteOutputDef,
-  useFoldTypes,
-  useCreateFoldType,
-  useUpdateFoldType,
-  useDeleteFoldType,
-  useCareDevices,
-  useCreateCareDevice,
-  useUpdateCareDevice,
-  useDeleteCareDevice,
-  useSolverResources,
-  useCreateSolverResource,
-  useUpdateSolverResource,
-  useDeleteSolverResource,
-  useWorkflows,
-} from '@/features/config/queries';
 import { useToast, useConfirmDialog } from '@/components/ui';
 import { useStableCallback } from '@/hooks/useStableCallback';
 import { useFormState } from '@/hooks/useFormState';
-
-type ModalType =
-  | 'project'
-  | 'simType'
-  | 'paramDef'
-  | 'solver'
-  | 'solverResource'
-  | 'conditionDef'
-  | 'outputDef'
-  | 'foldType'
-  | 'careDevice';
-
-const getDefaultFormData = (type: ModalType) => {
-  switch (type) {
-    case 'project':
-      return { name: '', code: '', sort: 100, remark: '' };
-    case 'simType':
-      return { name: '', code: '', category: 'STRUCTURE', colorTag: 'blue', sort: 100 };
-    case 'paramDef':
-      return {
-        name: '',
-        key: '',
-        valType: 1,
-        unit: '',
-        minVal: 0,
-        maxVal: 100,
-        defaultVal: '',
-        precision: 3,
-        sort: 100,
-      };
-    case 'solver':
-      return {
-        name: '',
-        code: '',
-        version: '2024',
-        cpuCoreMin: 1,
-        cpuCoreMax: 64,
-        cpuCoreDefault: 8,
-        memoryMin: 1,
-        memoryMax: 1024,
-        memoryDefault: 64,
-        sort: 100,
-      };
-    case 'conditionDef':
-      return { name: '', code: '', category: '', unit: '', sort: 100, remark: '' };
-    case 'outputDef':
-      return { name: '', code: '', unit: '', dataType: 'float', sort: 100, remark: '' };
-    case 'foldType':
-      return { name: '', code: '', angle: 0, sort: 100, remark: '' };
-    case 'careDevice':
-      return { name: '', code: '', category: '', sort: 100, remark: '' };
-    case 'solverResource':
-      return { name: '', code: '', description: '', cpuCores: null, memoryGb: null, sort: 100 };
-    default:
-      return {};
-  }
-};
+import {
+  type ConfigurationModalType,
+  getConfigurationDefaultFormData,
+} from './configurationFormDefaults';
+import { useConfigurationCrud } from './useConfigurationCrud';
+import { useConfigurationReferenceData } from './useConfigurationReferenceData';
 
 export const useConfigurationState = () => {
-  const { data: projects = [] } = useProjects();
-  const { data: paramDefs = [] } = useParamDefs();
-  const { data: workflows = [] } = useWorkflows();
-  const { data: simTypes = [] } = useSimTypes();
-  const { data: solvers = [] } = useSolvers();
-  const { data: conditionDefs = [] } = useConditionDefs();
-  const { data: outputDefs = [] } = useOutputDefs();
-  const { data: foldTypes = [] } = useFoldTypes();
-  const { data: careDevices = [] } = useCareDevices();
-  const { data: solverResources = [] } = useSolverResources();
-
-  const createProject = useCreateProject();
-  const updateProject = useUpdateProject();
-  const deleteProject = useDeleteProject();
-
-  const createSimType = useCreateSimType();
-  const updateSimType = useUpdateSimType();
-  const deleteSimType = useDeleteSimType();
-
-  const createParamDef = useCreateParamDef();
-  const updateParamDef = useUpdateParamDef();
-  const deleteParamDef = useDeleteParamDef();
-
-  const createSolver = useCreateSolver();
-  const updateSolver = useUpdateSolver();
-  const deleteSolver = useDeleteSolver();
-
-  const createConditionDef = useCreateConditionDef();
-  const updateConditionDef = useUpdateConditionDef();
-  const deleteConditionDef = useDeleteConditionDef();
-
-  const createOutputDef = useCreateOutputDef();
-  const updateOutputDef = useUpdateOutputDef();
-  const deleteOutputDef = useDeleteOutputDef();
-
-  const createFoldType = useCreateFoldType();
-  const updateFoldType = useUpdateFoldType();
-  const deleteFoldType = useDeleteFoldType();
-
-  const createCareDevice = useCreateCareDevice();
-  const updateCareDevice = useUpdateCareDevice();
-  const deleteCareDevice = useDeleteCareDevice();
-
-  const createSolverResource = useCreateSolverResource();
-  const updateSolverResource = useUpdateSolverResource();
-  const deleteSolverResource = useDeleteSolverResource();
+  const {
+    projects,
+    paramDefs,
+    workflows,
+    simTypes,
+    solvers,
+    conditionDefs,
+    outputDefs,
+    foldTypes,
+    careDevices,
+    solverResources,
+  } = useConfigurationReferenceData();
+  const { saveEntity, deleteEntity } = useConfigurationCrud();
 
   const { showToast } = useToast();
   const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
 
   const [activeTab, setActiveTab] = useState('simTypes');
   const [modalOpen, setModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<ModalType>('simType');
+  const [modalType, setModalType] = useState<ConfigurationModalType>('simType');
   const [editingItem, setEditingItem] = useState<Record<string, unknown> | null>(null);
 
   const initialData = useMemo(
-    () => (editingItem ? { ...editingItem } : getDefaultFormData(modalType)),
+    () => (editingItem ? { ...editingItem } : getConfigurationDefaultFormData(modalType)),
     [editingItem, modalType]
   );
 
   const { formData, updateField, resetForm, handleSubmit, isSubmitting } = useFormState<
     Record<string, unknown>
   >(initialData, async data => {
-    if (modalType === 'project') {
-      if (editingItem) {
-        await updateProject.mutateAsync({ id: editingItem.id as number, data });
-        showToast('success', '项目更新成功');
-      } else {
-        await createProject.mutateAsync(data);
-        showToast('success', '项目创建成功');
-      }
-    } else if (modalType === 'simType') {
-      if (editingItem) {
-        await updateSimType.mutateAsync({ id: editingItem.id as number, data });
-        showToast('success', '仿真类型更新成功');
-      } else {
-        await createSimType.mutateAsync(data);
-        showToast('success', '仿真类型创建成功');
-      }
-    } else if (modalType === 'paramDef') {
-      if (editingItem) {
-        await updateParamDef.mutateAsync({ id: editingItem.id as number, data });
-        showToast('success', '参数定义更新成功');
-      } else {
-        await createParamDef.mutateAsync(data);
-        showToast('success', '参数定义创建成功');
-      }
-    } else if (modalType === 'solver') {
-      if (editingItem) {
-        await updateSolver.mutateAsync({ id: editingItem.id as number, data });
-        showToast('success', '求解器更新成功');
-      } else {
-        await createSolver.mutateAsync(data);
-        showToast('success', '求解器创建成功');
-      }
-    } else if (modalType === 'conditionDef') {
-      if (editingItem) {
-        await updateConditionDef.mutateAsync({ id: editingItem.id as number, data });
-        showToast('success', '工况定义更新成功');
-      } else {
-        await createConditionDef.mutateAsync(data);
-        showToast('success', '工况定义创建成功');
-      }
-    } else if (modalType === 'outputDef') {
-      if (editingItem) {
-        await updateOutputDef.mutateAsync({ id: editingItem.id as number, data });
-        showToast('success', '输出定义更新成功');
-      } else {
-        await createOutputDef.mutateAsync(data);
-        showToast('success', '输出定义创建成功');
-      }
-    } else if (modalType === 'foldType') {
-      if (editingItem) {
-        await updateFoldType.mutateAsync({ id: editingItem.id as number, data });
-        showToast('success', '姿态类型更新成功');
-      } else {
-        await createFoldType.mutateAsync(data);
-        showToast('success', '姿态类型创建成功');
-      }
-    } else if (modalType === 'careDevice') {
-      if (editingItem) {
-        await updateCareDevice.mutateAsync({ id: editingItem.id as number, data });
-        showToast('success', '关注器件更新成功');
-      } else {
-        await createCareDevice.mutateAsync(data);
-        showToast('success', '关注器件创建成功');
-      }
-    } else if (modalType === 'solverResource') {
-      if (editingItem) {
-        await updateSolverResource.mutateAsync({ id: editingItem.id as number, data });
-        showToast('success', '资源池更新成功');
-      } else {
-        await createSolverResource.mutateAsync(data);
-        showToast('success', '资源池创建成功');
-      }
+    const message = await saveEntity(modalType, editingItem, data);
+    if (message) {
+      showToast('success', message);
     }
   });
 
   // 打开新建/编辑弹窗
-  const openModal = useCallback((type: ModalType, item?: object) => {
+  const openModal = useCallback((type: ConfigurationModalType, item?: object) => {
     setModalType(type);
     setEditingItem(item ? (item as Record<string, unknown>) : null);
     setModalOpen(true);
@@ -271,26 +79,7 @@ export const useConfigurationState = () => {
         `确定要删除 "${name}" 吗？此操作无法撤销。`,
         async () => {
           try {
-            if (type === 'project') {
-              await deleteProject.mutateAsync(id);
-            } else if (type === 'simType') {
-              await deleteSimType.mutateAsync(id);
-            } else if (type === 'paramDef') {
-              await deleteParamDef.mutateAsync(id);
-            } else if (type === 'solver') {
-              await deleteSolver.mutateAsync(id);
-            } else if (type === 'conditionDef') {
-              await deleteConditionDef.mutateAsync(id);
-            } else if (type === 'outputDef') {
-              await deleteOutputDef.mutateAsync(id);
-            } else if (type === 'foldType') {
-              await deleteFoldType.mutateAsync(id);
-            } else if (type === 'careDevice') {
-              await deleteCareDevice.mutateAsync(id);
-            } else if (type === 'solverResource') {
-              await deleteSolverResource.mutateAsync(id);
-            }
-
+            await deleteEntity(type as ConfigurationModalType, id);
             showToast('success', '删除成功');
           } catch (error: unknown) {
             console.error('Delete failed:', error);
@@ -301,19 +90,7 @@ export const useConfigurationState = () => {
         'danger'
       );
     },
-    [
-      showConfirm,
-      showToast,
-      deleteProject,
-      deleteSimType,
-      deleteParamDef,
-      deleteSolver,
-      deleteConditionDef,
-      deleteOutputDef,
-      deleteFoldType,
-      deleteCareDevice,
-      deleteSolverResource,
-    ]
+    [showConfirm, showToast, deleteEntity]
   );
 
   const updateFormData = useStableCallback((key: string, value: unknown) => {

@@ -9,7 +9,7 @@ import {
   managementFieldClass,
   managementPrimaryButtonClass,
   managementSearchInputClass,
-} from './sharedManagementStyles';
+} from './managementSurfaceTokens';
 import { OutputGroupFormModal, type OutputRespConfig } from './outputGroups/OutputGroupFormModal';
 
 const POST_PROCESS_MODE_OPTIONS = [

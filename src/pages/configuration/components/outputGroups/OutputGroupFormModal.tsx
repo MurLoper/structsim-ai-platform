@@ -10,7 +10,7 @@ import {
   managementModalPanelClass,
   managementPrimaryButtonDisabledClass,
   managementSecondaryButtonClass,
-} from '../sharedManagementStyles';
+} from '../managementSurfaceTokens';
 
 export interface OutputRespConfig {
   outputDefId: number;

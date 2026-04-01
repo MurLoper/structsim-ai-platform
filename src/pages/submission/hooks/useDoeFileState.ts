@@ -3,7 +3,7 @@ import { configApi } from '@/api';
 import type { ParamGroup } from '@/types/configGroups';
 import type { OptParams } from '../types';
 import { AlgorithmType as AlgType } from '../types';
-import { parseDoeText } from '../components/paramDrawerUtils';
+import { parseDoeText } from '../components/paramDrawerData';
 
 interface UseDoeFileStateOptions {
   currentAlgType: AlgType;

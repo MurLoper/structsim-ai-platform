@@ -9,3 +9,6 @@ export { SimTypeConfigBox } from './SimTypeConfigBox';
 export { DoeVerifyModal } from './DoeVerifyModal';
 export { SubmissionCanvas } from './SubmissionCanvas';
 export { SubmissionDrawerContent } from './SubmissionDrawerContent';
+export { SubmissionToolbar } from './SubmissionToolbar';
+export { SubmissionQuickActions } from './SubmissionQuickActions';
+export { SubmissionCanvasPane } from './SubmissionCanvasPane';

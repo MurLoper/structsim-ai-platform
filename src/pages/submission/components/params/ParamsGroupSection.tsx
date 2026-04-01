@@ -2,7 +2,7 @@ import React from 'react';
 import { CheckCircleIcon } from '@heroicons/react/24/outline';
 import { Button, FormItem } from '@/components/ui';
 import type { ParamGroup } from '@/types/configGroups';
-import { drawerCompactSelectClass, verifyMessageClass } from '../paramDrawerStyles';
+import { drawerCompactSelectClass, verifyMessageClass } from '../paramDrawerClassNames';
 
 interface ParamsGroupSectionProps {
   filteredParamGroups: ParamGroup[];

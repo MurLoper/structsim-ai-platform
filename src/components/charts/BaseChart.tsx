@@ -1,90 +1,23 @@
-/**
- * ECharts 基础图表组件
- *
- * 封装 echarts-for-react，提供主题适配和性能优化
- *
- * @example
- * ```tsx
- * <BaseChart
- *   option={{
- *     xAxis: { type: 'category', data: ['A', 'B', 'C'] },
- *     yAxis: { type: 'value' },
- *     series: [{ type: 'bar', data: [10, 20, 30] }]
- *   }}
- *   height={400}
- * />
- * ```
- */
-import { useMemo, useRef, useEffect } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import ReactECharts from 'echarts-for-react';
-import type { EChartsOption, ECharts } from 'echarts';
+import type { ECharts, EChartsOption } from 'echarts';
 import { useTheme } from '@/hooks/useTheme';
 import { cn } from '@/lib/utils';
+import { CHART_COLOR_PALETTE, CHART_LOADING_ACCENT, CHART_THEME_TOKENS } from './chartThemeTokens';
 
 export interface BaseChartProps {
-  /** ECharts 配置项 */
   option: EChartsOption;
-  /** 图表高度 */
   height?: number | string;
-  /** 图表宽度 */
   width?: number | string;
-  /** 加载状态 */
   loading?: boolean;
-  /** 加载文字 */
   loadingText?: string;
-  /** 事件监听器 */
   onEvents?: Record<string, (params: unknown) => void>;
-  /** 图表实例回调 */
   onChartReady?: (chart: ECharts) => void;
-  /** 自定义类名 */
   className?: string;
-  /** 是否自动调整大小 */
   autoResize?: boolean;
-  /** 渲染器类型 */
   renderer?: 'canvas' | 'svg';
-  /** 是否启用大数据优化 */
   largeData?: boolean;
 }
-
-/** 主题色板 */
-const THEME_COLORS = {
-  light: {
-    textColor: '#374151',
-    axisLineColor: '#e5e7eb',
-    splitLineColor: '#f3f4f6',
-    backgroundColor: 'transparent',
-  },
-  dark: {
-    textColor: '#e5e7eb',
-    axisLineColor: '#374151',
-    splitLineColor: '#1f2937',
-    backgroundColor: 'transparent',
-  },
-  'eyecare-green': {
-    textColor: '#1F3D2B',
-    axisLineColor: '#C1DEC9',
-    splitLineColor: '#DDF2E3',
-    backgroundColor: 'transparent',
-  },
-  'eyecare-warm': {
-    textColor: '#4A3B32',
-    axisLineColor: '#EBE3D5',
-    splitLineColor: '#FAF7F2',
-    backgroundColor: 'transparent',
-  },
-};
-
-/** 默认颜色系列 */
-const COLOR_PALETTE = [
-  '#0ea5e9', // primary
-  '#22c55e', // success
-  '#f59e0b', // warning
-  '#8b5cf6', // purple
-  '#ef4444', // destructive
-  '#06b6d4', // cyan
-  '#ec4899', // pink
-  '#84cc16', // lime
-];
 
 export function BaseChart({
   option,
@@ -101,16 +34,15 @@ export function BaseChart({
 }: BaseChartProps) {
   const chartRef = useRef<ReactECharts>(null);
   const { theme } = useTheme();
-  const themeColors = THEME_COLORS[theme] || THEME_COLORS.light;
+  const themeTokens = CHART_THEME_TOKENS[theme] || CHART_THEME_TOKENS.light;
 
-  // 合并主题配置
   const mergedOption = useMemo<EChartsOption>(() => {
     const baseOption: EChartsOption = {
-      backgroundColor: themeColors.backgroundColor,
+      backgroundColor: themeTokens.backgroundColor,
       textStyle: {
-        color: themeColors.textColor,
+        color: themeTokens.textColor,
       },
-      color: COLOR_PALETTE,
+      color: CHART_COLOR_PALETTE,
       grid: {
         top: 40,
         right: 20,
@@ -120,48 +52,47 @@ export function BaseChart({
       },
       tooltip: {
         trigger: 'axis',
-        backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-        borderColor: theme === 'dark' ? '#374151' : '#e5e7eb',
+        backgroundColor: themeTokens.tooltipBackground,
+        borderColor: themeTokens.tooltipBorder,
         textStyle: {
-          color: themeColors.textColor,
+          color: themeTokens.textColor,
         },
       },
       legend: {
         textStyle: {
-          color: themeColors.textColor,
+          color: themeTokens.textColor,
         },
       },
       xAxis: {
         axisLine: {
-          lineStyle: { color: themeColors.axisLineColor },
+          lineStyle: { color: themeTokens.axisLineColor },
         },
         axisTick: {
-          lineStyle: { color: themeColors.axisLineColor },
+          lineStyle: { color: themeTokens.axisLineColor },
         },
         axisLabel: {
-          color: themeColors.textColor,
+          color: themeTokens.textColor,
         },
         splitLine: {
-          lineStyle: { color: themeColors.splitLineColor },
+          lineStyle: { color: themeTokens.splitLineColor },
         },
       },
       yAxis: {
         axisLine: {
-          lineStyle: { color: themeColors.axisLineColor },
+          lineStyle: { color: themeTokens.axisLineColor },
         },
         axisTick: {
-          lineStyle: { color: themeColors.axisLineColor },
+          lineStyle: { color: themeTokens.axisLineColor },
         },
         axisLabel: {
-          color: themeColors.textColor,
+          color: themeTokens.textColor,
         },
         splitLine: {
-          lineStyle: { color: themeColors.splitLineColor },
+          lineStyle: { color: themeTokens.splitLineColor },
         },
       },
     };
 
-    // 大数据优化
     if (largeData) {
       return {
         ...baseOption,
@@ -175,20 +106,18 @@ export function BaseChart({
     }
 
     return { ...baseOption, ...option };
-  }, [option, theme, themeColors, largeData]);
+  }, [largeData, option, themeTokens]);
 
-  // 加载配置
   const loadingOption = useMemo(
     () => ({
       text: loadingText,
-      color: '#0ea5e9',
-      textColor: themeColors.textColor,
-      maskColor: theme === 'dark' ? 'rgba(0, 0, 0, 0.5)' : 'rgba(255, 255, 255, 0.8)',
+      color: CHART_LOADING_ACCENT,
+      textColor: themeTokens.textColor,
+      maskColor: themeTokens.loadingMaskColor,
     }),
-    [loadingText, theme, themeColors]
+    [loadingText, themeTokens]
   );
 
-  // 图表就绪回调
   useEffect(() => {
     if (chartRef.current && onChartReady) {
       const chartInstance = chartRef.current.getEchartsInstance();
@@ -217,9 +146,6 @@ export function BaseChart({
   );
 }
 
-/**
- * 获取图表实例的 Hook
- */
 export function useChartInstance(chartRef: React.RefObject<ReactECharts>) {
   return useMemo(() => {
     if (chartRef.current) {

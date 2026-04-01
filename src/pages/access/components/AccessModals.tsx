@@ -1,36 +1,16 @@
 import React from 'react';
-import { Badge, Input, Modal, Select } from '@/components/ui';
-import { PermissionTree } from '@/components/access';
+import { Input, Modal, Select } from '@/components/ui';
 import type { PermissionItem, Role, User } from '@/types';
+import type {
+  AccessUserDisplayNameGetter,
+  PermissionFormState,
+  RoleFormState,
+  UserFormState,
+} from '../types';
 import { AccessModalActions, AccessOptionCard } from './AccessFormParts';
 
-type UserFormState = {
-  domainAccount: string;
-  email: string;
-  userName: string;
-  realName: string;
-  password: string;
-  roleIds: number[];
-  valid: number;
-};
-
-type RoleFormState = {
-  name: string;
-  code: string;
-  description: string;
-};
-
-type PermissionFormState = {
-  name: string;
-  code: string;
-  type: string;
-  resource: string;
-  description: string;
-};
-
-type GetUserDisplayName = (
-  user: Pick<User, 'realName' | 'userName' | 'displayName' | 'domainAccount' | 'id' | 'email'>
-) => string;
+export { PasswordModal } from './PasswordModal';
+export { RolePermissionModal } from './RolePermissionModal';
 
 type UserRoleModalProps = {
   editingUser: User | null;
@@ -39,7 +19,7 @@ type UserRoleModalProps = {
   onClose: () => void;
   onSave: () => void;
   onToggleRole: (roleId: number, checked: boolean) => void;
-  getUserDisplayName: GetUserDisplayName;
+  getUserDisplayName: AccessUserDisplayNameGetter;
 };
 
 export const UserRoleModal: React.FC<UserRoleModalProps> = ({
@@ -53,7 +33,7 @@ export const UserRoleModal: React.FC<UserRoleModalProps> = ({
 }) => (
   <Modal isOpen={!!editingUser} onClose={onClose} title="分配角色" size="lg">
     <div className="space-y-4">
-      <div className="text-sm text-slate-500">
+      <div className="text-sm text-muted-foreground">
         {editingUser ? getUserDisplayName(editingUser) : ''} ({editingUser?.email})
       </div>
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -147,7 +127,7 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         onChange={e => onFieldChange('valid', Number(e.target.value))}
       />
       <div>
-        <div className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-200">角色分配</div>
+        <div className="mb-2 text-sm font-medium text-foreground">角色分配</div>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {roles.map(role => {
             const checked = userForm.roleIds.includes(role.id);
@@ -174,46 +154,6 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
         onCancel={onClose}
         onConfirm={onSave}
         confirmText={editingUserForm ? '保存' : '创建'}
-      />
-    </div>
-  </Modal>
-);
-
-type PasswordModalProps = {
-  isOpen: boolean;
-  passwordTarget: User | null;
-  passwordValue: string;
-  onClose: () => void;
-  onSave: () => void;
-  onChange: (value: string) => void;
-  getUserDisplayName: GetUserDisplayName;
-};
-
-export const PasswordModal: React.FC<PasswordModalProps> = ({
-  isOpen,
-  passwordTarget,
-  passwordValue,
-  onClose,
-  onSave,
-  onChange,
-  getUserDisplayName,
-}) => (
-  <Modal isOpen={isOpen} onClose={onClose} title="设置密码" size="md">
-    <div className="space-y-4">
-      <div className="text-sm text-slate-500">
-        {passwordTarget ? getUserDisplayName(passwordTarget) : ''} ({passwordTarget?.email})
-      </div>
-      <Input
-        label="新密码"
-        type="password"
-        value={passwordValue}
-        onChange={e => onChange(e.target.value)}
-      />
-      <AccessModalActions
-        onCancel={onClose}
-        onConfirm={onSave}
-        confirmText="保存"
-        confirmButtonProps={{ disabled: !passwordValue }}
       />
     </div>
   </Modal>
@@ -259,49 +199,6 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
         confirmText={editingRole ? '保存' : '创建'}
       />
     </div>
-  </Modal>
-);
-
-type RolePermissionModalProps = {
-  isOpen: boolean;
-  rolePermissionTarget: Role | null;
-  rolePermissionIds: number[];
-  permissions: PermissionItem[];
-  onClose: () => void;
-  onSave: () => void;
-  onChange: (ids: number[]) => void;
-};
-
-export const RolePermissionModal: React.FC<RolePermissionModalProps> = ({
-  isOpen,
-  rolePermissionTarget,
-  rolePermissionIds,
-  permissions,
-  onClose,
-  onSave,
-  onChange,
-}) => (
-  <Modal isOpen={isOpen} onClose={onClose} title="配置权限" size="xl">
-    {rolePermissionTarget && (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <div className="text-sm font-medium text-slate-900 dark:text-white">
-              {rolePermissionTarget.name}
-            </div>
-            <div className="text-xs text-slate-500">{rolePermissionTarget.code}</div>
-          </div>
-          <Badge size="sm">{rolePermissionIds.length} 权限</Badge>
-        </div>
-
-        <PermissionTree
-          permissions={permissions}
-          selectedIds={rolePermissionIds}
-          onChange={onChange}
-        />
-        <AccessModalActions onCancel={onClose} onConfirm={onSave} confirmText="保存权限" />
-      </div>
-    )}
   </Modal>
 );
 

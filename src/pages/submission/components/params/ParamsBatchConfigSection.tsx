@@ -11,7 +11,7 @@ import {
   tableBodyActionCellClass,
   tableBodyCellClass,
   tableHeaderCellClass,
-} from '../paramDrawerStyles';
+} from '../paramDrawerClassNames';
 
 interface BatchSizeItem {
   value: number;

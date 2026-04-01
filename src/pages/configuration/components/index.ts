@@ -1,5 +1,7 @@
 export { EditModal, FormInput, FormSelect } from './EditModal';
 export { ActionButtons, ConfigCardHeader, ListItem } from './ConfigComponents';
+export { ConfigurationSidebar } from './ConfigurationSidebar';
+export { ConfigurationModalForm } from './ConfigurationModalForm';
 export { ParamGroupsManagement } from './ParamGroupsManagement';
 export { OutputGroupsManagement } from './OutputGroupsManagement';
 export { ConfigRelationsManagement } from './ConfigRelationsManagement';

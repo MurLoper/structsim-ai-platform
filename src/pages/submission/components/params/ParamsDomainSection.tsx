@@ -3,14 +3,14 @@ import { CheckCircleIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outlin
 import { Alert, Button } from '@/components/ui';
 import { AlgorithmType as AlgType } from '../../types';
 import type { ParamDomain } from '../../types';
-import { getDoeCellValue } from '../paramDrawerUtils';
+import { getDoeCellValue } from '../paramDrawerData';
 import {
   drawerActionLinkClass,
   drawerDangerIconButtonClass,
   tableBodyActionCellClass,
   tableBodyCellClass,
   tableHeaderCellClass,
-} from '../paramDrawerStyles';
+} from '../paramDrawerClassNames';
 
 interface ParamsDomainSectionProps {
   currentAlgType: AlgType;

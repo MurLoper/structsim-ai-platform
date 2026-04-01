@@ -1,22 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useUIStore, useAuthStore, useMenuStore } from '@/stores';
+import {
+  ArrowRightOnRectangleIcon,
+  ChevronDownIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  LanguageIcon,
+  MoonIcon,
+  SunIcon,
+  UserCircleIcon,
+} from '@heroicons/react/24/outline';
+import { EyeIcon } from '@heroicons/react/24/outline';
+import { Leaf } from 'lucide-react';
+import clsx from 'clsx';
+import { useAuthStore, useMenuStore, useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
 import { getIconComponent, DefaultIcon } from '@/utils/iconMap';
 import type { MenuItem } from '@/types';
-import {
-  SunIcon,
-  MoonIcon,
-  EyeIcon,
-  LanguageIcon,
-  ArrowRightOnRectangleIcon,
-  UserCircleIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  ChevronDownIcon,
-} from '@heroicons/react/24/outline';
-import { Leaf } from 'lucide-react';
-import clsx from 'clsx';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -31,32 +31,27 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<number[]>([]);
 
-  const t = (key: string) => RESOURCES[language][key] || key;
+  const t = useMemo(() => (key: string) => RESOURCES[language][key] || key, [language]);
+  const visibleMenus = useMemo(() => menus.filter(menu => !menu.hidden), [menus]);
 
-  // Fetch menus on mount
   useEffect(() => {
     fetchMenus();
   }, [fetchMenus]);
 
-  // Filter visible menus (not hidden)
-  const visibleMenus = menus.filter(menu => !menu.hidden);
-
   const toggleSubmenu = (menuId: number) => {
-    setExpandedMenus(prev =>
-      prev.includes(menuId) ? prev.filter(id => id !== menuId) : [...prev, menuId]
+    setExpandedMenus(previous =>
+      previous.includes(menuId) ? previous.filter(id => id !== menuId) : [...previous, menuId]
     );
   };
 
   const isMenuActive = (menu: MenuItem): boolean => {
-    if (location.pathname === menu.path) return true;
+    if (location.pathname === menu.path) {
+      return true;
+    }
     if (menu.children?.length) {
       return menu.children.some(child => location.pathname === child.path);
     }
     return false;
-  };
-
-  const toggleLanguage = () => {
-    setLanguage(language === 'en' ? 'zh' : 'en');
   };
 
   const handleLogout = () => {
@@ -64,40 +59,45 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
     window.location.href = '/#/login';
   };
 
+  const navItemClass = (active: boolean) =>
+    clsx(
+      'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all',
+      active
+        ? 'bg-brand-50 text-brand-600 dark:bg-brand-900/20 dark:text-brand-400 eyecare:bg-secondary eyecare:text-primary'
+        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+    );
+
+  const themeButtonClass = (active: boolean, activeClassName: string) =>
+    clsx('rounded-full p-1 transition-all', active ? activeClassName : 'text-muted-foreground');
+
   return (
-    <div className="min-h-screen flex transition-colors duration-300 bg-slate-50 text-slate-900 dark:bg-slate-900 dark:text-slate-100 eyecare:bg-background eyecare:text-foreground">
-      {/* Sidebar */}
+    <div className="flex min-h-screen bg-background text-foreground transition-colors duration-300">
       <aside
         className={clsx(
-          'fixed h-full z-40 border-r flex flex-col shadow-lg transition-all duration-300',
-          'bg-white dark:bg-slate-800 eyecare:bg-card',
-          'border-slate-200 dark:border-slate-700 eyecare:border-border',
+          'fixed z-40 flex h-full flex-col border-r border-border bg-card shadow-lg transition-all duration-300',
           sidebarCollapsed ? 'w-16' : 'w-64'
         )}
       >
-        {/* Brand */}
         <div
           className={clsx(
-            'h-16 flex items-center border-b transition-all duration-300',
-            'border-slate-200 dark:border-slate-700 eyecare:border-border',
-            sidebarCollapsed ? 'px-3 justify-center' : 'px-6'
+            'flex h-16 items-center border-b border-border transition-all duration-300',
+            sidebarCollapsed ? 'justify-center px-3' : 'px-6'
           )}
         >
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-500 to-indigo-600 flex items-center justify-center text-white font-bold text-xl flex-shrink-0">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-gradient-to-tr from-brand-500 to-indigo-600 text-xl font-bold text-white">
             S
           </div>
           {!sidebarCollapsed && (
-            <span className="font-bold text-lg tracking-tight truncate ml-3">{t('app.title')}</span>
+            <span className="ml-3 truncate text-lg font-bold tracking-tight">{t('app.title')}</span>
           )}
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-2 py-6 space-y-1 overflow-y-auto">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-6">
           {visibleMenus.map(menu => {
             const Icon = getIconComponent(menu.icon) || DefaultIcon;
-            const hasChildren = menu.children?.filter(c => !c.hidden).length > 0;
+            const hasChildren = (menu.children?.filter(child => !child.hidden).length || 0) > 0;
             const isExpanded = expandedMenus.includes(menu.id);
-            const isActive = isMenuActive(menu);
+            const active = isMenuActive(menu);
             const menuLabel = menu.titleI18nKey ? t(menu.titleI18nKey) : menu.name;
 
             if (hasChildren) {
@@ -106,31 +106,26 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
                   <button
                     onClick={() => toggleSubmenu(menu.id)}
                     title={sidebarCollapsed ? menuLabel : undefined}
-                    className={clsx(
-                      'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-                      sidebarCollapsed && 'justify-center',
-                      isActive
-                        ? 'bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 eyecare:bg-secondary eyecare:text-primary'
-                        : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 dark:text-slate-400 eyecare:text-muted-foreground eyecare:hover:bg-secondary/50'
-                    )}
+                    className={clsx(navItemClass(active), sidebarCollapsed && 'justify-center')}
                   >
-                    <Icon className="w-5 h-5 flex-shrink-0" />
+                    <Icon className="h-5 w-5 flex-shrink-0" />
                     {!sidebarCollapsed && (
                       <>
                         <span className="flex-1 text-left">{menuLabel}</span>
                         <ChevronDownIcon
                           className={clsx(
-                            'w-4 h-4 transition-transform',
+                            'h-4 w-4 transition-transform',
                             isExpanded && 'rotate-180'
                           )}
                         />
                       </>
                     )}
                   </button>
+
                   {!sidebarCollapsed && isExpanded && (
                     <div className="ml-4 mt-1 space-y-1">
                       {menu.children
-                        .filter(c => !c.hidden)
+                        ?.filter(child => !child.hidden)
                         .map(child => {
                           const ChildIcon = getIconComponent(child.icon) || DefaultIcon;
                           const childLabel = child.titleI18nKey
@@ -144,13 +139,11 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
                               key={child.id}
                               to={child.path}
                               className={clsx(
-                                'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all',
-                                location.pathname === child.path
-                                  ? 'bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 eyecare:bg-secondary eyecare:text-primary'
-                                  : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 dark:text-slate-400 eyecare:text-muted-foreground eyecare:hover:bg-secondary/50'
+                                navItemClass(location.pathname === child.path),
+                                'text-sm font-normal'
                               )}
                             >
-                              <ChildIcon className="w-4 h-4 flex-shrink-0" />
+                              <ChildIcon className="h-4 w-4 flex-shrink-0" />
                               {childLabel}
                             </Link>
                           );
@@ -171,66 +164,39 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
                 to={menu.path}
                 title={sidebarCollapsed ? menuLabel : undefined}
                 className={clsx(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
-                  sidebarCollapsed && 'justify-center',
-                  location.pathname === menu.path
-                    ? 'bg-brand-50 dark:bg-brand-900/20 text-brand-600 dark:text-brand-400 eyecare:bg-secondary eyecare:text-primary'
-                    : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 dark:text-slate-400 eyecare:text-muted-foreground eyecare:hover:bg-secondary/50'
+                  navItemClass(location.pathname === menu.path),
+                  sidebarCollapsed && 'justify-center'
                 )}
               >
-                <Icon className="w-5 h-5 flex-shrink-0" />
+                <Icon className="h-5 w-5 flex-shrink-0" />
                 {!sidebarCollapsed && menuLabel}
               </Link>
             );
           })}
         </nav>
 
-        {/* User & Settings Footer */}
-        <div
-          className={clsx(
-            'p-4 border-t space-y-4',
-            theme === 'eyecare-green' || theme === 'eyecare-warm'
-              ? 'border-border'
-              : 'border-slate-200 dark:border-slate-700'
-          )}
-        >
-          {/* User Profile */}
+        <div className="space-y-4 border-t border-border p-4">
           {!sidebarCollapsed && (
             <div className="flex items-center gap-3 px-2">
-              <div
-                className={clsx(
-                  'w-10 h-10 rounded-full flex items-center justify-center',
-                  theme === 'eyecare-green' || theme === 'eyecare-warm'
-                    ? 'bg-secondary text-muted-foreground'
-                    : 'bg-slate-200 dark:bg-slate-700 text-slate-500'
-                )}
-              >
-                <UserCircleIcon className="w-6 h-6" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-muted-foreground">
+                <UserCircleIcon className="h-6 w-6" />
               </div>
-              <div className="flex-1 min-w-0">
-                <div
-                  className={clsx(
-                    'text-sm font-medium truncate',
-                    theme === 'eyecare-green' || theme === 'eyecare-warm'
-                      ? 'text-foreground'
-                      : 'text-slate-900 dark:text-white'
-                  )}
-                >
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium text-foreground">
                   {user?.realName || user?.userName || user?.displayName || user?.domainAccount}
                 </div>
-                <div className="text-xs text-muted-foreground truncate">{user?.email}</div>
+                <div className="truncate text-xs text-muted-foreground">{user?.email}</div>
               </div>
               <button
                 onClick={handleLogout}
-                className="text-muted-foreground hover:text-destructive"
-                title="Logout"
+                className="text-muted-foreground transition-colors hover:text-destructive"
+                title="退出登录"
               >
-                <ArrowRightOnRectangleIcon className="w-5 h-5" />
+                <ArrowRightOnRectangleIcon className="h-5 w-5" />
               </button>
             </div>
           )}
 
-          {/* Theme & Language */}
           <div
             className={clsx(
               'flex items-center px-2',
@@ -239,100 +205,72 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
           >
             {!sidebarCollapsed && (
               <button
-                onClick={toggleLanguage}
-                className={clsx(
-                  'flex items-center gap-1.5 text-xs font-semibold hover:text-primary',
-                  theme === 'eyecare-green' || theme === 'eyecare-warm'
-                    ? 'text-muted-foreground'
-                    : 'text-slate-600 dark:text-slate-300'
-                )}
+                onClick={() => setLanguage(language === 'en' ? 'zh' : 'en')}
+                className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:text-primary"
               >
-                <LanguageIcon className="w-4 h-4" />
+                <LanguageIcon className="h-4 w-4" />
                 {t('lang.switch')}
               </button>
             )}
 
-            <div
-              className={clsx(
-                'flex items-center gap-1 p-1 rounded-full',
-                'bg-slate-100 dark:bg-slate-700',
-                'eyecare:bg-secondary'
-              )}
-            >
+            <div className="flex items-center gap-1 rounded-full bg-secondary p-1">
               <button
                 onClick={() => setTheme('light')}
-                className={clsx(
-                  'p-1 rounded-full',
-                  theme === 'light' ? 'bg-white shadow text-amber-500' : 'text-muted-foreground'
-                )}
-                title="白天"
+                className={themeButtonClass(theme === 'light', 'bg-card shadow text-amber-500')}
+                title="浅色主题"
               >
-                <SunIcon className="w-3 h-3" />
+                <SunIcon className="h-3 w-3" />
               </button>
               <button
                 onClick={() => setTheme('dark')}
-                className={clsx(
-                  'p-1 rounded-full',
-                  theme === 'dark' ? 'bg-slate-600 shadow text-indigo-400' : 'text-muted-foreground'
-                )}
-                title="黑夜"
+                className={themeButtonClass(theme === 'dark', 'bg-card shadow text-indigo-400')}
+                title="深色主题"
               >
-                <MoonIcon className="w-3 h-3" />
+                <MoonIcon className="h-3 w-3" />
               </button>
               <button
                 onClick={() => setTheme('eyecare-green')}
-                className={clsx(
-                  'p-1 rounded-full',
-                  theme === 'eyecare-green'
-                    ? 'bg-green-100 shadow text-green-600'
-                    : 'text-muted-foreground'
+                className={themeButtonClass(
+                  theme === 'eyecare-green',
+                  'bg-card shadow text-green-600'
                 )}
-                title="绿豆沙"
+                title="护眼绿主题"
               >
-                <Leaf className="w-3 h-3" />
+                <Leaf className="h-3 w-3" />
               </button>
               <button
                 onClick={() => setTheme('eyecare-warm')}
-                className={clsx(
-                  'p-1 rounded-full',
-                  theme === 'eyecare-warm'
-                    ? 'bg-amber-100 shadow text-amber-600'
-                    : 'text-muted-foreground'
+                className={themeButtonClass(
+                  theme === 'eyecare-warm',
+                  'bg-card shadow text-amber-600'
                 )}
-                title="米黄纸"
+                title="护眼暖色主题"
               >
-                <EyeIcon className="w-3 h-3" />
+                <EyeIcon className="h-3 w-3" />
               </button>
             </div>
           </div>
         </div>
       </aside>
 
-      {/* Sidebar Collapse Toggle - Floating Button */}
       <button
         onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
         className={clsx(
-          'fixed z-50 top-1/2 -translate-y-1/2 w-6 h-12 flex items-center justify-center',
-          'rounded-r-lg shadow-md border border-l-0 transition-all duration-300',
-          'hover:w-8 group',
-          sidebarCollapsed ? 'left-16' : 'left-64',
-          theme === 'eyecare-green' || theme === 'eyecare-warm'
-            ? 'bg-card border-border text-muted-foreground hover:text-primary'
-            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 hover:text-brand-600 dark:hover:text-brand-400'
+          'fixed top-1/2 z-50 flex h-12 w-6 -translate-y-1/2 items-center justify-center rounded-r-lg border border-l-0 border-border bg-card text-muted-foreground shadow-md transition-all duration-300 hover:w-8 hover:text-primary',
+          sidebarCollapsed ? 'left-16' : 'left-64'
         )}
         title={sidebarCollapsed ? t('sidebar.expand') : t('sidebar.collapse')}
       >
         {sidebarCollapsed ? (
-          <ChevronRightIcon className="w-4 h-4 transition-transform group-hover:scale-110" />
+          <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:scale-110" />
         ) : (
-          <ChevronLeftIcon className="w-4 h-4 transition-transform group-hover:scale-110" />
+          <ChevronLeftIcon className="h-4 w-4 transition-transform group-hover:scale-110" />
         )}
       </button>
 
-      {/* Main Content */}
       <main
         className={clsx(
-          'flex-1 overflow-y-auto h-screen transition-all duration-300 relative',
+          'relative h-screen flex-1 overflow-y-auto transition-all duration-300',
           sidebarCollapsed ? 'ml-16' : 'ml-64'
         )}
       >

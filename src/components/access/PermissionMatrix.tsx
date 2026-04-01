@@ -24,13 +24,13 @@ export const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
       map.set(role.id, new Set(rolePermissionMap[role.id] || []));
     });
     return map;
-  }, [roles, rolePermissionMap]);
+  }, [rolePermissionMap, roles]);
 
   return (
-    <div className="overflow-auto rounded-lg border border-slate-200 dark:border-slate-700">
+    <div className="overflow-auto rounded-lg border border-border">
       <table className="min-w-full text-sm">
         <thead>
-          <tr className="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          <tr className="bg-muted text-muted-foreground">
             <th className="px-4 py-3 text-left font-semibold">权限</th>
             {roles.map(role => (
               <th key={role.id} className="px-4 py-3 text-center font-semibold">
@@ -44,10 +44,10 @@ export const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
         </thead>
         <tbody>
           {permissions.map(permission => (
-            <tr key={permission.id} className="border-t border-slate-200 dark:border-slate-700">
+            <tr key={permission.id} className="border-t border-border">
               <td className="px-4 py-3">
-                <div className="font-medium text-slate-900 dark:text-white">{permission.name}</div>
-                <div className="text-xs text-slate-400">{permission.code}</div>
+                <div className="font-medium text-foreground">{permission.name}</div>
+                <div className="text-xs text-muted-foreground">{permission.code}</div>
               </td>
               {roles.map(role => {
                 const checked = rolePermissionSets.get(role.id)?.has(permission.id) ?? false;
@@ -57,9 +57,7 @@ export const PermissionMatrix: React.FC<PermissionMatrixProps> = ({
                       type="button"
                       className={clsx(
                         'h-5 w-5 rounded-full border transition-colors',
-                        checked
-                          ? 'border-brand-600 bg-brand-600'
-                          : 'border-slate-300 dark:border-slate-600',
+                        checked ? 'border-brand-600 bg-brand-600' : 'border-border',
                         readOnly && 'cursor-not-allowed opacity-60'
                       )}
                       onClick={() => !readOnly && onToggle?.(role.id, permission.id)}

@@ -1,7 +1,7 @@
 import React from 'react';
 import { FormItem } from '@/components/ui';
 import { AlgorithmType as AlgType } from '../../types';
-import { drawerOptionCardClass } from '../paramDrawerStyles';
+import { drawerOptionCardClass } from '../paramDrawerClassNames';
 
 interface ParamsAlgorithmSelectorProps {
   currentAlgType: AlgType;

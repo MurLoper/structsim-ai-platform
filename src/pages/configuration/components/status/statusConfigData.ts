@@ -1,0 +1,17 @@
+export const STATUS_PRESET_COLORS = [
+  { value: '#22c55e', label: '绿色' },
+  { value: '#3b82f6', label: '蓝色' },
+  { value: '#f59e0b', label: '橙色' },
+  { value: '#ef4444', label: '红色' },
+  { value: '#8b5cf6', label: '紫色' },
+  { value: '#06b6d4', label: '青色' },
+  { value: '#ec4899', label: '粉色' },
+  { value: '#6b7280', label: '灰色' },
+  { value: '#14b8a6', label: '青绿' },
+  { value: '#f97316', label: '橘色' },
+  { value: '#84cc16', label: '黄绿' },
+  { value: '#a855f7', label: '亮紫' },
+  { value: '#0ea5e9', label: '天蓝' },
+  { value: '#f43f5e', label: '玫红' },
+  { value: '#64748b', label: '石板灰' },
+];

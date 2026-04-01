@@ -2,8 +2,8 @@ import React from 'react';
 import { DocumentArrowDownIcon, DocumentArrowUpIcon } from '@heroicons/react/24/outline';
 import { FormItem } from '@/components/ui';
 import { AlgorithmType as AlgType } from '../../types';
-import { getDoeCellValue } from '../paramDrawerUtils';
-import { drawerUploadButtonClass } from '../paramDrawerStyles';
+import { getDoeCellValue } from '../paramDrawerData';
+import { drawerUploadButtonClass } from '../paramDrawerClassNames';
 
 interface ParamsDoeFileSectionProps {
   currentAlgType: AlgType;

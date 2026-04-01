@@ -1,27 +1,12 @@
 import { useMemo } from 'react';
-import type { ColumnDef } from '@tanstack/react-table';
-import { ChevronLeft, ChevronRight, Sigma, Download } from 'lucide-react';
-import { Badge, Select, Button } from '@/components/ui';
+import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { Badge, Button, Select } from '@/components/ui';
 import { VirtualTable } from '@/components/tables/VirtualTable';
 import type { OrderConditionRoundColumn, OrderConditionSummary, RoundItem } from '@/api/results';
-import { exportAoaToExcel, type ExcelCellValue, type ExcelMergeRange } from '@/utils/excel';
-
-const STATUS_MAP: Record<
-  number,
-  { label: string; variant: 'default' | 'success' | 'warning' | 'error' }
-> = {
-  0: { label: '待运行', variant: 'default' },
-  1: { label: '运行中', variant: 'warning' },
-  2: { label: '已完成', variant: 'success' },
-  3: { label: '失败', variant: 'error' },
-};
-
-const PAGE_SIZE_OPTIONS = [
-  { value: '500', label: '500 / 页' },
-  { value: '2000', label: '2000 / 页' },
-  { value: '5000', label: '5000 / 页' },
-  { value: '20000', label: '20000 / 页' },
-];
+import { ConditionResultSummaryCards } from './results/ConditionResultSummaryCards';
+import { CONDITION_RESULT_PAGE_SIZE_OPTIONS } from './results/conditionResultConfig';
+import { createConditionResultColumns } from './results/createConditionResultColumns';
+import { exportConditionResultTable } from './results/exportConditionResultTable';
 
 export interface ConditionResultTableProps {
   conditionId: number;
@@ -41,18 +26,6 @@ export interface ConditionResultTableProps {
   onPageSizeChange?: (pageSize: number) => void;
 }
 
-const getColumnLabel = (column: OrderConditionRoundColumn) => {
-  if (column.label) return column.label;
-  const fallback = column.key.split('.').pop();
-  return fallback || column.key;
-};
-
-const formatNumeric = (value: unknown, digits = 4) => {
-  if (value === undefined || value === null) return '-';
-  const numberValue = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(numberValue) ? numberValue.toFixed(digits) : String(value);
-};
-
 export const ConditionResultTable: React.FC<ConditionResultTableProps> = ({
   conditionId,
   conditionName,
@@ -70,134 +43,10 @@ export const ConditionResultTable: React.FC<ConditionResultTableProps> = ({
   onPageChange,
   onPageSizeChange,
 }) => {
-  const tableColumns = useMemo<ColumnDef<RoundItem>[]>(() => {
-    const resolvedColumns =
-      columns.length > 0
-        ? columns
-        : [
-            { key: 'roundIndex', label: '轮次', type: 'base' },
-            { key: 'process', label: '进度', type: 'progress' },
-          ];
-
-    const schemaDefs = resolvedColumns.map(column => {
-      if (column.key === 'roundIndex') {
-        return {
-          id: 'roundIndex',
-          header: getColumnLabel(column),
-          accessorKey: 'roundIndex',
-          size: 88,
-          cell: ({ row }: { row: { original: RoundItem } }) => (
-            <span className="font-medium tabular-nums">{row.original.roundIndex}</span>
-          ),
-        } satisfies ColumnDef<RoundItem>;
-      }
-
-      if (column.key === 'runningModule') {
-        return {
-          id: 'runningModule',
-          header: getColumnLabel(column),
-          size: 120,
-          cell: ({ row }: { row: { original: RoundItem } }) => row.original.runningModule || '-',
-        } satisfies ColumnDef<RoundItem>;
-      }
-
-      if (column.key === 'process') {
-        return {
-          id: 'process',
-          header: getColumnLabel(column),
-          size: 100,
-          cell: ({ row }: { row: { original: RoundItem } }) => (
-            <span className="tabular-nums">{row.original.progress}%</span>
-          ),
-        } satisfies ColumnDef<RoundItem>;
-      }
-
-      if (column.key === 'finalResult') {
-        return {
-          id: 'finalResult',
-          header: getColumnLabel(column),
-          size: 128,
-          cell: ({ row }: { row: { original: RoundItem } }) => (
-            <span className="font-medium tabular-nums text-emerald-600 dark:text-emerald-400">
-              {formatNumeric(row.original.finalResult, 4)}
-            </span>
-          ),
-        } satisfies ColumnDef<RoundItem>;
-      }
-
-      if (column.key.startsWith('params.')) {
-        const key = column.key.replace('params.', '');
-        return {
-          id: `param_${key}`,
-          header: getColumnLabel(column),
-          size: 120,
-          cell: ({ row }: { row: { original: RoundItem } }) => (
-            <span className="tabular-nums">
-              {formatNumeric(row.original.paramValues?.[key], 2)}
-            </span>
-          ),
-        } satisfies ColumnDef<RoundItem>;
-      }
-
-      if (column.key.startsWith('outputs.')) {
-        const key = column.key.replace('outputs.', '');
-        const isWeighted = column.type === 'output_weighted';
-        return {
-          id: `output_${key}`,
-          header: getColumnLabel(column),
-          size: 132,
-          cell: ({ row }: { row: { original: RoundItem } }) => (
-            <span
-              className={`tabular-nums ${
-                isWeighted
-                  ? 'font-medium text-emerald-600 dark:text-emerald-400'
-                  : 'text-blue-600 dark:text-blue-400'
-              }`}
-            >
-              {formatNumeric(row.original.outputResults?.[key], 4)}
-            </span>
-          ),
-        } satisfies ColumnDef<RoundItem>;
-      }
-
-      return {
-        id: column.key,
-        header: getColumnLabel(column),
-        size: 120,
-        cell: () => '-',
-      } satisfies ColumnDef<RoundItem>;
-    });
-
-    schemaDefs.push({
-      id: 'status',
-      header: '状态',
-      size: 96,
-      cell: ({ row }) => {
-        const config = STATUS_MAP[row.original.status] || STATUS_MAP[0];
-        return (
-          <Badge variant={config.variant} size="sm">
-            {config.label}
-          </Badge>
-        );
-      },
-    });
-
-    schemaDefs.push({
-      id: 'isBest',
-      header: '最优',
-      size: 80,
-      cell: ({ row }) =>
-        bestRoundIndex === row.original.roundIndex ? (
-          <Badge variant="success" size="sm">
-            最优
-          </Badge>
-        ) : (
-          <span />
-        ),
-    });
-
-    return schemaDefs;
-  }, [bestRoundIndex, columns]);
+  const tableColumns = useMemo(
+    () => createConditionResultColumns({ columns, bestRoundIndex }),
+    [bestRoundIndex, columns]
+  );
 
   const finalResultStats = useMemo(() => {
     const values = rounds
@@ -221,7 +70,7 @@ export const ConditionResultTable: React.FC<ConditionResultTableProps> = ({
   const rangeEnd = total === 0 ? 0 : Math.min(safePage * safePageSize, total);
 
   const metaItems = [
-    condition?.conditionId ? `工况ID ${condition.conditionId}` : null,
+    condition?.conditionId ? `工况 ID ${condition.conditionId}` : null,
     condition?.foldTypeId ? `FoldType ${condition.foldTypeId}` : null,
     condition?.simTypeId ? `SimType ${condition.simTypeId}` : null,
     condition?.algorithmType ? `算法 ${condition.algorithmType}` : null,
@@ -231,118 +80,12 @@ export const ConditionResultTable: React.FC<ConditionResultTableProps> = ({
   ].filter(Boolean);
 
   const handleExport = async () => {
-    const aoa: ExcelCellValue[][] = [];
-    const merges: ExcelMergeRange[] = [];
-
-    // Group columns for multi-level header
-    const baseCols = tableColumns.filter(
-      c =>
-        !c.id?.startsWith('param_') &&
-        !c.id?.startsWith('output_') &&
-        c.id !== 'status' &&
-        c.id !== 'isBest'
-    );
-    const paramCols = tableColumns.filter(c => c.id?.startsWith('param_'));
-    const outputCols = tableColumns.filter(c => c.id?.startsWith('output_'));
-    const metaCols = tableColumns.filter(c => c.id === 'status' || c.id === 'isBest');
-
-    // Has multi-level headers if we have param or output cols
-    const hasGroups = paramCols.length > 0 || outputCols.length > 0;
-
-    if (hasGroups) {
-      const headerRow1: string[] = [];
-      const headerRow2: string[] = [];
-      let colIndex = 0;
-
-      // Base cols
-      baseCols.forEach(col => {
-        headerRow1.push('基本信息');
-        headerRow2.push(typeof col.header === 'string' ? col.header : String(col.id));
-        colIndex++;
-      });
-      // Merge '基本信息'
-      if (baseCols.length > 1) {
-        merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: baseCols.length - 1 } });
-      }
-
-      // Param cols
-      if (paramCols.length > 0) {
-        const startIdx = colIndex;
-        paramCols.forEach(col => {
-          headerRow1.push('参数配置 (Params)');
-          headerRow2.push(typeof col.header === 'string' ? col.header : String(col.id));
-          colIndex++;
-        });
-        if (paramCols.length > 1) {
-          merges.push({ s: { r: 0, c: startIdx }, e: { r: 0, c: colIndex - 1 } });
-        }
-      }
-
-      // Output cols
-      if (outputCols.length > 0) {
-        const startIdx = colIndex;
-        outputCols.forEach(col => {
-          headerRow1.push('输出结果 (Outputs)');
-          headerRow2.push(typeof col.header === 'string' ? col.header : String(col.id));
-          colIndex++;
-        });
-        if (outputCols.length > 1) {
-          merges.push({ s: { r: 0, c: startIdx }, e: { r: 0, c: colIndex - 1 } });
-        }
-      }
-
-      // Meta cols
-      if (metaCols.length > 0) {
-        const startIdx = colIndex;
-        metaCols.forEach(col => {
-          headerRow1.push('其他信息');
-          headerRow2.push(typeof col.header === 'string' ? col.header : String(col.id));
-          colIndex++;
-        });
-        if (metaCols.length > 1) {
-          merges.push({ s: { r: 0, c: startIdx }, e: { r: 0, c: colIndex - 1 } });
-        }
-      }
-
-      aoa.push(headerRow1);
-      aoa.push(headerRow2);
-    } else {
-      const headerRow = tableColumns.map(col =>
-        typeof col.header === 'string' ? col.header : String(col.id)
-      );
-      aoa.push(headerRow);
-    }
-
-    const orderedCols = hasGroups
-      ? [...baseCols, ...paramCols, ...outputCols, ...metaCols]
-      : tableColumns;
-
-    rounds.forEach(row => {
-      const rowData = orderedCols.map(col => {
-        if (col.id === 'roundIndex') return row.roundIndex;
-        if (col.id === 'runningModule') return row.runningModule || '-';
-        if (col.id === 'process') return `${row.progress}%`;
-        if (col.id === 'finalResult') return row.finalResult ?? '-';
-        if (col.id?.startsWith('param_')) {
-          const key = col.id.replace('param_', '');
-          return row.paramValues?.[key] ?? '-';
-        }
-        if (col.id?.startsWith('output_')) {
-          const key = col.id.replace('output_', '');
-          return row.outputResults?.[key] ?? '-';
-        }
-        if (col.id === 'status') {
-          return STATUS_MAP[row.status]?.label || '未知';
-        }
-        if (col.id === 'isBest') {
-          return bestRoundIndex === row.roundIndex ? '最优' : '';
-        }
-        return '-';
-      });
-      aoa.push(rowData);
+    await exportConditionResultTable({
+      conditionName,
+      rounds,
+      tableColumns,
+      bestRoundIndex,
     });
-
-    await exportAoaToExcel(aoa, `${conditionName}-明细结果`, merges);
   };
 
   return (
@@ -368,7 +111,7 @@ export const ConditionResultTable: React.FC<ConditionResultTableProps> = ({
               className="ml-2"
               disabled={rounds.length === 0}
             >
-              <Download className="h-4 w-4 mr-1.5" />
+              <Download className="mr-1.5 h-4 w-4" />
               导出 Excel
             </Button>
           </div>
@@ -381,34 +124,12 @@ export const ConditionResultTable: React.FC<ConditionResultTableProps> = ({
           </div>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-900/50">
-            <div className="text-xs uppercase tracking-[0.16em] text-slate-500">当前页</div>
-            <div className="mt-2 font-medium tabular-nums">
-              {rangeStart}-{rangeEnd}
-            </div>
-          </div>
-          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-900/50">
-            <div className="text-xs uppercase tracking-[0.16em] text-slate-500">总轮次</div>
-            <div className="mt-2 font-medium tabular-nums">{total.toLocaleString()}</div>
-          </div>
-          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm dark:bg-slate-900/50">
-            <div className="flex items-center gap-1 text-xs uppercase tracking-[0.16em] text-slate-500">
-              <Sigma className="h-3.5 w-3.5" />
-              <span>综合结果</span>
-            </div>
-            <div className="mt-2 text-xs leading-5 text-slate-600 dark:text-slate-300">
-              {finalResultStats ? (
-                <>
-                  Min {finalResultStats.min.toFixed(3)} / Avg {finalResultStats.avg.toFixed(3)} /
-                  Max {finalResultStats.max.toFixed(3)}
-                </>
-              ) : (
-                '当前没有综合结果列'
-              )}
-            </div>
-          </div>
-        </div>
+        <ConditionResultSummaryCards
+          rangeStart={rangeStart}
+          rangeEnd={rangeEnd}
+          total={total}
+          finalResultStats={finalResultStats}
+        />
       </div>
 
       <VirtualTable
@@ -433,7 +154,7 @@ export const ConditionResultTable: React.FC<ConditionResultTableProps> = ({
             <Select
               label="每页条数"
               value={String(safePageSize)}
-              options={PAGE_SIZE_OPTIONS}
+              options={CONDITION_RESULT_PAGE_SIZE_OPTIONS}
               onChange={event => onPageSizeChange?.(Number(event.target.value))}
             />
           </div>

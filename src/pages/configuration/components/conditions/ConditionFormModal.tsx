@@ -8,7 +8,7 @@ import {
   managementModalPanelClass,
   managementPrimaryButtonDisabledClass,
   managementSecondaryButtonClass,
-} from '../sharedManagementStyles';
+} from '../managementSurfaceTokens';
 
 export interface ConditionFormData {
   name: string;
@@ -79,14 +79,11 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
   return (
     <div className={managementModalOverlayClass}>
       <div className={`${managementModalPanelClass} w-full max-w-2xl max-h-[90vh] overflow-hidden`}>
-        <div className="flex items-center justify-between p-4 border-b dark:border-slate-700">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white eyecare:text-foreground">
+        <div className="flex items-center justify-between border-b border-border p-4">
+          <h3 className="text-lg font-semibold text-foreground">
             {editingConfig ? '编辑工况配置' : '新增工况配置'}
           </h3>
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-700 rounded"
-          >
+          <button onClick={onClose} className="rounded p-1 hover:bg-muted">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -94,7 +91,7 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
         <div className="p-4 space-y-4 overflow-y-auto max-h-[60vh]">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
+              <label className="mb-1 block text-sm font-medium text-foreground">
                 工况名称 <span className="text-red-500">*</span>
               </label>
               <input
@@ -106,9 +103,7 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                工况编码
-              </label>
+              <label className="mb-1 block text-sm font-medium text-foreground">工况编码</label>
               <input
                 type="text"
                 value={formData.code}
@@ -121,7 +116,7 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
+              <label className="mb-1 block text-sm font-medium text-foreground">
                 目标姿态 <span className="text-red-500">*</span>
               </label>
               <select
@@ -152,7 +147,7 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
+              <label className="mb-1 block text-sm font-medium text-foreground">
                 仿真类型 <span className="text-red-500">*</span>
               </label>
               <select
@@ -192,10 +187,8 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-              可用参数组
-            </label>
-            <div className="border rounded-lg p-3 dark:border-slate-600 max-h-32 overflow-y-auto">
+            <label className="mb-1 block text-sm font-medium text-foreground">可用参数组</label>
+            <div className="max-h-32 overflow-y-auto rounded-lg border border-border p-3">
               {paramGroups.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {paramGroups.map(paramGroup => (
@@ -227,16 +220,14 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
                   ))}
                 </div>
               ) : (
-                <span className="text-slate-400 text-sm">暂无参数组</span>
+                <span className="text-sm text-muted-foreground">暂无参数组</span>
               )}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-              可用输出组
-            </label>
-            <div className="border rounded-lg p-3 dark:border-slate-600 max-h-32 overflow-y-auto">
+            <label className="mb-1 block text-sm font-medium text-foreground">可用输出组</label>
+            <div className="max-h-32 overflow-y-auto rounded-lg border border-border p-3">
               {outputGroups.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {outputGroups.map(outputGroup => (
@@ -271,16 +262,14 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
                   ))}
                 </div>
               ) : (
-                <span className="text-slate-400 text-sm">暂无输出组</span>
+                <span className="text-sm text-muted-foreground">暂无输出组</span>
               )}
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                默认参数组
-              </label>
+              <label className="mb-1 block text-sm font-medium text-foreground">默认参数组</label>
               <select
                 value={formData.defaultParamGroupId || ''}
                 onChange={event =>
@@ -303,9 +292,7 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                默认输出组
-              </label>
+              <label className="mb-1 block text-sm font-medium text-foreground">默认输出组</label>
               <select
                 value={formData.defaultOutputGroupId || ''}
                 onChange={event =>
@@ -328,9 +315,7 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                默认求解器
-              </label>
+              <label className="mb-1 block text-sm font-medium text-foreground">默认求解器</label>
               <select
                 value={formData.defaultSolverId || ''}
                 onChange={event =>
@@ -353,9 +338,7 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                排序
-              </label>
+              <label className="mb-1 block text-sm font-medium text-foreground">排序</label>
               <input
                 type="number"
                 value={formData.sort}
@@ -366,12 +349,10 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
                 min={0}
                 step={10}
               />
-              <p className="text-xs text-slate-400 mt-0.5">值越小越靠前</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">值越小越靠前</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground mb-1">
-                备注
-              </label>
+              <label className="mb-1 block text-sm font-medium text-foreground">备注</label>
               <input
                 type="text"
                 value={formData.remark}
@@ -383,7 +364,7 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
           </div>
         </div>
 
-        <div className="flex justify-end gap-2 p-4 border-t dark:border-slate-700">
+        <div className="flex justify-end gap-2 border-t border-border p-4">
           <button onClick={onClose} className={managementSecondaryButtonClass}>
             取消
           </button>

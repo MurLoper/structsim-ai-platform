@@ -10,7 +10,7 @@ import {
   managementPrimaryButtonDisabledClass,
   managementSearchInputClass,
   managementSecondaryButtonClass,
-} from '../sharedManagementStyles';
+} from '../managementSurfaceTokens';
 
 type AddParamsModalProps = {
   groupId: number;

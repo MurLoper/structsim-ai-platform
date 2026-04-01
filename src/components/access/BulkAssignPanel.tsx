@@ -25,20 +25,17 @@ export const BulkAssignPanel: React.FC<BulkAssignPanelProps> = ({
     if (!roles.some(role => role.id === roleId)) {
       setRoleId(roles[0]?.id ?? null);
     }
-  }, [roles, roleId]);
+  }, [roleId, roles]);
 
-  const selectedRole = useMemo(() => roles.find(role => role.id === roleId), [roles, roleId]);
-  const roleOptions = roles.map(role => ({
-    value: String(role.id),
-    label: role.name,
-  }));
+  const selectedRole = useMemo(() => roles.find(role => role.id === roleId), [roleId, roles]);
+  const roleOptions = roles.map(role => ({ value: String(role.id), label: role.name }));
 
   return (
     <Card>
-      <CardHeader title="批量授权面板" subtitle="选择目标权限组后，批量勾选并覆盖权限配置。" />
+      <CardHeader title="批量授权面板" subtitle="选择目标角色后，批量勾选并覆盖权限配置。" />
       <div className="space-y-4">
         <Select
-          label="目标权限组"
+          label="目标角色"
           options={roleOptions}
           value={roleId ? String(roleId) : ''}
           onChange={event => setRoleId(Number(event.target.value))}
@@ -51,8 +48,8 @@ export const BulkAssignPanel: React.FC<BulkAssignPanelProps> = ({
         />
 
         <div className="flex items-center justify-between">
-          <div className="text-xs text-slate-500">
-            {selectedRole ? `正在为 ${selectedRole.name} 配置权限` : '请先选择目标权限组'}
+          <div className="text-xs text-muted-foreground">
+            {selectedRole ? `正在为 ${selectedRole.name} 配置权限` : '请先选择目标角色'}
           </div>
           <Button
             onClick={() => roleId && onApply(roleId, selectedIds)}
