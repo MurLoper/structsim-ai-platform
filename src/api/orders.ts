@@ -16,7 +16,9 @@ export interface OrdersQueryParams {
   projectId?: number;
   simTypeId?: number;
   orderNo?: string;
+  domainAccount?: string;
   createdBy?: string;
+  remark?: string;
   startDate?: number;
   endDate?: number;
 }

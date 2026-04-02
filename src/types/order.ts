@@ -6,12 +6,13 @@ export interface OrderListItem {
   projectId: number;
   projectName?: string;
   simTypeIds: number[];
-  /** @deprecated 后端会根据 inputJson.conditions 自动派生 */
+  remark?: string | null;
   foldTypeIds?: number[];
   status: number;
   progress: number;
-  /** 工况概览：姿态名 → 仿真类型名[] */
   conditionSummary?: Record<string, string[]>;
+  domainAccount?: string;
+  baseDir?: string | null;
   createdBy: string;
   createdAt: number;
   updatedAt: number;
@@ -55,9 +56,7 @@ export interface OrderDetail extends OrderListItem {
   modelLevelId?: number;
   participantIds?: string[];
   remark?: string | null;
-  /** @deprecated 使用 inputJson 替代 */
   optParam?: Record<string, unknown>;
-  /** 提单完整数据（新版结构） */
   inputJson?: InputJson;
   workflowId?: number | null;
   curNodeId?: number | null;
@@ -75,15 +74,12 @@ export interface OrderCreatePayload {
   foldTypeIds?: number[];
   participantIds?: string[];
   remark?: string;
-  /** @deprecated 后端会根据 inputJson.conditions 自动派生 */
   simTypeIds?: number[];
-  /** @deprecated 使用 inputJson 替代 */
   optParam?: Record<string, unknown>;
-  /** 提单完整数据（新版结构） */
   inputJson?: InputJson;
-  /** 工况概览：姿态名 → 仿真类型名[]（冗余存储到 orders 表供列表展示） */
   conditionSummary?: Record<string, string[]>;
   workflowId?: number | null;
   submitCheck?: Record<string, unknown> | null;
   clientMeta?: Record<string, unknown> | null;
+  baseDir?: string | null;
 }

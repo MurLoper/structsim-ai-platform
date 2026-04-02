@@ -1,22 +1,17 @@
-/**
- * Orders API Mock 数据
- * 用于开发环境，提供完整的统计数据和订单列表
- */
-
 import type { OrderStatistics, OrderTrend, StatusDistribution } from '@/types/statistics';
 import type { OrdersListResponse, OrderListItem } from '@/types/order';
 import type { OrdersQueryParams } from '../orders';
 
-// 当前时间戳（秒级，与后端保持一致）
 const now = Math.floor(Date.now() / 1000);
 
-/** Mock 订单原始数据 */
 const mockOrdersData: OrderListItem[] = [
   {
     id: 1001,
     orderNo: 'ORD-2024-001',
     projectId: 1751,
     simTypeIds: [1],
+    remark: '电池包跌落首轮验证',
+    domainAccount: 'z00010002',
     status: 1,
     progress: 45,
     createdBy: 'z00010002',
@@ -28,6 +23,8 @@ const mockOrdersData: OrderListItem[] = [
     orderNo: 'ORD-2024-002',
     projectId: 1752,
     simTypeIds: [2],
+    remark: '后壳 DOE 试验',
+    domainAccount: 'z00010003',
     status: 2,
     progress: 100,
     createdBy: 'z00010003',
@@ -39,6 +36,8 @@ const mockOrdersData: OrderListItem[] = [
     orderNo: 'ORD-2024-003',
     projectId: 1753,
     simTypeIds: [1, 2],
+    remark: '材料替代对比',
+    domainAccount: 'z00010004',
     status: 0,
     progress: 0,
     createdBy: 'z00010004',
@@ -50,6 +49,8 @@ const mockOrdersData: OrderListItem[] = [
     orderNo: 'ORD-2024-004',
     projectId: 1754,
     simTypeIds: [3],
+    remark: '冲击工况复核',
+    domainAccount: 'z00010005',
     status: 3,
     progress: 80,
     createdBy: 'z00010005',
@@ -61,6 +62,8 @@ const mockOrdersData: OrderListItem[] = [
     orderNo: 'ORD-2024-005',
     projectId: 1755,
     simTypeIds: [4],
+    remark: '量产前收口',
+    domainAccount: 'z00010006',
     status: 2,
     progress: 100,
     createdBy: 'z00010006',
@@ -72,6 +75,8 @@ const mockOrdersData: OrderListItem[] = [
     orderNo: 'ORD-2024-006',
     projectId: 1756,
     simTypeIds: [5],
+    remark: '热仿真批量提交',
+    domainAccount: 'z00010006',
     status: 1,
     progress: 60,
     createdBy: 'z00010006',
@@ -83,6 +88,8 @@ const mockOrdersData: OrderListItem[] = [
     orderNo: 'ORD-2024-007',
     projectId: 1752,
     simTypeIds: [1],
+    remark: '结构回归验证',
+    domainAccount: 'z00010007',
     status: 2,
     progress: 100,
     createdBy: 'z00010007',
@@ -94,6 +101,8 @@ const mockOrdersData: OrderListItem[] = [
     orderNo: 'ORD-2024-008',
     projectId: 1756,
     simTypeIds: [2],
+    remark: 'DOE 文件导入测试',
+    domainAccount: 'z00010008',
     status: 0,
     progress: 0,
     createdBy: 'z00010008',
@@ -105,6 +114,8 @@ const mockOrdersData: OrderListItem[] = [
     orderNo: 'ORD-2024-009',
     projectId: 1757,
     simTypeIds: [3],
+    remark: '约束条件抽查',
+    domainAccount: 'z00010009',
     status: 1,
     progress: 25,
     createdBy: 'z00010009',
@@ -116,6 +127,8 @@ const mockOrdersData: OrderListItem[] = [
     orderNo: 'ORD-2024-010',
     projectId: 1758,
     simTypeIds: [1],
+    remark: '交付前确认',
+    domainAccount: 'z00010010',
     status: 2,
     progress: 100,
     createdBy: 'z00010010',
@@ -124,29 +137,46 @@ const mockOrdersData: OrderListItem[] = [
   },
 ];
 
-/**
- * 根据筛选参数获取 Mock 订单列表
- */
 export function getMockOrdersList(params?: OrdersQueryParams): OrdersListResponse {
-  const { page = 1, pageSize = 20, status, projectId, simTypeId, orderNo } = params || {};
+  const {
+    page = 1,
+    pageSize = 20,
+    status,
+    projectId,
+    simTypeId,
+    orderNo,
+    domainAccount,
+    remark,
+  } = params || {};
 
-  // 筛选
   let filtered = [...mockOrdersData];
 
   if (status !== undefined) {
-    filtered = filtered.filter(o => o.status === status);
+    filtered = filtered.filter(order => order.status === status);
   }
   if (projectId !== undefined) {
-    filtered = filtered.filter(o => o.projectId === projectId);
+    filtered = filtered.filter(order => order.projectId === projectId);
   }
   if (simTypeId !== undefined) {
-    filtered = filtered.filter(o => o.simTypeIds?.includes(simTypeId));
+    filtered = filtered.filter(order => order.simTypeIds?.includes(simTypeId));
   }
   if (orderNo) {
-    filtered = filtered.filter(o => o.orderNo?.toLowerCase().includes(orderNo.toLowerCase()));
+    filtered = filtered.filter(order =>
+      order.orderNo?.toLowerCase().includes(orderNo.toLowerCase())
+    );
+  }
+  if (domainAccount) {
+    filtered = filtered.filter(
+      order =>
+        (order.domainAccount || order.createdBy || '').toLowerCase() === domainAccount.toLowerCase()
+    );
+  }
+  if (remark) {
+    filtered = filtered.filter(order =>
+      (order.remark || '').toLowerCase().includes(remark.toLowerCase())
+    );
   }
 
-  // 分页
   const total = filtered.length;
   const totalPages = Math.ceil(total / pageSize) || 1;
   const start = (page - 1) * pageSize;
@@ -155,14 +185,8 @@ export function getMockOrdersList(params?: OrdersQueryParams): OrdersListRespons
   return { items, total, page, pageSize, totalPages };
 }
 
-/**
- * 订单列表 Mock 数据（兼容旧代码）
- */
 export const mockOrdersList: OrdersListResponse = getMockOrdersList();
 
-/**
- * 订单统计 Mock 数据
- */
 export const mockOrderStatistics: OrderStatistics = {
   total: 156,
   pending: 23,
@@ -171,9 +195,6 @@ export const mockOrderStatistics: OrderStatistics = {
   failed: 10,
 };
 
-/**
- * 订单趋势 Mock 数据（近7天）
- */
 export const mockOrderTrends: OrderTrend[] = [
   { date: '2024-01-18', count: 18 },
   { date: '2024-01-19', count: 22 },
@@ -184,32 +205,9 @@ export const mockOrderTrends: OrderTrend[] = [
   { date: '2024-01-24', count: 13 },
 ];
 
-/**
- * 状态分布 Mock 数据
- */
 export const mockStatusDistribution: StatusDistribution[] = [
-  {
-    status: 0,
-    statusName: '待处理',
-    count: 23,
-    percentage: 14.7,
-  },
-  {
-    status: 1,
-    statusName: '进行中',
-    count: 45,
-    percentage: 28.8,
-  },
-  {
-    status: 2,
-    statusName: '已完成',
-    count: 78,
-    percentage: 50.0,
-  },
-  {
-    status: 3,
-    statusName: '失败',
-    count: 10,
-    percentage: 6.4,
-  },
+  { status: 0, statusName: '待处理', count: 23, percentage: 14.7 },
+  { status: 1, statusName: '进行中', count: 45, percentage: 28.8 },
+  { status: 2, statusName: '已完成', count: 78, percentage: 50.0 },
+  { status: 3, statusName: '失败', count: 10, percentage: 6.4 },
 ];

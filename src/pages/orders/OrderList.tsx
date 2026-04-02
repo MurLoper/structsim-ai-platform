@@ -1,18 +1,21 @@
-import React, { useMemo, useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUIStore } from '@/stores';
-import { RESOURCES } from '@/locales';
-import { Button, Card, Badge, StatusBadge } from '@/components/ui';
-import { ArrowRight, Beaker, Pencil } from 'lucide-react';
-import { useStatusDefs } from '@/features/config/queries/useCompositeConfigs';
-import { useProjects, useSimTypes } from '@/features/config/queries';
-import { useOrders } from '@/features/orders/queries';
-import { DataTable } from '@/components/tables/DataTable';
-import OrderFilters from './components/OrderFilters';
-import Pagination from '@/components/ui/Pagination';
 import type { ColumnDef } from '@tanstack/react-table';
-import type { OrderListItem } from '@/types/order';
+import { ArrowRight, Beaker, Pencil } from 'lucide-react';
+import { Button, Card, Badge, StatusBadge, useToast } from '@/components/ui';
+import { DataTable } from '@/components/tables/DataTable';
+import Pagination from '@/components/ui/Pagination';
+import { RESOURCES } from '@/locales';
+import { useUIStore } from '@/stores';
+import { useProjects, useSimTypes } from '@/features/config/queries';
+import { useStatusDefs } from '@/features/config/queries/useCompositeConfigs';
+import { useOrderUsers, useOrders } from '@/features/orders/queries';
 import type { OrdersQueryParams } from '@/api/orders';
+import type { OrderListItem } from '@/types/order';
+import type { User } from '@/types';
+import { getOrderUserDisplayName } from '@/features/orders/utils/orderUsers';
+import OrderFilters from './components/OrderFilters';
+import { useOrderRowInteractions } from './hooks/useOrderRowInteractions';
 
 interface OrderListProps {
   onOpenResult?: (orderId: number) => void;
@@ -23,19 +26,16 @@ interface OrderListProps {
 const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreate }) => {
   const navigate = useNavigate();
   const { language } = useUIStore();
-
-  // 筛选状态
+  const { showToast } = useToast();
   const [filters, setFilters] = useState<OrdersQueryParams>({
     page: 1,
     pageSize: 20,
   });
 
-  // 配置数据
   const { data: statusDefs, isLoading: statusDefsLoading } = useStatusDefs();
   const { data: projects = [], isLoading: projectsLoading } = useProjects();
   const { data: simTypes = [], isLoading: simTypesLoading } = useSimTypes();
-
-  // 订单数据
+  const { data: users = [], isLoading: usersLoading } = useOrderUsers();
   const {
     data: ordersPage,
     isLoading: ordersLoading,
@@ -50,9 +50,9 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
   const pageSize = filters.pageSize ?? 20;
 
   const t = useCallback((key: string) => RESOURCES[language]?.[key] ?? key, [language]);
-  const tableLoading = ordersLoading || projectsLoading || simTypesLoading || statusDefsLoading;
+  const tableLoading =
+    ordersLoading || projectsLoading || simTypesLoading || statusDefsLoading || usersLoading;
 
-  // 数据映射
   const projectMap = useMemo(
     () => new Map(projects.map(project => [project.id, project])),
     [projects]
@@ -61,30 +61,63 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
     () => new Map(simTypes.map(simType => [simType.id, simType])),
     [simTypes]
   );
+  const userMap = useMemo(
+    () => new Map(users.map(user => [(user.domainAccount || '').toLowerCase(), user] as const)),
+    [users]
+  );
 
-  // 筛选选项
   const projectOptions = useMemo(
-    () => projects.map(p => ({ value: p.id, label: p.name })),
+    () => projects.map(project => ({ value: project.id, label: project.name })),
     [projects]
   );
   const simTypeOptions = useMemo(
-    () => simTypes.map(s => ({ value: s.id, label: s.name })),
+    () => simTypes.map(simType => ({ value: simType.id, label: simType.name })),
     [simTypes]
+  );
+  const userOptions = useMemo(
+    () =>
+      users
+        .map(user => {
+          const identity = user.domainAccount || String(user.id || '');
+          if (!identity) return null;
+          const displayName = getOrderUserDisplayName(user);
+          return {
+            value: identity,
+            label: displayName,
+          };
+        })
+        .filter((item): item is { value: string; label: string } => item !== null),
+    [users]
   );
   const statusOptions = useMemo(() => {
     if (!statusDefs || statusDefs.length === 0) {
       return [
         { value: 0, label: '未开始' },
-        { value: 1, label: '运行中' },
+        { value: 1, label: '进行中' },
         { value: 2, label: '已完成' },
         { value: 3, label: '失败' },
       ];
     }
-    return statusDefs.map(s => ({
-      value: s.id,
-      label: s.name,
+    return statusDefs.map(status => ({
+      value: status.id,
+      label: status.name,
     }));
   }, [statusDefs]);
+
+  const getUserDisplay = useCallback(
+    (order: OrderListItem): { name: string; identity: string; user?: User } => {
+      const identity = order.domainAccount || order.createdBy || '';
+      const user = identity ? userMap.get(identity.toLowerCase()) : undefined;
+      const name = user ? getOrderUserDisplayName(user) : identity || '-';
+      return { name, identity, user };
+    },
+    [userMap]
+  );
+
+  const { openResult, handleRowClick, handleRowDoubleClick } = useOrderRowInteractions({
+    onOpenResult,
+    showToast,
+  });
 
   const getStatusBadge = useCallback(
     (statusId: number) => {
@@ -113,22 +146,19 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
 
   const formatCreatedAt = (timestamp?: number) => {
     if (!timestamp) return '-';
-    const date = new Date(timestamp * 1000);
-    return date.toLocaleString();
+    return new Date(timestamp * 1000).toLocaleString();
   };
 
-  // 筛选变更
-  const handleFilterChange = useCallback((newFilters: OrdersQueryParams) => {
-    setFilters(newFilters);
+  const handleFilterChange = useCallback((nextFilters: OrdersQueryParams) => {
+    setFilters(nextFilters);
   }, []);
 
-  // 分页变更
-  const handlePageChange = useCallback((newPage: number) => {
-    setFilters(prev => ({ ...prev, page: newPage }));
+  const handlePageChange = useCallback((nextPage: number) => {
+    setFilters(prev => ({ ...prev, page: nextPage }));
   }, []);
 
-  const handlePageSizeChange = useCallback((newPageSize: number) => {
-    setFilters(prev => ({ ...prev, pageSize: newPageSize, page: 1 }));
+  const handlePageSizeChange = useCallback((nextPageSize: number) => {
+    setFilters(prev => ({ ...prev, pageSize: nextPageSize, page: 1 }));
   }, []);
 
   const columns = useMemo<ColumnDef<OrderListItem>[]>(
@@ -138,11 +168,11 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
         accessorKey: 'orderNo',
         cell: ({ row }) => (
           <button
-            onClick={() => {
-              if (onOpenResult) onOpenResult(row.original.id);
-              else window.open(`/#/results/${row.original.id}`, '_blank');
+            onClick={event => {
+              event.stopPropagation();
+              openResult(row.original.id);
             }}
-            className="font-mono text-xs text-brand-600 hover:text-brand-700 hover:underline transition-colors text-left"
+            className="text-left font-mono text-xs text-brand-600 transition-colors hover:text-brand-700 hover:underline"
           >
             {row.original.orderNo || row.original.id}
           </button>
@@ -154,9 +184,21 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
         cell: ({ row }) => {
           const project = projectMap.get(row.original.projectId);
           return (
-            <div>
+            <div className="font-medium text-slate-900 dark:text-slate-100 eyecare:text-foreground">
+              {project?.name || `#${row.original.projectId}`}
+            </div>
+          );
+        },
+      },
+      {
+        header: t('orders.col.applicant'),
+        accessorKey: 'domainAccount',
+        cell: ({ row }) => {
+          const { name } = getUserDisplay(row.original);
+          return (
+            <div className="min-w-[120px]">
               <div className="font-medium text-slate-900 dark:text-slate-100 eyecare:text-foreground">
-                {project?.name || `#${row.original.projectId}`}
+                {name}
               </div>
             </div>
           );
@@ -166,14 +208,13 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
         header: t('orders.col.sim_types'),
         accessorKey: 'simTypeIds',
         cell: ({ row }) => {
-          // 优先使用 conditionSummary（姿态→仿真类型映射）
           const summary = row.original.conditionSummary;
           if (summary && Object.keys(summary).length > 0) {
             return (
               <div className="flex flex-col gap-0.5">
                 {Object.entries(summary).map(([foldName, simNames]) => (
-                  <div key={foldName} className="flex items-center gap-1 flex-wrap">
-                    <span className="text-xs text-slate-400 eyecare:text-muted-foreground shrink-0">
+                  <div key={foldName} className="flex flex-wrap items-center gap-1">
+                    <span className="shrink-0 text-xs text-slate-400 eyecare:text-muted-foreground">
                       {foldName}:
                     </span>
                     {simNames.map(name => (
@@ -186,9 +227,9 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
               </div>
             );
           }
-          // 降级：仅显示仿真类型
+
           return (
-            <div className="flex gap-1 flex-wrap">
+            <div className="flex flex-wrap gap-1">
               {(row.original.simTypeIds || []).map(simTypeId => (
                 <Badge key={simTypeId} size="sm">
                   {simTypeMap.get(simTypeId)?.name || `#${simTypeId}`}
@@ -210,13 +251,13 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
           const progress = calculateProgress(row.original);
           return (
             <div>
-              <div className="w-full bg-slate-200 dark:bg-slate-700 eyecare:bg-muted rounded-full h-1.5 max-w-[100px]">
+              <div className="h-1.5 w-full max-w-[100px] rounded-full bg-slate-200 dark:bg-slate-700 eyecare:bg-muted">
                 <div
                   className="h-1.5 rounded-full bg-brand-500 transition-all duration-1000"
                   style={{ width: `${progress}%` }}
                 />
               </div>
-              <span className="text-xs text-slate-400 eyecare:text-muted-foreground mt-1 block">
+              <span className="mt-1 block text-xs text-slate-400 eyecare:text-muted-foreground">
                 {progress}%
               </span>
             </div>
@@ -238,39 +279,39 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
         cell: ({ row }) => (
           <div className="flex justify-end gap-2">
             <button
-              onClick={() => {
+              onClick={event => {
+                event.stopPropagation();
                 if (onOpenEdit) onOpenEdit(row.original.id);
                 else navigate(`/create?orderId=${row.original.id}`);
               }}
-              className="text-slate-600 hover:text-slate-700 dark:text-slate-400 eyecare:text-muted-foreground dark:hover:text-slate-300 font-medium text-sm flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+              className="flex items-center gap-1 rounded px-2 py-1 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-300 eyecare:text-muted-foreground"
             >
-              {t('common.edit')} <Pencil className="w-4 h-4" />
+              {t('common.edit')} <Pencil className="h-4 w-4" />
             </button>
             <button
-              onClick={() => {
-                if (onOpenResult) onOpenResult(row.original.id);
-                else window.open(`/#/results/${row.original.id}`, '_blank');
+              onClick={event => {
+                event.stopPropagation();
+                openResult(row.original.id);
               }}
-              className="text-brand-600 hover:text-brand-700 font-medium text-sm flex items-center gap-1 px-2 py-1 rounded transition-colors hover:bg-brand-50 dark:hover:bg-brand-500/10"
+              className="flex items-center gap-1 rounded px-2 py-1 text-sm font-medium text-brand-600 transition-colors hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-brand-500/10"
             >
-              {t('orders.view_results')} <ArrowRight className="w-4 h-4" />
+              {t('orders.view_results')} <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         ),
       },
     ],
-    [navigate, onOpenEdit, onOpenResult, t, projectMap, simTypeMap, getStatusBadge]
+    [navigate, onOpenEdit, openResult, t, projectMap, simTypeMap, getStatusBadge, getUserDisplay]
   );
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header */}
-      <div className="flex justify-between items-end">
+      <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white eyecare:text-foreground mb-1">
+          <h1 className="mb-1 text-2xl font-bold text-slate-900 dark:text-white eyecare:text-foreground">
             {t('orders.title')}
           </h1>
-          <p className="text-slate-500 eyecare:text-muted-foreground dark:text-slate-400 eyecare:text-muted-foreground eyecare:text-muted-foreground text-sm">
+          <p className="text-sm text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground">
             {t('orders.subtitle')}
           </p>
         </div>
@@ -279,25 +320,25 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
             if (onCreate) onCreate();
             else navigate('/create');
           }}
-          icon={<Beaker className="w-5 h-5" />}
+          icon={<Beaker className="h-5 w-5" />}
         >
           {t('orders.new_order')}
         </Button>
       </div>
 
-      {/* Filters */}
       <OrderFilters
         filters={filters}
         onFilterChange={handleFilterChange}
         projects={projectOptions}
         simTypes={simTypeOptions}
         statusOptions={statusOptions}
+        users={userOptions}
+        t={t}
       />
 
-      {/* Orders Table */}
       <Card padding="none">
         {ordersError && (
-          <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-slate-200 bg-red-50 text-red-700">
+          <div className="flex items-center justify-between gap-4 border-b border-slate-200 bg-red-50 px-4 py-3 text-red-700">
             <span className="text-sm">{t('orders.load_error')}</span>
             <Button size="sm" variant="outline" onClick={() => refetchOrders()}>
               {t('common.retry')}
@@ -309,14 +350,14 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
           columns={columns}
           containerHeight={600}
           enableSorting={true}
+          onRowClick={handleRowClick}
+          onRowDoubleClick={handleRowDoubleClick}
           showCount={true}
           loading={tableLoading}
           emptyText={t('orders.empty')}
           className="border-none"
           wrapperClassName="p-4"
         />
-
-        {/* Pagination */}
         <Pagination
           page={page}
           pageSize={pageSize}

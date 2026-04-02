@@ -2,6 +2,7 @@ import React, { memo, useCallback } from 'react';
 import { Search, X, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui';
 import type { OrdersQueryParams } from '@/api/orders';
+import OrderFilterSelect from './OrderFilterSelect';
 
 export interface FilterOption {
   value: number | string;
@@ -14,14 +15,16 @@ export interface OrderFiltersProps {
   projects: FilterOption[];
   simTypes: FilterOption[];
   statusOptions: FilterOption[];
+  users: FilterOption[];
+  t: (key: string) => string;
 }
 
 const OrderFilters: React.FC<OrderFiltersProps> = memo(
-  ({ filters, onFilterChange, projects, simTypes, statusOptions }) => {
+  ({ filters, onFilterChange, projects, simTypes, statusOptions, users, t }) => {
     const handleChange = useCallback(
       (key: keyof OrdersQueryParams, value: string | number | undefined) => {
-        const newFilters = { ...filters, [key]: value === '' ? undefined : value, page: 1 };
-        onFilterChange(newFilters);
+        const nextFilters = { ...filters, [key]: value === '' ? undefined : value, page: 1 };
+        onFilterChange(nextFilters);
       },
       [filters, onFilterChange]
     );
@@ -32,126 +35,136 @@ const OrderFilters: React.FC<OrderFiltersProps> = memo(
 
     const hasFilters = !!(
       filters.orderNo ||
+      filters.domainAccount ||
+      filters.remark ||
       filters.status !== undefined ||
       filters.projectId ||
       filters.simTypeId
     );
 
     return (
-      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-lg border border-slate-200 dark:border-slate-700 eyecare:border-border p-4 mb-4">
-        <div className="flex flex-wrap gap-3 items-end">
-          {/* 订单编号搜索 */}
-          <div className="flex-1 min-w-[200px] max-w-[280px]">
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground mb-1">
-              订单编号
+      <div className="mb-4 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-800 eyecare:border-border eyecare:bg-card">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="min-w-[200px] max-w-[260px] flex-1">
+            <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground">
+              {t('orders.filters.order_no')}
             </label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="搜索订单编号..."
+                placeholder={t('orders.filters.order_no_placeholder')}
                 value={filters.orderNo || ''}
-                onChange={e => handleChange('orderNo', e.target.value)}
-                className="w-full pl-9 pr-8 py-2 text-sm border border-slate-200 dark:border-slate-600 eyecare:border-border rounded-lg
-                bg-white dark:bg-slate-700 eyecare:bg-background text-slate-900 dark:text-slate-100 eyecare:text-foreground
-                focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                onChange={event => handleChange('orderNo', event.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-8 text-sm text-slate-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 eyecare:border-border eyecare:bg-background eyecare:text-foreground"
               />
               {filters.orderNo && (
                 <button
+                  type="button"
                   onClick={() => handleChange('orderNo', undefined)}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 dark:hover:bg-slate-600 eyecare:hover:bg-muted rounded"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-600 eyecare:hover:bg-muted"
                 >
-                  <X className="w-3 h-3 text-slate-400" />
+                  <X className="h-3 w-3 text-slate-400" />
                 </button>
               )}
             </div>
           </div>
 
-          {/* 状态筛选 */}
+          <div className="min-w-[180px]">
+            <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground">
+              {t('orders.filters.applicant')}
+            </label>
+            <OrderFilterSelect
+              value={filters.domainAccount}
+              options={users}
+              allLabel={t('orders.filters.applicant_all')}
+              placeholder={t('orders.filters.applicant')}
+              onChange={value => handleChange('domainAccount', value as string | undefined)}
+            />
+          </div>
+
+          <div className="min-w-[220px] max-w-[320px] flex-1">
+            <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground">
+              {t('orders.filters.remark')}
+            </label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder={t('orders.filters.remark_placeholder')}
+                value={filters.remark || ''}
+                onChange={event => handleChange('remark', event.target.value)}
+                className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-8 text-sm text-slate-900 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-100 eyecare:border-border eyecare:bg-background eyecare:text-foreground"
+              />
+              {filters.remark && (
+                <button
+                  type="button"
+                  onClick={() => handleChange('remark', undefined)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 hover:bg-slate-100 dark:hover:bg-slate-600 eyecare:hover:bg-muted"
+                >
+                  <X className="h-3 w-3 text-slate-400" />
+                </button>
+              )}
+            </div>
+          </div>
+
           <div className="min-w-[140px]">
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground mb-1">
-              状态
+            <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground">
+              {t('orders.filters.status')}
             </label>
-            <select
-              value={filters.status !== undefined ? filters.status.toString() : ''}
-              onChange={e =>
-                handleChange('status', e.target.value !== '' ? Number(e.target.value) : undefined)
-              }
+            <OrderFilterSelect
+              value={filters.status}
+              options={statusOptions}
+              allLabel={t('orders.filters.status_all')}
+              placeholder={t('orders.filters.status')}
               disabled={statusOptions.length === 0}
-              className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 eyecare:border-border rounded-lg
-              bg-white dark:bg-slate-700 eyecare:bg-background text-slate-900 dark:text-slate-100 eyecare:text-foreground
-              focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
-              disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <option value="">全部状态</option>
-              {statusOptions.map(opt => (
-                <option key={opt.value} value={opt.value.toString()}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              onChange={value =>
+                handleChange('status', value !== undefined ? Number(value) : undefined)
+              }
+            />
           </div>
 
-          {/* 项目筛选 */}
           <div className="min-w-[160px]">
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground mb-1">
-              项目
+            <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground">
+              {t('orders.filters.project')}
             </label>
-            <select
-              value={filters.projectId || ''}
-              onChange={e =>
-                handleChange('projectId', e.target.value ? Number(e.target.value) : undefined)
-              }
+            <OrderFilterSelect
+              value={filters.projectId}
+              options={projects}
+              allLabel={t('orders.filters.project_all')}
+              placeholder={t('orders.filters.project')}
               disabled={projects.length === 0}
-              className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 eyecare:border-border rounded-lg
-              bg-white dark:bg-slate-700 eyecare:bg-background text-slate-900 dark:text-slate-100 eyecare:text-foreground
-              focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
-              disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <option value="">全部项目</option>
-              {projects.map(opt => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* 仿真类型筛选 */}
-          <div className="min-w-[160px]">
-            <label className="block text-xs font-medium text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground mb-1">
-              仿真类型
-            </label>
-            <select
-              value={filters.simTypeId || ''}
-              onChange={e =>
-                handleChange('simTypeId', e.target.value ? Number(e.target.value) : undefined)
+              onChange={value =>
+                handleChange('projectId', value !== undefined ? Number(value) : undefined)
               }
-              disabled={simTypes.length === 0}
-              className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 eyecare:border-border rounded-lg
-              bg-white dark:bg-slate-700 eyecare:bg-background text-slate-900 dark:text-slate-100 eyecare:text-foreground
-              focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
-              disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <option value="">全部类型</option>
-              {simTypes.map(opt => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            />
           </div>
 
-          {/* 重置按钮 */}
+          <div className="min-w-[160px]">
+            <label className="mb-1 block text-xs font-medium text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground">
+              {t('orders.filters.sim_type')}
+            </label>
+            <OrderFilterSelect
+              value={filters.simTypeId}
+              options={simTypes}
+              allLabel={t('orders.filters.sim_type_all')}
+              placeholder={t('orders.filters.sim_type')}
+              disabled={simTypes.length === 0}
+              onChange={value =>
+                handleChange('simTypeId', value !== undefined ? Number(value) : undefined)
+              }
+            />
+          </div>
+
           {hasFilters && (
             <Button
               variant="ghost"
               size="sm"
               onClick={handleReset}
-              icon={<RotateCcw className="w-4 h-4" />}
+              icon={<RotateCcw className="h-4 w-4" />}
               className="text-slate-500 hover:text-slate-700"
             >
-              重置
+              {t('orders.filters.reset')}
             </Button>
           )}
         </div>
