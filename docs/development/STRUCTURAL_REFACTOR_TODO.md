@@ -5,22 +5,15 @@
 
 ## P0
 
-- 收口 `src/pages/submission/index.tsx`
-- 收口 `src/pages/configuration/components/OutputGroupsManagement.tsx`
-- 收口 `src/pages/configuration/tabs/ParamDefsTab.tsx`
-- 收口 `src/pages/configuration/tabs/OutputDefsTab.tsx`
+- 清理 `src/pages/configuration/**`、`src/pages/dashboard/**`、`src/pages/access/**` 中剩余业务组件级 `slate / hex` 主题硬编码
+- 修复 `results`、`configuration`、`dashboard` 领域残余中文乱码
+- 完成 Foundation 批次的最终文档回写
 
 ## P1
 
-- 继续压薄 `src/pages/dashboard/hooks/useResultsData.ts`
-- 清理 `src/pages/access/**`、`src/pages/auth/**`、`src/pages/configuration/components/conditions/**` 残留主题硬编码
-- 完成 `results`、`configuration` 高频文案 locale 收口
-
-## P2
-
-- 复核 `src/constants/**` 归档情况
-- 统一整理 `docs/development` 模板与历史准备文档
-- 执行人工回归并补齐验收记录
+- 复核 `src/constants/**` 与业务域常量归档情况
+- 统一整理 `docs/development` 中的历史准备文档归档标识
+- 补齐人工回归记录模板和执行结果
 
 ## 完成标准
 

@@ -1,19 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { SlidersHorizontal, Upload, Download, Plus } from 'lucide-react';
-import { Card, useToast, useConfirmDialog, SearchBar } from '@/components/ui';
-import { ActionButtons, EditModal, FormInput, FormSelect } from '../components';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Download, Plus, SlidersHorizontal, Upload } from 'lucide-react';
+import { Card, SearchBar, useConfirmDialog, useToast } from '@/components/ui';
 import { baseConfigApi } from '@/api';
 import type { ParamDef } from '@/types';
-
-interface ParsedParam {
-  key: string;
-  name: string;
-  unit: string;
-  minVal: number;
-  maxVal: number;
-  defaultVal: string;
-  exists: boolean;
-}
+import { ActionButtons, EditModal, FormInput, FormSelect } from '../components';
+import { ParamDefsUploadModal } from './paramDefs/ParamDefsUploadModal';
 
 export const ParamDefsTab: React.FC = () => {
   const [paramDefs, setParamDefs] = useState<ParamDef[]>([]);
@@ -33,29 +24,27 @@ export const ParamDefsTab: React.FC = () => {
   const { showToast } = useToast();
   const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
 
-  // 加载数据
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await baseConfigApi.getParamDefsPaginated({
+      const response = await baseConfigApi.getParamDefsPaginated({
         page,
         pageSize,
         keyword: keyword || undefined,
       });
-      setParamDefs(res.data?.items || []);
-      setTotal(res.data?.total || 0);
+      setParamDefs(response.data?.items || []);
+      setTotal(response.data?.total || 0);
     } catch (error) {
       console.error('加载参数定义失败:', error);
       showToast('error', '加载失败');
     } finally {
       setLoading(false);
     }
-  };
+  }, [keyword, page, pageSize, showToast]);
 
   useEffect(() => {
-    loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, keyword]);
+    void loadData();
+  }, [loadData]);
 
   const handleSearch = () => {
     setPage(1);
@@ -72,9 +61,10 @@ export const ParamDefsTab: React.FC = () => {
 
   const handleSave = async () => {
     if (!formData.key?.trim() || !formData.name?.trim()) {
-      showToast('error', 'Key和名称不能为空');
+      showToast('error', 'Key 和名称不能为空');
       return;
     }
+
     setSaving(true);
     try {
       if (editingItem) {
@@ -85,7 +75,7 @@ export const ParamDefsTab: React.FC = () => {
         showToast('success', '创建成功');
       }
       setShowEditModal(false);
-      loadData();
+      await loadData();
     } catch {
       showToast('error', '保存失败');
     } finally {
@@ -96,12 +86,12 @@ export const ParamDefsTab: React.FC = () => {
   const handleDelete = (item: ParamDef) => {
     showConfirm(
       '删除参数',
-      `确定要删除「${item.name}」吗？`,
+      `确定要删除“${item.name}”吗？`,
       async () => {
         try {
           await baseConfigApi.deleteParamDef(item.id);
           showToast('success', '删除成功');
-          loadData();
+          await loadData();
         } catch {
           showToast('error', '删除失败');
         }
@@ -111,14 +101,14 @@ export const ParamDefsTab: React.FC = () => {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = ['参数Key(必填)', '参数名称(必填)', '单位', '最小值', '最大值', '默认值'];
+    const headers = ['参数 Key(必填)', '参数名称(必填)', '单位', '最小值', '最大值', '默认值'];
     const example = ['param_key_1', '参数名称示例', 'mm', '0', '100', '50'];
     const csv = [headers.join(','), example.join(',')].join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = '参数定义模板.csv';
-    a.click();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = '参数定义模板.csv';
+    link.click();
   };
 
   const totalPages = Math.ceil(total / pageSize);
@@ -126,50 +116,49 @@ export const ParamDefsTab: React.FC = () => {
   return (
     <>
       <Card>
-        {/* 头部 */}
-        <div className="p-4 border-b border-border">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="border-b border-border p-4">
+          <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div className="flex items-center gap-2">
-              <SlidersHorizontal className="w-5 h-5 text-primary" />
+              <SlidersHorizontal className="h-5 w-5 text-primary" />
               <h3 className="text-lg font-semibold text-foreground">参数定义管理</h3>
               <span className="text-sm text-muted-foreground">共 {total} 条</span>
             </div>
+
             <div className="flex items-center gap-2">
               <button
                 onClick={handleDownloadTemplate}
-                className="px-3 py-2 text-muted-foreground hover:bg-muted rounded-lg text-sm flex items-center gap-1"
+                className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
               >
-                <Download className="w-4 h-4" />
+                <Download className="h-4 w-4" />
                 模板
               </button>
               <button
                 onClick={() => setShowUploadModal(true)}
-                className="px-3 py-2 text-muted-foreground hover:bg-muted rounded-lg text-sm flex items-center gap-1"
+                className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
               >
-                <Upload className="w-4 h-4" />
+                <Upload className="h-4 w-4" />
                 导入
               </button>
               <button
                 onClick={() => openEditModal()}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 flex items-center gap-2"
+                className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="h-4 w-4" />
                 新建参数
               </button>
             </div>
           </div>
-          {/* 搜索框 */}
+
           <div className="mt-4">
             <SearchBar
               value={searchInput}
               onChange={setSearchInput}
               onSearch={handleSearch}
-              placeholder="搜索参数名称或Key..."
+              placeholder="搜索参数名称或 Key..."
             />
           </div>
         </div>
 
-        {/* 表格 */}
         <div className="overflow-x-auto">
           {loading ? (
             <div className="p-12 text-center text-muted-foreground">加载中...</div>
@@ -185,24 +174,22 @@ export const ParamDefsTab: React.FC = () => {
                   <th className="p-3 text-foreground">Key</th>
                   <th className="p-3 text-foreground">单位</th>
                   <th className="p-3 text-foreground">范围</th>
-                  <th className="p-3 text-foreground">默认值</th>
-                  <th className="p-3 w-24 text-foreground">操作</th>
+                  <th className="w-24 p-3 text-foreground">操作</th>
                 </tr>
               </thead>
               <tbody>
-                {paramDefs.map(p => (
-                  <tr key={p.id} className="border-b border-border hover:bg-muted/30">
-                    <td className="p-3 font-medium text-foreground">{p.name}</td>
-                    <td className="p-3 text-muted-foreground font-mono text-xs">{p.key}</td>
-                    <td className="p-3 text-muted-foreground">{p.unit || '-'}</td>
+                {paramDefs.map(item => (
+                  <tr key={item.id} className="border-b border-border hover:bg-muted/30">
+                    <td className="p-3 font-medium text-foreground">{item.name}</td>
+                    <td className="p-3 font-mono text-xs text-muted-foreground">{item.key}</td>
+                    <td className="p-3 text-muted-foreground">{item.unit || '-'}</td>
                     <td className="p-3 text-muted-foreground">
-                      {p.minVal} - {p.maxVal}
+                      {item.minVal} - {item.maxVal}
                     </td>
-                    <td className="p-3 text-muted-foreground">{p.defaultVal || '-'}</td>
                     <td className="p-3">
                       <ActionButtons
-                        onEdit={() => openEditModal(p)}
-                        onDelete={() => handleDelete(p)}
+                        onEdit={() => openEditModal(item)}
+                        onDelete={() => handleDelete(item)}
                       />
                     </td>
                   </tr>
@@ -212,24 +199,23 @@ export const ParamDefsTab: React.FC = () => {
           )}
         </div>
 
-        {/* 分页 */}
         {totalPages > 1 && (
-          <div className="p-4 border-t border-border flex justify-between items-center">
+          <div className="flex items-center justify-between border-t border-border p-4">
             <span className="text-sm text-muted-foreground">
               第 {page} / {totalPages} 页
             </span>
             <div className="flex gap-2">
               <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
+                onClick={() => setPage(current => Math.max(1, current - 1))}
                 disabled={page === 1}
-                className="px-3 py-1 border rounded disabled:opacity-50"
+                className="rounded border border-border px-3 py-1 disabled:opacity-50"
               >
                 上一页
               </button>
               <button
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                onClick={() => setPage(current => Math.min(totalPages, current + 1))}
                 disabled={page === totalPages}
-                className="px-3 py-1 border rounded disabled:opacity-50"
+                className="rounded border border-border px-3 py-1 disabled:opacity-50"
               >
                 下一页
               </button>
@@ -238,7 +224,6 @@ export const ParamDefsTab: React.FC = () => {
         )}
       </Card>
 
-      {/* 编辑模态框 */}
       <EditModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
@@ -249,19 +234,19 @@ export const ParamDefsTab: React.FC = () => {
         <FormInput
           label="名称"
           value={formData.name || ''}
-          onChange={v => setFormData(d => ({ ...d, name: v }))}
+          onChange={value => setFormData(current => ({ ...current, name: value }))}
           placeholder="请输入参数名称"
         />
         <FormInput
           label="Key"
           value={formData.key || ''}
-          onChange={v => setFormData(d => ({ ...d, key: v }))}
-          placeholder="请输入参数键名（英文）"
+          onChange={value => setFormData(current => ({ ...current, key: value }))}
+          placeholder="请输入参数 Key（英文）"
         />
         <FormSelect
           label="数据类型"
           value={String(formData.valType || 1)}
-          onChange={v => setFormData(d => ({ ...d, valType: Number(v) }))}
+          onChange={value => setFormData(current => ({ ...current, valType: Number(value) }))}
           options={[
             { value: '1', label: '浮点数' },
             { value: '2', label: '整数' },
@@ -271,44 +256,43 @@ export const ParamDefsTab: React.FC = () => {
         <FormInput
           label="单位"
           value={formData.unit || ''}
-          onChange={v => setFormData(d => ({ ...d, unit: v }))}
+          onChange={value => setFormData(current => ({ ...current, unit: value }))}
           placeholder="如：mm, kg, MPa"
         />
         <div className="grid grid-cols-2 gap-4">
           <FormInput
             label="最小值"
             value={formData.minVal ?? 0}
-            onChange={v => setFormData(d => ({ ...d, minVal: Number(v) }))}
+            onChange={value => setFormData(current => ({ ...current, minVal: Number(value) }))}
             type="number"
           />
           <FormInput
             label="最大值"
             value={formData.maxVal ?? 100}
-            onChange={v => setFormData(d => ({ ...d, maxVal: Number(v) }))}
+            onChange={value => setFormData(current => ({ ...current, maxVal: Number(value) }))}
             type="number"
           />
         </div>
         <FormInput
           label="默认值"
           value={formData.defaultVal || ''}
-          onChange={v => setFormData(d => ({ ...d, defaultVal: v }))}
+          onChange={value => setFormData(current => ({ ...current, defaultVal: value }))}
           placeholder="请输入默认值"
         />
         <FormInput
           label="排序"
           value={formData.sort ?? 100}
-          onChange={v => setFormData(d => ({ ...d, sort: Number(v) }))}
+          onChange={value => setFormData(current => ({ ...current, sort: Number(value) }))}
           type="number"
         />
       </EditModal>
 
-      {/* 上传模态框 */}
       {showUploadModal && (
-        <UploadModal
+        <ParamDefsUploadModal
           onClose={() => setShowUploadModal(false)}
           onSuccess={() => {
             setShowUploadModal(false);
-            loadData();
+            void loadData();
           }}
           showToast={showToast}
         />
@@ -316,138 +300,5 @@ export const ParamDefsTab: React.FC = () => {
 
       <ConfirmDialogComponent />
     </>
-  );
-};
-
-// 上传模态框组件
-const UploadModal: React.FC<{
-  onClose: () => void;
-  onSuccess: () => void;
-  showToast: (type: 'success' | 'error' | 'info', msg: string) => void;
-}> = ({ onClose, onSuccess, showToast }) => {
-  const [file, setFile] = useState<File | null>(null);
-  const [parsedData, setParsedData] = useState<ParsedParam[]>([]);
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const parseFile = async (f: File) => {
-    const text = await f.text();
-    const lines = text.split('\n').filter(l => l.trim());
-    if (lines.length < 2) {
-      showToast('error', '文件格式错误');
-      return;
-    }
-    const parsed = lines
-      .slice(1)
-      .map(line => {
-        const cols = line.split(',').map(c => c.trim());
-        return {
-          key: cols[0] || '',
-          name: cols[1] || '',
-          unit: cols[2] || '',
-          minVal: Number(cols[3]) || 0,
-          maxVal: Number(cols[4]) || 100,
-          defaultVal: cols[5] || '',
-          exists: false,
-        };
-      })
-      .filter(p => p.key);
-    setParsedData(parsed);
-  };
-
-  const handleUpload = async () => {
-    if (parsedData.length === 0) return;
-    setUploading(true);
-    try {
-      const items = parsedData.map(p => ({
-        key: p.key,
-        name: p.name || p.key,
-        unit: p.unit,
-        minVal: p.minVal,
-        maxVal: p.maxVal,
-        defaultVal: p.defaultVal,
-      }));
-      const res = await baseConfigApi.batchCreateParamDefs(items);
-      showToast(
-        'success',
-        `导入完成：创建 ${res.data?.created?.length || 0} 个，跳过 ${res.data?.skipped?.length || 0} 个`
-      );
-      onSuccess();
-    } catch {
-      showToast('error', '导入失败');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[80vh] flex flex-col">
-        <div className="p-4 border-b dark:border-slate-700">
-          <h3 className="text-lg font-bold">导入参数定义</h3>
-          <p className="text-sm text-slate-500 mt-1">上传 CSV 文件批量创建参数</p>
-        </div>
-        <div className="p-4 flex-1 overflow-y-auto space-y-4">
-          <div>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".csv"
-              onChange={e => {
-                const f = e.target.files?.[0];
-                if (f) {
-                  setFile(f);
-                  parseFile(f);
-                }
-              }}
-              className="hidden"
-            />
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full p-4 border-2 border-dashed rounded-lg text-center hover:bg-slate-50 dark:hover:bg-slate-700 eyecare:hover:bg-muted"
-            >
-              {file ? file.name : '点击选择文件 (CSV)'}
-            </button>
-          </div>
-          {parsedData.length > 0 && (
-            <div className="border rounded-lg overflow-hidden max-h-60 overflow-y-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50 dark:bg-slate-700">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Key</th>
-                    <th className="px-3 py-2 text-left">名称</th>
-                    <th className="px-3 py-2 text-left">单位</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y dark:divide-slate-700">
-                  {parsedData.map((p, i) => (
-                    <tr key={i}>
-                      <td className="px-3 py-2 font-mono text-xs">{p.key}</td>
-                      <td className="px-3 py-2">{p.name || '-'}</td>
-                      <td className="px-3 py-2">{p.unit || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-        <div className="flex justify-end gap-3 p-4 border-t dark:border-slate-700">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg"
-          >
-            取消
-          </button>
-          <button
-            onClick={handleUpload}
-            disabled={parsedData.length === 0 || uploading}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            {uploading ? '导入中...' : '确认导入'}
-          </button>
-        </div>
-      </div>
-    </div>
   );
 };

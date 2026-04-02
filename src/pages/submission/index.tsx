@@ -5,14 +5,15 @@ import { useUIStore, useAuthStore } from '@/stores';
 import { RESOURCES } from '@/locales';
 import { useToast, useConfirmDialog } from '@/components/ui';
 import { ordersApi } from '@/api';
-import { queryClient, queryKeys } from '@/lib/queryClient';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useCareDevices } from '@/features/config/queries';
 import { useSubmissionState, useCanvasInteraction } from './hooks';
+import { useSubmissionDrawerActions } from './hooks/useSubmissionDrawerActions';
 import { useSubmissionDraftLifecycle } from './hooks/useSubmissionDraftLifecycle';
 import { useSubmissionOrderRestore } from './hooks/useSubmissionOrderRestore';
 import { useSubmissionProjectHabit } from './hooks/useSubmissionProjectHabit';
+import { useSubmissionSubmitHandler } from './hooks/useSubmissionSubmitHandler';
 import { useSubmissionSubmitMeta } from './hooks/useSubmissionSubmitMeta';
 import { submissionFormSchema, type SubmissionFormValues, type InpSetInfo } from './types';
 import { clearDraft } from './utils/draftStorage';
@@ -309,45 +310,19 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
     }
   }, [form, state.safeFoldTypes, foldTypeIds]);
 
-  // 打开抽屉方法，统一传入 conditionId
-  const openProjectDrawer = () => {
-    state.setDrawerMode('project');
-    state.setIsDrawerOpen(true);
-  };
+  const {
+    openProjectDrawer,
+    openParamsDrawer,
+    openOutputDrawer,
+    openSolverDrawer,
+    openCareDevicesDrawer,
+    getDrawerTitle,
+  } = useSubmissionDrawerActions({
+    state,
+    conditionOrderMap,
+    t,
+  });
 
-  const openParamsDrawer = (conditionId: number, foldTypeId: number, simTypeId: number) => {
-    state.setActiveConditionId(conditionId);
-    state.setActiveFoldTypeId(foldTypeId);
-    state.setActiveSimTypeId(simTypeId);
-    state.setDrawerMode('params');
-    state.setIsDrawerOpen(true);
-  };
-
-  const openOutputDrawer = (conditionId: number, foldTypeId: number, simTypeId: number) => {
-    state.setActiveConditionId(conditionId);
-    state.setActiveFoldTypeId(foldTypeId);
-    state.setActiveSimTypeId(simTypeId);
-    state.setDrawerMode('output');
-    state.setIsDrawerOpen(true);
-  };
-
-  const openSolverDrawer = (conditionId: number, foldTypeId: number, simTypeId: number) => {
-    state.setActiveConditionId(conditionId);
-    state.setActiveFoldTypeId(foldTypeId);
-    state.setActiveSimTypeId(simTypeId);
-    state.setDrawerMode('solver');
-    state.setIsDrawerOpen(true);
-  };
-
-  const openCareDevicesDrawer = (conditionId: number, foldTypeId: number, simTypeId: number) => {
-    state.setActiveConditionId(conditionId);
-    state.setActiveFoldTypeId(foldTypeId);
-    state.setActiveSimTypeId(simTypeId);
-    state.setDrawerMode('careDevices');
-    state.setIsDrawerOpen(true);
-  };
-
-  // 重置处理，带确认弹窗
   const handleReset = () => {
     const title = isEditMode ? t('sub.reset_title_edit') : t('sub.reset_title_new');
     const message = isEditMode ? t('sub.reset_confirm_edit') : t('sub.reset_confirm_new');
@@ -369,173 +344,23 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
     );
   };
 
-  // 提交处理
-  const handleSubmit = form.handleSubmit(
-    async values => {
-      try {
-        const conditions = state.selectedSimTypes.map(item => {
-          const config = state.simTypeConfigs[item.conditionId];
-          const foldType = state.safeFoldTypes.find(ft => ft.id === item.foldTypeId);
-          const simType = state.safeSimTypes.find(st => st.id === item.simTypeId);
-          return {
-            conditionId: item.conditionId,
-            foldTypeId: item.foldTypeId,
-            foldTypeName: foldType?.name,
-            simTypeId: item.simTypeId,
-            simTypeName: simType?.name,
-            params: config?.params,
-            output: config?.output,
-            solver: config?.solver,
-            careDeviceIds: config?.careDeviceIds || [],
-            remark: config?.conditionRemark || '',
-          };
-        });
+  const { handleSubmit } = useSubmissionSubmitHandler({
+    form,
+    state,
+    submitRounds: submitMeta.currentSubmitRounds,
+    orderId,
+    isEditMode,
+    language,
+    inpSets,
+    user,
+    t,
+    showToast,
+    openProjectDrawer,
+    navigateToOrders: () => navigate('/orders'),
+    onClose,
+    clearDraft: () => clearDraft(orderId, draftScopeIdRef.current),
+  });
 
-        const currentSubmitRounds = submitMeta.currentSubmitRounds;
-
-        const limitResp = await ordersApi.getSubmitLimits();
-        const limitData = limitResp?.data;
-
-        const latestSubmitMeta = {
-          maxBatchSize: limitData?.maxBatchSize ?? user?.maxBatchSize ?? 200,
-          dailyRoundLimit: limitData?.dailyRoundLimit ?? user?.dailyRoundLimit ?? 500,
-          todayUsedRounds: limitData?.todayUsedRounds ?? 0,
-        };
-
-        if (currentSubmitRounds > latestSubmitMeta.maxBatchSize) {
-          showToast(
-            'error',
-            `本次提单轮次 ${currentSubmitRounds} 超过上限 ${latestSubmitMeta.maxBatchSize}`
-          );
-          return;
-        }
-
-        if (
-          latestSubmitMeta.todayUsedRounds + currentSubmitRounds >
-          latestSubmitMeta.dailyRoundLimit
-        ) {
-          showToast(
-            'error',
-            `今日轮次上限 ${latestSubmitMeta.dailyRoundLimit}，已用 ${latestSubmitMeta.todayUsedRounds}，本次需 ${currentSubmitRounds}`
-          );
-          return;
-        }
-
-        const originFile = {
-          type: values.originFile.type,
-          path: values.originFile.path,
-          name: values.originFile.name,
-          fileId:
-            values.originFile.type === 2 ? Number(values.originFile.path || '') || null : null,
-        };
-
-        // 构建工况概览，供列表页展示
-        const conditionSummary: Record<string, string[]> = {};
-        for (const c of conditions) {
-          const fName = c.foldTypeName || `${t('sub.fold_type_prefix')}${c.foldTypeId}`;
-          if (!conditionSummary[fName]) conditionSummary[fName] = [];
-          const sName = c.simTypeName || `${t('sub.sim_type_prefix')}${c.simTypeId}`;
-          if (!conditionSummary[fName].includes(sName)) {
-            conditionSummary[fName].push(sName);
-          }
-        }
-
-        const payload = {
-          projectId: values.projectId!,
-          modelLevelId: values.modelLevelId,
-          originFile,
-          originFoldTypeId: values.originFoldTypeId ?? null,
-          participantIds: values.participantIds,
-          remark: values.remark,
-          inputJson: {
-            version: 2,
-            projectInfo: {
-              projectId: values.projectId!,
-              projectName: state.projects.find(p => p.id === values.projectId)?.name,
-              modelLevelId: values.modelLevelId,
-              originFile: values.originFile,
-              originFoldTypeId: values.originFoldTypeId ?? null,
-              participantIds: values.participantIds,
-              issueTitle: values.issueTitle,
-              remark: values.remark,
-            },
-            conditions,
-            globalSolver: state.globalSolver,
-            inpSets,
-          },
-          clientMeta: { lang: language },
-        };
-
-        if (isEditMode && orderId) {
-          // 编辑模式：调用更新 API
-          await ordersApi.updateOrder(orderId, payload);
-          showToast('success', t('sub.update_success'));
-        } else {
-          await ordersApi.createOrder(payload);
-          showToast('success', t('sub.submit_success'));
-          clearDraft(orderId, draftScopeIdRef.current);
-        }
-
-        queryClient.invalidateQueries({ queryKey: queryKeys.orders.list() });
-        if (onClose) onClose();
-        else navigate('/orders');
-      } catch (error) {
-        console.error('鎻愪氦璁㈠崟澶辫触:', error);
-        const message = (error as { message?: string })?.message || t('sub.submit_fail');
-        showToast('error', message);
-      }
-    },
-    errors => {
-      if (errors.projectId || errors.originFile || errors.foldTypeIds || errors.remark) {
-        openProjectDrawer();
-        requestAnimationFrame(() => {
-          if (errors.projectId) {
-            form.setFocus('projectId');
-            return;
-          }
-          if (errors.originFile?.path) {
-            form.setFocus('originFile.path');
-            return;
-          }
-          if (errors.originFile?.name) {
-            form.setFocus('originFile.name');
-            return;
-          }
-          if (errors.foldTypeIds) {
-            // foldTypeIds 是数组，不需要 setFocus
-          }
-        });
-      }
-    }
-  );
-
-  // 获取抽屉标题，包含当前工况上下文
-  const getDrawerTitle = () => {
-    const foldType = state.safeFoldTypes.find(ft => ft.id === state.activeFoldTypeId);
-    const simType = state.safeSimTypes.find(st => st.id === state.activeSimTypeId);
-    const conditionOrder = state.activeConditionId
-      ? conditionOrderMap.get(state.activeConditionId)
-      : undefined;
-    const prefix =
-      foldType && simType
-        ? `${t('sub.condition')}${conditionOrder ?? '-'}-${foldType.name}${simType.name} - `
-        : '';
-
-    switch (state.drawerMode) {
-      case 'project':
-        return t('sub.proj_select');
-      case 'params':
-        return `${prefix}${t('sub.params_config')}`;
-      case 'output':
-        return `${prefix}${t('sub.output_config')}`;
-      case 'solver':
-        return `${prefix}${t('sub.solver_config')}`;
-      case 'careDevices':
-        return `${prefix}${t('sub.care_devices')}`;
-      default:
-        return '';
-    }
-  };
   return (
     <div className="h-full flex flex-col bg-slate-100 dark:bg-slate-900 eyecare:bg-background">
       <SubmissionToolbar
