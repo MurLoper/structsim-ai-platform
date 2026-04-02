@@ -16,7 +16,7 @@ const summaryCards = [
 
 const PlatformAnalyticsPage = () => {
   const [days, setDays] = useState<(typeof RANGE_OPTIONS)[number]>(7);
-  const { data, isLoading } = usePlatformAnalytics(days);
+  const { data, isLoading, error } = usePlatformAnalytics(days);
 
   const summary = data?.summary;
   const timeline = data?.timeline || [];
@@ -31,6 +31,11 @@ const PlatformAnalyticsPage = () => {
     () => topPages.map(item => ({ name: item.path, value: item.count })),
     [topPages]
   );
+  const statusCode =
+    typeof error === 'object' && error && 'response' in error
+      ? (error as { response?: { status?: number } }).response?.status
+      : undefined;
+  const isForbidden = statusCode === 403;
 
   return (
     <div className="space-y-6 py-6">
@@ -55,107 +60,124 @@ const PlatformAnalyticsPage = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-        {summaryCards.map(item => {
-          const Icon = item.icon;
-          const value = summary?.[item.key] ?? 0;
-          return (
-            <Card key={item.key} className="rounded-2xl">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-sm text-muted-foreground">{item.label}</div>
-                  <div className="mt-3 text-3xl font-semibold text-foreground">
-                    {isLoading ? '--' : value}
-                  </div>
-                </div>
-                <div className="rounded-2xl bg-brand-50 p-3 text-brand-600 dark:bg-brand-900/20 dark:text-brand-300">
-                  <Icon className="h-5 w-5" />
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Card>
-          <h2 className="mb-4 text-lg font-semibold text-foreground">趋势变化</h2>
-          {timeline.length > 0 ? (
-            <LineChart data={timeline} xField="date" yField="count" height={280} />
-          ) : (
-            <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
-              {isLoading ? '趋势数据加载中...' : '暂无趋势数据'}
-            </div>
-          )}
-        </Card>
-
-        <Card>
-          <h2 className="mb-4 text-lg font-semibold text-foreground">高频事件</h2>
-          {eventChartData.length > 0 ? (
-            <BarChart data={eventChartData} xField="name" yField="value" height={280} />
-          ) : (
-            <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
-              {isLoading ? '事件数据加载中...' : '暂无事件数据'}
-            </div>
-          )}
-        </Card>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <Card>
-          <h2 className="mb-4 text-lg font-semibold text-foreground">页面访问分布</h2>
-          {pageChartData.length > 0 ? (
-            <BarChart data={pageChartData} xField="name" yField="value" horizontal height={320} />
-          ) : (
-            <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">
-              {isLoading ? '页面分布加载中...' : '暂无页面分布数据'}
-            </div>
-          )}
-        </Card>
-
-        <Card>
-          <h2 className="mb-4 text-lg font-semibold text-foreground">热点明细</h2>
-          <div className="space-y-3">
-            {topEvents.length === 0 && topPages.length === 0 ? (
-              <div className="rounded-2xl bg-muted/40 px-4 py-8 text-center text-sm text-muted-foreground">
-                {isLoading ? '统计明细加载中...' : '暂无热点明细'}
-              </div>
-            ) : (
-              <>
-                <div>
-                  <div className="mb-2 text-sm font-medium text-foreground">事件 TOP 8</div>
-                  <div className="space-y-2">
-                    {topEvents.map(item => (
-                      <div
-                        key={item.name}
-                        className="flex items-center justify-between rounded-2xl bg-muted/40 px-4 py-3 text-sm"
-                      >
-                        <span className="truncate text-foreground">{item.name}</span>
-                        <span className="font-medium text-muted-foreground">{item.count}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="mb-2 text-sm font-medium text-foreground">页面 TOP 8</div>
-                  <div className="space-y-2">
-                    {topPages.map(item => (
-                      <div
-                        key={item.path}
-                        className="flex items-center justify-between rounded-2xl bg-muted/40 px-4 py-3 text-sm"
-                      >
-                        <span className="truncate text-foreground">{item.path}</span>
-                        <span className="font-medium text-muted-foreground">{item.count}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </>
-            )}
+      {isForbidden && (
+        <Card className="rounded-2xl border-amber-200 bg-amber-50/80 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100">
+          <div className="space-y-2">
+            <h2 className="text-lg font-semibold">无权查看埋点分析</h2>
+            <p className="text-sm text-current/80">
+              当前账号缺少查看仪表盘权限，无法访问平台埋点分析页面。
+            </p>
           </div>
         </Card>
-      </div>
+      )}
+
+      {!isForbidden && (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          {summaryCards.map(item => {
+            const Icon = item.icon;
+            const value = summary?.[item.key] ?? 0;
+            return (
+              <Card key={item.key} className="rounded-2xl">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-muted-foreground">{item.label}</div>
+                    <div className="mt-3 text-3xl font-semibold text-foreground">
+                      {isLoading ? '--' : value}
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-brand-50 p-3 text-brand-600 dark:bg-brand-900/20 dark:text-brand-300">
+                    <Icon className="h-5 w-5" />
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {!isForbidden && (
+        <div className="grid gap-6 xl:grid-cols-2">
+          <Card>
+            <h2 className="mb-4 text-lg font-semibold text-foreground">趋势变化</h2>
+            {timeline.length > 0 ? (
+              <LineChart data={timeline} xField="date" yField="count" height={280} />
+            ) : (
+              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+                {isLoading ? '趋势数据加载中...' : '暂无趋势数据'}
+              </div>
+            )}
+          </Card>
+
+          <Card>
+            <h2 className="mb-4 text-lg font-semibold text-foreground">高频事件</h2>
+            {eventChartData.length > 0 ? (
+              <BarChart data={eventChartData} xField="name" yField="value" height={280} />
+            ) : (
+              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+                {isLoading ? '事件数据加载中...' : '暂无事件数据'}
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
+
+      {!isForbidden && (
+        <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <Card>
+            <h2 className="mb-4 text-lg font-semibold text-foreground">页面访问分布</h2>
+            {pageChartData.length > 0 ? (
+              <BarChart data={pageChartData} xField="name" yField="value" horizontal height={320} />
+            ) : (
+              <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">
+                {isLoading ? '页面分布加载中...' : '暂无页面分布数据'}
+              </div>
+            )}
+          </Card>
+
+          <Card>
+            <h2 className="mb-4 text-lg font-semibold text-foreground">热点明细</h2>
+            <div className="space-y-3">
+              {topEvents.length === 0 && topPages.length === 0 ? (
+                <div className="rounded-2xl bg-muted/40 px-4 py-8 text-center text-sm text-muted-foreground">
+                  {isLoading ? '统计明细加载中...' : '暂无热点明细'}
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <div className="mb-2 text-sm font-medium text-foreground">事件 TOP 8</div>
+                    <div className="space-y-2">
+                      {topEvents.map(item => (
+                        <div
+                          key={item.name}
+                          className="flex items-center justify-between rounded-2xl bg-muted/40 px-4 py-3 text-sm"
+                        >
+                          <span className="truncate text-foreground">{item.name}</span>
+                          <span className="font-medium text-muted-foreground">{item.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="mb-2 text-sm font-medium text-foreground">页面 TOP 8</div>
+                    <div className="space-y-2">
+                      {topPages.map(item => (
+                        <div
+                          key={item.path}
+                          className="flex items-center justify-between rounded-2xl bg-muted/40 px-4 py-3 text-sm"
+                        >
+                          <span className="truncate text-foreground">{item.path}</span>
+                          <span className="font-medium text-muted-foreground">{item.count}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

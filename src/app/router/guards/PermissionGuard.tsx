@@ -31,12 +31,15 @@ export interface PermissionGuardProps {
  * 检查用户是否已登录，支持SSO回调token验证
  */
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { user, isAuthenticated, isLoading, setToken, verifyToken } = useAuthStore();
+  const { user, isAuthenticated, isLoading, setToken, verifyToken, clearAuthState } =
+    useAuthStore();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
+    const storedToken = localStorage.getItem('auth_token');
+
     // 检查URL参数中是否有SSO回调的token
     const ssoToken = searchParams.get('token');
     if (ssoToken) {
@@ -50,13 +53,26 @@ export function AuthGuard({ children }: AuthGuardProps) {
       return;
     }
 
+    if (user && !storedToken && !isLoading && !isVerifying) {
+      clearAuthState();
+      return;
+    }
+
     // 如果有token但没有用户信息，尝试验证
-    const storedToken = localStorage.getItem('auth_token');
     if (storedToken && !user && !isLoading && !isVerifying) {
       setIsVerifying(true);
       verifyToken().finally(() => setIsVerifying(false));
     }
-  }, [searchParams, setSearchParams, setToken, verifyToken, user, isLoading, isVerifying]);
+  }, [
+    searchParams,
+    setSearchParams,
+    setToken,
+    verifyToken,
+    user,
+    isLoading,
+    isVerifying,
+    clearAuthState,
+  ]);
 
   // 正在验证中，显示加载状态
   if (isLoading || isVerifying) {

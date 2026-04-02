@@ -4,7 +4,8 @@ import { queryKeys } from '@/lib/queryClient';
 import { useAuthStore } from '@/stores';
 
 export const usePlatformBootstrap = () => {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, token } = useAuthStore();
+  const hasAuthToken = !!token && !!localStorage.getItem('auth_token');
 
   return useQuery({
     queryKey: queryKeys.platform.bootstrap(),
@@ -12,7 +13,7 @@ export const usePlatformBootstrap = () => {
       const response = await platformApi.getBootstrap();
       return response.data;
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && hasAuthToken,
     staleTime: 0,
     refetchOnWindowFocus: true,
     refetchInterval: query => {

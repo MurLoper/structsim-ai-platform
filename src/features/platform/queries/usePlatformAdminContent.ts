@@ -5,7 +5,8 @@ import { useAuthStore } from '@/stores';
 import type { PlatformAnnouncementPayload, PlatformSettingsUpdatePayload } from '@/types';
 
 export const usePlatformAdminContent = () => {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, token } = useAuthStore();
+  const hasAuthToken = !!token && !!localStorage.getItem('auth_token');
 
   return useQuery({
     queryKey: queryKeys.platform.adminContent(),
@@ -13,7 +14,7 @@ export const usePlatformAdminContent = () => {
       const response = await platformApi.getAdminContent();
       return response.data;
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && hasAuthToken,
     staleTime: 30000,
   });
 };

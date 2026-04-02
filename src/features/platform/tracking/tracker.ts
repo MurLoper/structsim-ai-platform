@@ -35,6 +35,11 @@ export const flushTrackedEvents = async () => {
     return;
   }
 
+  if (!localStorage.getItem('auth_token')) {
+    queue = [];
+    return;
+  }
+
   isFlushing = true;
   const batch = queue.slice(0, MAX_BATCH_SIZE);
   queue = queue.slice(batch.length);
@@ -52,6 +57,10 @@ export const flushTrackedEvents = async () => {
 };
 
 export const trackEvent = (event: PlatformTrackingEventInput) => {
+  if (!localStorage.getItem('auth_token')) {
+    return;
+  }
+
   queue.push({
     eventType: 'interaction',
     ...event,

@@ -1,6 +1,9 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import type { ApiResponse } from '@/types/api';
 
+const AUTH_TOKEN_KEY = 'auth_token';
+const AUTH_STORAGE_KEY = 'auth-storage';
+
 // API Configuration
 // 开发环境使用相对路径，通过 Vite 代理转发到后端
 // 生产环境可通过环境变量配置完整 URL
@@ -29,7 +32,7 @@ const apiClient: AxiosInstance = axios.create({
 // Request interceptor - add auth token and trace_id
 apiClient.interceptors.request.use(
   config => {
-    const token = localStorage.getItem('auth_token');
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -65,7 +68,8 @@ apiClient.interceptors.response.use(
   error => {
     if (error.response?.status === 401) {
       // Token expired or invalid
-      localStorage.removeItem('auth_token');
+      localStorage.removeItem(AUTH_TOKEN_KEY);
+      localStorage.removeItem(AUTH_STORAGE_KEY);
       window.location.href = '/#/login';
     }
     return Promise.reject(error);

@@ -3,6 +3,16 @@ import { persist } from 'zustand/middleware';
 import { User, Permission, MenuItem } from '@/types';
 import { authApi } from '@/api';
 
+const AUTH_TOKEN_KEY = 'auth_token';
+const AUTH_STORAGE_KEY = 'auth-storage';
+
+const clearPersistedAuth = () => {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+};
+
+const getStoredAuthToken = () => localStorage.getItem(AUTH_TOKEN_KEY);
+
 const normalizePermissions = (user: User | null): Permission[] => {
   const perms = (user?.permissions ?? user?.permissionCodes ?? []) as Permission[];
   return Array.from(new Set(perms));
@@ -55,7 +65,9 @@ interface AuthState {
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
   setMenus: (menus: MenuItem[]) => void;
+  clearAuthState: () => void;
   fetchLoginMode: () => Promise<LoginMode>;
+  hydrateSession: () => Promise<boolean>;
   login: (domainAccount: string, password: string) => Promise<void>;
   loginBySsoUid: (uid: string) => Promise<void>;
   verifyToken: () => Promise<boolean>;
@@ -83,18 +95,33 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       lastHeartbeat: 0,
 
-      setUser: user => set({ user, isAuthenticated: !!user }),
+      setUser: user =>
+        set({
+          user,
+          isAuthenticated: !!user && !!getStoredAuthToken(),
+        }),
 
       setToken: token => {
         if (token) {
-          localStorage.setItem('auth_token', token);
+          localStorage.setItem(AUTH_TOKEN_KEY, token);
         } else {
-          localStorage.removeItem('auth_token');
+          localStorage.removeItem(AUTH_TOKEN_KEY);
         }
         set({ token });
       },
 
       setMenus: menus => set({ menus }),
+
+      clearAuthState: () => {
+        clearPersistedAuth();
+        set({
+          user: null,
+          token: null,
+          menus: [],
+          isAuthenticated: false,
+          lastHeartbeat: 0,
+        });
+      },
 
       fetchLoginMode: async () => {
         const response = await authApi.getLoginMode();
@@ -109,6 +136,34 @@ export const useAuthStore = create<AuthState>()(
         return mode;
       },
 
+      hydrateSession: async () => {
+        const token = get().token || getStoredAuthToken();
+        if (!token) {
+          get().clearAuthState();
+          return false;
+        }
+
+        try {
+          const response = await authApi.verifyToken();
+          const payload = response?.data;
+          if (!payload?.user) {
+            get().clearAuthState();
+            return false;
+          }
+
+          const userData = normalizeUser(payload.user as User);
+          set({
+            user: userData,
+            menus: payload.menus || [],
+            isAuthenticated: true,
+          });
+          return true;
+        } catch {
+          get().clearAuthState();
+          return false;
+        }
+      },
+
       login: async (domainAccount: string, password: string) => {
         set({ isLoading: true });
         try {
@@ -117,16 +172,11 @@ export const useAuthStore = create<AuthState>()(
           if (payload?.token) {
             get().setToken(payload.token);
           }
-          if (payload?.user) {
-            const userData = normalizeUser(payload.user as User);
-            set({
-              user: userData,
-              isLoading: false,
-              isAuthenticated: true,
-            });
-          } else {
-            set({ isLoading: false });
+          const hydrated = await get().hydrateSession();
+          if (!hydrated) {
+            throw new Error('登录成功，但获取用户信息失败，请重试');
           }
+          set({ isLoading: false });
         } catch (error: unknown) {
           set({ isLoading: false });
           const err = error as { response?: { data?: { message?: string } }; message?: string };
@@ -143,16 +193,11 @@ export const useAuthStore = create<AuthState>()(
           if (payload?.token) {
             get().setToken(payload.token);
           }
-          if (payload?.user) {
-            const userData = normalizeUser(payload.user as User);
-            set({
-              user: userData,
-              isLoading: false,
-              isAuthenticated: true,
-            });
-          } else {
-            set({ isLoading: false });
+          const hydrated = await get().hydrateSession();
+          if (!hydrated) {
+            throw new Error('SSO 登录成功，但获取用户信息失败，请重试');
           }
+          set({ isLoading: false });
         } catch (error: unknown) {
           set({ isLoading: false });
           const err = error as { response?: { data?: { message?: string } }; message?: string };
@@ -162,31 +207,20 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
-        localStorage.removeItem('auth_token');
-        set({ user: null, token: null, menus: [], isAuthenticated: false });
+        get().clearAuthState();
       },
 
       verifyToken: async () => {
-        const token = get().token || localStorage.getItem('auth_token');
+        const token = get().token || getStoredAuthToken();
         if (!token) {
+          get().clearAuthState();
           return false;
         }
         set({ isLoading: true });
         try {
-          const response = await authApi.verifyToken();
-          const payload = response?.data;
-          if (payload?.user) {
-            const userData = normalizeUser(payload.user as User);
-            set({
-              user: userData,
-              menus: payload.menus || [],
-              isLoading: false,
-              isAuthenticated: true,
-            });
-            return true;
-          }
+          const hydrated = await get().hydrateSession();
           set({ isLoading: false });
-          return false;
+          return hydrated;
         } catch {
           get().logout();
           set({ isLoading: false });
@@ -195,7 +229,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       checkHeartbeat: async () => {
-        const token = get().token || localStorage.getItem('auth_token');
+        const token = get().token || getStoredAuthToken();
         if (!token || !get().isAuthenticated) {
           return false;
         }
@@ -255,6 +289,15 @@ export const useAuthStore = create<AuthState>()(
       partialize: state => ({ user: state.user, token: state.token, menus: state.menus }),
       onRehydrateStorage: () => state => {
         if (state) {
+          const token = getStoredAuthToken();
+          if (!token) {
+            state.user = null;
+            state.token = null;
+            state.menus = [];
+            state.isAuthenticated = false;
+            return;
+          }
+          state.token = token;
           state.isAuthenticated = !!state.user;
         }
       },

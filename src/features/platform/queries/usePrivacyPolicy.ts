@@ -4,7 +4,8 @@ import { queryClient, queryKeys } from '@/lib/queryClient';
 import { useAuthStore } from '@/stores';
 
 export const usePrivacyPolicy = () => {
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, token } = useAuthStore();
+  const hasAuthToken = !!token && !!localStorage.getItem('auth_token');
 
   return useQuery({
     queryKey: queryKeys.platform.privacyPolicy(),
@@ -12,7 +13,7 @@ export const usePrivacyPolicy = () => {
       const response = await platformApi.getPrivacyPolicy();
       return response.data;
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && hasAuthToken,
     staleTime: 30000,
   });
 };
