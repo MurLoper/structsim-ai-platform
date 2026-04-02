@@ -1,32 +1,43 @@
-# Configuration 领域指南
+# Configuration 领域结构指南
 
-适用范围：`src/pages/configuration/**`  
-最后更新：2026-04-02
+适用范围：`src/pages/configuration/**`
 
-## 目标
+## 1. 目标
 
-- 让 `configuration` 页面只做 tab 编排与页面协调
-- 将各配置子域按语义目录组织
-- 保持 CRUD、回填、删除确认、权限流转不变
+- 页面入口只负责 tab 组装、查询接线和少量页面级协调
+- 管理型页面拆成语义子域，而不是继续在顶层平铺大组件
+- `permissions / relations / param-groups / output-groups / conditions / status` 各自独立收口
 
-## 目录建议
+## 2. 推荐目录
 
-- `components/permissions`
-- `components/relations`
-- `components/paramGroups`
-- `components/outputGroups`
-- `components/conditions`
-- `components/status`
+```text
+configuration/
+  Configuration.tsx
+  hooks/
+  tabs/
+  components/
+    permissions/
+    relations/
+    paramGroups/
+    outputGroups/
+    conditions/
+    status/
+```
 
-## 约束
+## 3. 拆分原则
 
-- `*Management.tsx` 只保留容器职责
-- 表单弹层必须拆到语义子目录
-- 列定义、表单选项、派生映射分别放到 `constants / selectors / adapters / types`
-- 不允许继续把共享 class 常量当作终态结构
+- `*Management.tsx` 只保留列表状态、查询、保存入口
+- 表格列定义、工具栏、弹层表单、预览区分别拆出
+- `permissions` 继续细分 `users / roles / menus / shared`
+- `tabs` 只做切换与装配，不隐藏批量导入、预览、批量创建等业务细节
 
-## 当前重点
+## 4. 数据与命名
 
-- `OutputGroupsManagement.tsx`
-- `ParamDefsTab.tsx`
-- `OutputDefsTab.tsx`
+- 配置映射、下拉选项、默认值进入 `constants / selectors / adapters / types`
+- 不允许继续新增 `*Options.tsx`、`*Data.ts` 这类无边界聚合文件作为长期终态
+- 配置关系型字段优先用明确命名，例如 `defaultParamGroupId`、`defaultOutputGroupId`
+
+## 5. 主题与展示
+
+- `configuration` 页面壳层和管理弹层统一使用主题 token
+- 共享样式优先抽成语义组件，不只抽 class 常量
