@@ -149,4 +149,12 @@ export const queryKeys = {
     list: () => [...queryKeys.solverResources.all, 'list'] as const,
     detail: (id: number) => [...queryKeys.solverResources.all, 'detail', id] as const,
   },
+  platform: {
+    all: ['platform'] as const,
+    bootstrap: () => [...queryKeys.platform.all, 'bootstrap'] as const,
+    privacyPolicy: () => [...queryKeys.platform.all, 'privacyPolicy'] as const,
+    adminContent: () => [...queryKeys.platform.all, 'adminContent'] as const,
+    analytics: (days: number) => [...queryKeys.platform.all, 'analytics', days] as const,
+    analyticsAll: () => [...queryKeys.platform.all, 'analytics'] as const,
+  },
 } as const;

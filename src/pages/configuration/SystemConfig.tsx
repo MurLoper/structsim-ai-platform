@@ -1,17 +1,18 @@
 import React, { useState } from 'react';
-import { useUIStore } from '@/stores';
+import { Bell, Folder, Settings, Tag } from 'lucide-react';
 import { RESOURCES } from '@/locales';
-import { Folder, Settings, Tag } from 'lucide-react';
-
+import { useUIStore } from '@/stores';
 import { ConfigTabs, TabItem } from './components';
+import { SystemConfigManagement } from './components/SystemConfigManagement';
+import { PlatformContentManagement } from './components/platform/PlatformContentManagement';
 import { ProjectsTab } from './tabs/ProjectsTab';
 import { StatusConfigTab } from './tabs/StatusConfigTab';
-import { SystemConfigManagement } from './components/SystemConfigManagement';
 
 const TABS: TabItem[] = [
-  { key: 'projects', label: '项目管理', icon: <Folder className="w-4 h-4" /> },
-  { key: 'status', label: '状态管理', icon: <Tag className="w-4 h-4" /> },
-  { key: 'systemConfig', label: '模块管理', icon: <Settings className="w-4 h-4" /> },
+  { key: 'projects', label: '项目管理', icon: <Folder className="h-4 w-4" /> },
+  { key: 'status', label: '状态管理', icon: <Tag className="h-4 w-4" /> },
+  { key: 'systemConfig', label: '模块管理', icon: <Settings className="h-4 w-4" /> },
+  { key: 'platform', label: '平台内容', icon: <Bell className="h-4 w-4" /> },
 ];
 
 const SystemConfig: React.FC = () => {
@@ -21,10 +22,8 @@ const SystemConfig: React.FC = () => {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white eyecare:text-foreground">
-          {t('cfg.system') || '系统配置'}
-        </h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-foreground">{t('cfg.system') || '系统配置'}</h1>
       </div>
 
       <ConfigTabs tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
@@ -32,6 +31,7 @@ const SystemConfig: React.FC = () => {
       {activeTab === 'projects' && <ProjectsTab />}
       {activeTab === 'status' && <StatusConfigTab />}
       {activeTab === 'systemConfig' && <SystemConfigManagement />}
+      {activeTab === 'platform' && <PlatformContentManagement />}
     </div>
   );
 };

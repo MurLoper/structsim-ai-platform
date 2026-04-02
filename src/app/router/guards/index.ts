@@ -11,3 +11,4 @@ export {
   type PermissionGuardProps,
   type RoleGuardProps,
 } from './PermissionGuard';
+export { PrivacyAgreementGate } from './PrivacyAgreementGate';

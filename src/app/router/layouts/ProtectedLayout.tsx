@@ -5,9 +5,10 @@
  */
 import { lazy, useMemo, useEffect, useCallback } from 'react';
 import { Outlet, useMatches, useLocation, useNavigate } from 'react-router-dom';
-import { AuthGuard, PermissionGuard } from '../guards';
+import { AuthGuard, PermissionGuard, PrivacyAgreementGate } from '../guards';
 import { PageSuspense, RouteErrorBoundary } from '../components';
 import { useAuthHeartbeat } from '@/hooks';
+import { useRouteTracking } from '@/features/platform/tracking/useRouteTracking';
 import type { Permission } from '@/types';
 
 // 懒加载布局
@@ -29,6 +30,7 @@ export function ProtectedLayout() {
   const matches = useMatches();
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  useRouteTracking();
 
   // 登录过期回调
   const handleSessionExpired = useCallback(() => {
@@ -58,15 +60,17 @@ export function ProtectedLayout() {
 
   return (
     <AuthGuard>
-      <PermissionGuard permission={permission} permissions={permissions}>
-        <RouteErrorBoundary>
-          <PageSuspense>
-            <Layout noContainer={noContainer}>
-              <Outlet />
-            </Layout>
-          </PageSuspense>
-        </RouteErrorBoundary>
-      </PermissionGuard>
+      <PrivacyAgreementGate>
+        <PermissionGuard permission={permission} permissions={permissions}>
+          <RouteErrorBoundary>
+            <PageSuspense>
+              <Layout noContainer={noContainer}>
+                <Outlet />
+              </Layout>
+            </PageSuspense>
+          </RouteErrorBoundary>
+        </PermissionGuard>
+      </PrivacyAgreementGate>
     </AuthGuard>
   );
 }

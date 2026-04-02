@@ -9,3 +9,4 @@ export * from './process';
 export * from './order';
 export * from './statistics';
 export * from './menu';
+export * from './platform';

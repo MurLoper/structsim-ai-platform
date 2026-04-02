@@ -1,14 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  ArrowRightOnRectangleIcon,
   ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   LanguageIcon,
   MoonIcon,
   SunIcon,
-  UserCircleIcon,
 } from '@heroicons/react/24/outline';
 import { EyeIcon } from '@heroicons/react/24/outline';
 import { Leaf } from 'lucide-react';
@@ -17,6 +15,8 @@ import { useAuthStore, useMenuStore, useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
 import { getIconComponent, DefaultIcon } from '@/utils/iconMap';
 import type { MenuItem } from '@/types';
+import { LayoutAnnouncementBanner } from './LayoutAnnouncementBanner';
+import { LayoutUserMenu } from './LayoutUserMenu';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -95,7 +95,8 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
         <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-6">
           {visibleMenus.map(menu => {
             const Icon = getIconComponent(menu.icon) || DefaultIcon;
-            const hasChildren = (menu.children?.filter(child => !child.hidden).length || 0) > 0;
+            const visibleChildren = menu.children?.filter(child => !child.hidden) || [];
+            const hasChildren = visibleChildren.length > 0;
             const isExpanded = expandedMenus.includes(menu.id);
             const active = isMenuActive(menu);
             const menuLabel = menu.titleI18nKey ? t(menu.titleI18nKey) : menu.name;
@@ -124,30 +125,26 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
 
                   {!sidebarCollapsed && isExpanded && (
                     <div className="ml-4 mt-1 space-y-1">
-                      {menu.children
-                        ?.filter(child => !child.hidden)
-                        .map(child => {
-                          const ChildIcon = getIconComponent(child.icon) || DefaultIcon;
-                          const childLabel = child.titleI18nKey
-                            ? t(child.titleI18nKey)
-                            : child.name;
-                          if (!child.path) {
-                            return null;
-                          }
-                          return (
-                            <Link
-                              key={child.id}
-                              to={child.path}
-                              className={clsx(
-                                navItemClass(location.pathname === child.path),
-                                'text-sm font-normal'
-                              )}
-                            >
-                              <ChildIcon className="h-4 w-4 flex-shrink-0" />
-                              {childLabel}
-                            </Link>
-                          );
-                        })}
+                      {visibleChildren.map(child => {
+                        const ChildIcon = getIconComponent(child.icon) || DefaultIcon;
+                        const childLabel = child.titleI18nKey ? t(child.titleI18nKey) : child.name;
+                        if (!child.path) {
+                          return null;
+                        }
+                        return (
+                          <Link
+                            key={child.id}
+                            to={child.path}
+                            className={clsx(
+                              navItemClass(location.pathname === child.path),
+                              'text-sm font-normal'
+                            )}
+                          >
+                            <ChildIcon className="h-4 w-4 flex-shrink-0" />
+                            {childLabel}
+                          </Link>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -176,26 +173,7 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
         </nav>
 
         <div className="space-y-4 border-t border-border p-4">
-          {!sidebarCollapsed && (
-            <div className="flex items-center gap-3 px-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-muted-foreground">
-                <UserCircleIcon className="h-6 w-6" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="truncate text-sm font-medium text-foreground">
-                  {user?.realName || user?.userName || user?.displayName || user?.domainAccount}
-                </div>
-                <div className="truncate text-xs text-muted-foreground">{user?.email}</div>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="text-muted-foreground transition-colors hover:text-destructive"
-                title="退出登录"
-              >
-                <ArrowRightOnRectangleIcon className="h-5 w-5" />
-              </button>
-            </div>
-          )}
+          <LayoutUserMenu user={user} onLogout={handleLogout} compact={sidebarCollapsed} />
 
           <div
             className={clsx(
@@ -274,6 +252,7 @@ const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
           sidebarCollapsed ? 'ml-16' : 'ml-64'
         )}
       >
+        <LayoutAnnouncementBanner />
         <div className={clsx('h-full', !noContainer && 'p-8')}>{children}</div>
       </main>
     </div>

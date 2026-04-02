@@ -15,6 +15,7 @@ import {
   configRoutes,
   submissionRoutes,
   accessRoutes,
+  platformRoutes,
 } from './routes';
 
 /**
@@ -49,6 +50,7 @@ export const appRoutes: RouteObject[] = [
       ...submissionRoutes,
       // 访问权限
       ...accessRoutes,
+      ...platformRoutes,
     ],
   },
 ];

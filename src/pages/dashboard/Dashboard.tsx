@@ -13,6 +13,7 @@ import {
   AlertTriangle,
   Beaker,
   ArrowRight,
+  Bell,
   FileText,
   Settings,
 } from 'lucide-react';
@@ -88,6 +89,13 @@ const Dashboard: React.FC = () => {
       icon: Settings,
       path: '/config',
       color: 'purple',
+    },
+    {
+      title: '埋点分析',
+      description: '查看公告曝光、页面访问和隐私协议确认趋势',
+      icon: Bell,
+      path: '/analytics',
+      color: 'amber',
     },
   ];
 
@@ -179,7 +187,7 @@ const Dashboard: React.FC = () => {
         <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
           {t('dash.quick.title')}
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {quickLinks.map(link => (
             <Card
               key={link.path}
@@ -193,7 +201,9 @@ const Dashboard: React.FC = () => {
                       ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                       : link.color === 'green'
                         ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-                        : 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
+                        : link.color === 'amber'
+                          ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-300'
+                          : 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
                   }`}
                 >
                   <link.icon className="w-6 h-6" />
