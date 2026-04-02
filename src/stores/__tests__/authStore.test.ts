@@ -148,7 +148,14 @@ describe('useAuthStore', () => {
         msg: 'success',
         data: {
           token: 'test-token-123',
+        },
+      });
+      vi.mocked(authApi.verifyToken).mockResolvedValue({
+        code: 0,
+        msg: 'success',
+        data: {
           user: mockUsers[0],
+          menus: [],
         },
       });
 
@@ -169,13 +176,13 @@ describe('useAuthStore', () => {
       vi.mocked(authApi.login).mockResolvedValue({
         code: 0,
         msg: 'success',
-        data: { token: '', user: null as unknown as User },
+        data: { token: '' },
       });
 
       const { login } = useAuthStore.getState();
 
       await act(async () => {
-        await login('z00000000', 'password');
+        await expect(login('z00000000', 'password')).rejects.toThrow();
       });
 
       const state = useAuthStore.getState();
