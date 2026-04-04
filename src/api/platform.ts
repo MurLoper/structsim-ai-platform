@@ -1,6 +1,9 @@
 import { api } from './client';
 import type {
   PlatformAdminContent,
+  PlatformAnalyticsFailures,
+  PlatformAnalyticsFeatures,
+  PlatformAnalyticsFunnels,
   PlatformAnalyticsSummary,
   PlatformAnnouncement,
   PlatformAnnouncementPayload,
@@ -22,6 +25,12 @@ export const platformApi = {
     api.post<{ acceptedCount: number; trackingEnabled: boolean }>('/platform/events', { events }),
   getAnalyticsSummary: (days: number) =>
     api.get<PlatformAnalyticsSummary>('/platform/analytics/summary', { params: { days } }),
+  getAnalyticsFeatures: (days: number) =>
+    api.get<PlatformAnalyticsFeatures>('/platform/analytics/features', { params: { days } }),
+  getAnalyticsFunnels: (days: number) =>
+    api.get<PlatformAnalyticsFunnels>('/platform/analytics/funnels', { params: { days } }),
+  getAnalyticsFailures: (days: number) =>
+    api.get<PlatformAnalyticsFailures>('/platform/analytics/failures', { params: { days } }),
   getAdminContent: () => api.get<PlatformAdminContent>('/platform/admin/content'),
   updateAdminContent: (payload: PlatformSettingsUpdatePayload) =>
     api.put<{ settings: PlatformAdminContent['settings'] }>('/platform/admin/content', payload),

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { useSubmissionState } from './useSubmissionState';
+import { trackSubmissionDrawerOpen } from '@/features/platform/tracking/domains/submissionTracking';
 
 type SubmissionState = ReturnType<typeof useSubmissionState>;
 type DrawerMode = SubmissionState['drawerMode'];
@@ -16,6 +17,7 @@ export const useSubmissionDrawerActions = ({
   t,
 }: UseSubmissionDrawerActionsOptions) => {
   const openProjectDrawer = useCallback(() => {
+    trackSubmissionDrawerOpen('project');
     state.setDrawerMode('project');
     state.setIsDrawerOpen(true);
   }, [state]);
@@ -27,6 +29,7 @@ export const useSubmissionDrawerActions = ({
       foldTypeId: number,
       simTypeId: number
     ) => {
+      trackSubmissionDrawerOpen(mode, conditionId, foldTypeId, simTypeId);
       state.setActiveConditionId(conditionId);
       state.setActiveFoldTypeId(foldTypeId);
       state.setActiveSimTypeId(simTypeId);

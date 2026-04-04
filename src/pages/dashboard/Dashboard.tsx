@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
@@ -22,17 +22,19 @@ import {
   useOrderTrends,
   useStatusDistribution,
 } from '@/features/orders/queries/useStatistics';
+import {
+  trackDashboardShortcutClick,
+  trackDashboardStatClick,
+} from '@/features/platform/tracking/domains/dashboardTracking';
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { language } = useUIStore();
 
-  // 统计数据
   const { data: statsResponse, isLoading: statsLoading } = useOrderStatistics();
   const { data: trendsResponse, isLoading: trendsLoading } = useOrderTrends(7);
   const { data: distributionResponse, isLoading: distributionLoading } = useStatusDistribution();
 
-  // 解包统计数据
   const stats = useMemo(() => {
     if (!statsResponse) return undefined;
     return 'data' in statsResponse ? statsResponse.data : statsResponse;
@@ -52,22 +54,24 @@ const Dashboard: React.FC = () => {
 
   const t = useCallback((key: string) => RESOURCES[language]?.[key] ?? key, [language]);
 
-  // 图表数据转换
-  const trendChartData = useMemo(() => {
-    return trends.map(item => ({
-      name: item.date,
-      value: item.count,
-    }));
-  }, [trends]);
+  const trendChartData = useMemo(
+    () =>
+      trends.map(item => ({
+        name: item.date,
+        value: item.count,
+      })),
+    [trends]
+  );
 
-  const distributionChartData = useMemo(() => {
-    return distribution.map(item => ({
-      name: item.statusName,
-      value: item.count,
-    }));
-  }, [distribution]);
+  const distributionChartData = useMemo(
+    () =>
+      distribution.map(item => ({
+        name: item.statusName,
+        value: item.count,
+      })),
+    [distribution]
+  );
 
-  // 快捷入口配置
   const quickLinks = [
     {
       title: t('dash.quick.orders'),
@@ -75,6 +79,7 @@ const Dashboard: React.FC = () => {
       icon: FileText,
       path: '/orders',
       color: 'blue',
+      featureKey: 'dashboard.orders',
     },
     {
       title: t('dash.quick.new_sim'),
@@ -82,6 +87,7 @@ const Dashboard: React.FC = () => {
       icon: Beaker,
       path: '/create',
       color: 'green',
+      featureKey: 'dashboard.new_sim',
     },
     {
       title: t('dash.quick.config'),
@@ -89,114 +95,132 @@ const Dashboard: React.FC = () => {
       icon: Settings,
       path: '/config',
       color: 'purple',
+      featureKey: 'dashboard.config',
     },
     {
       title: '埋点分析',
-      description: '查看公告曝光、页面访问和隐私协议确认趋势',
+      description: '查看页面访问、功能使用、流程转化和失败热点',
       icon: Bell,
       path: '/analytics',
       color: 'amber',
+      featureKey: 'dashboard.analytics',
     },
-  ];
+  ] as const;
+
+  const navigateWithTracking = (featureKey: string, path: string) => {
+    trackDashboardShortcutClick(featureKey, path);
+    navigate(path);
+  };
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Header */}
-      <div className="flex justify-between items-end">
+      <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">
+          <h1 className="mb-2 text-3xl font-bold text-slate-900 dark:text-white">
             {t('dash.title')}
           </h1>
           <p className="text-slate-500 dark:text-slate-400">{t('dash.subtitle')}</p>
         </div>
-        <Button onClick={() => navigate('/create')} icon={<Beaker className="w-5 h-5" />}>
+        <Button
+          onClick={() => navigateWithTracking('dashboard.new_sim', '/create')}
+          icon={<Beaker className="h-5 w-5" />}
+        >
           {t('dash.new_sim')}
         </Button>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title={t('dash.stats.total')}
           value={statsLoading ? '-' : String(stats?.total ?? 0)}
           icon={ClipboardList}
           color="blue"
-          onClick={() => navigate('/orders')}
+          onClick={() => {
+            trackDashboardStatClick('dashboard.stat.total', '/orders');
+            navigate('/orders');
+          }}
         />
         <StatCard
           title={t('dash.stats.running')}
           value={statsLoading ? '-' : String(stats?.running ?? 0)}
           icon={PlayCircle}
           color="yellow"
-          onClick={() => navigate('/orders?status=1')}
+          onClick={() => {
+            trackDashboardStatClick('dashboard.stat.running', '/orders?status=1');
+            navigate('/orders?status=1');
+          }}
         />
         <StatCard
           title={t('dash.stats.completed')}
           value={statsLoading ? '-' : String(stats?.completed ?? 0)}
           icon={CheckCircle}
           color="green"
-          onClick={() => navigate('/orders?status=2')}
+          onClick={() => {
+            trackDashboardStatClick('dashboard.stat.completed', '/orders?status=2');
+            navigate('/orders?status=2');
+          }}
         />
         <StatCard
           title={t('dash.stats.failed')}
           value={statsLoading ? '-' : String(stats?.failed ?? 0)}
           icon={AlertTriangle}
           color="red"
-          onClick={() => navigate('/orders?status=3')}
+          onClick={() => {
+            trackDashboardStatClick('dashboard.stat.failed', '/orders?status=3');
+            navigate('/orders?status=3');
+          }}
         />
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+          <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
             {t('dash.chart.trend')}
           </h3>
           {trendsLoading ? (
-            <div className="h-64 flex items-center justify-center text-slate-400">
+            <div className="flex h-64 items-center justify-center text-slate-400">
               {t('common.loading')}
             </div>
           ) : trendChartData.length > 0 ? (
             <LineChart data={trendChartData} xField="name" yField="value" height={250} />
           ) : (
-            <div className="h-64 flex items-center justify-center text-slate-400">
+            <div className="flex h-64 items-center justify-center text-slate-400">
               {t('common.noData')}
             </div>
           )}
         </Card>
         <Card>
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+          <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
             {t('dash.chart.distribution')}
           </h3>
           {distributionLoading ? (
-            <div className="h-64 flex items-center justify-center text-slate-400">
+            <div className="flex h-64 items-center justify-center text-slate-400">
               {t('common.loading')}
             </div>
           ) : distributionChartData.length > 0 ? (
             <BarChart data={distributionChartData} xField="name" yField="value" height={250} />
           ) : (
-            <div className="h-64 flex items-center justify-center text-slate-400">
+            <div className="flex h-64 items-center justify-center text-slate-400">
               {t('common.noData')}
             </div>
           )}
         </Card>
       </div>
 
-      {/* Quick Links */}
       <div>
-        <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">
+        <h3 className="mb-4 text-lg font-semibold text-slate-900 dark:text-white">
           {t('dash.quick.title')}
         </h3>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
           {quickLinks.map(link => (
             <Card
               key={link.path}
-              className="cursor-pointer hover:shadow-md transition-shadow group"
-              onClick={() => navigate(link.path)}
+              className="group cursor-pointer transition-shadow hover:shadow-md"
+              onClick={() => navigateWithTracking(link.featureKey, link.path)}
             >
               <div className="flex items-start gap-4">
                 <div
-                  className={`p-3 rounded-lg ${
+                  className={`rounded-lg p-3 ${
                     link.color === 'blue'
                       ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                       : link.color === 'green'
@@ -206,17 +230,17 @@ const Dashboard: React.FC = () => {
                           : 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'
                   }`}
                 >
-                  <link.icon className="w-6 h-6" />
+                  <link.icon className="h-6 w-6" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-medium text-slate-900 dark:text-white group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors">
+                  <h4 className="font-medium text-slate-900 transition-colors group-hover:text-brand-600 dark:text-white dark:group-hover:text-brand-400">
                     {link.title}
                   </h4>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                     {link.description}
                   </p>
                 </div>
-                <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-brand-600 dark:group-hover:text-brand-400 transition-colors" />
+                <ArrowRight className="h-5 w-5 text-slate-400 transition-colors group-hover:text-brand-600 dark:group-hover:text-brand-400" />
               </div>
             </Card>
           ))}

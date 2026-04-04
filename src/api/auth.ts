@@ -3,11 +3,18 @@ import { User, MenuItem } from '@/types';
 
 export interface LoginRequest {
   domainAccount: string;
-  password: string;
+  passwordCiphertext: string;
+  keyId: string;
 }
 
 export interface LoginResponse {
   token: string;
+}
+
+export interface LoginPublicKeyResponse {
+  keyId: string;
+  algorithm: string;
+  publicKeyPem: string;
 }
 
 export interface VerifyResponse {
@@ -39,6 +46,11 @@ export const authApi = {
   login: (data: LoginRequest) => api.post<LoginResponse>('/auth/login', data),
 
   /**
+   * Get login public key
+   */
+  getLoginPublicKey: () => api.get<LoginPublicKeyResponse>('/auth/public-key'),
+
+  /**
    * Get login mode (SSO on/off)
    */
   getLoginMode: () => api.get<LoginModeResponse>('/auth/login-mode'),
@@ -63,6 +75,11 @@ export const authApi = {
    * Verify token and get user info + menus
    */
   verifyToken: () => api.get<VerifyResponse>('/auth/verify'),
+
+  /**
+   * Get current session
+   */
+  getSession: () => api.get<VerifyResponse>('/auth/session'),
 
   /**
    * Get all users

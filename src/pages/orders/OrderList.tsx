@@ -13,6 +13,12 @@ import { useOrderUsers, useOrders } from '@/features/orders/queries';
 import type { OrdersQueryParams } from '@/api/orders';
 import type { OrderListItem } from '@/types/order';
 import type { User } from '@/types';
+import {
+  trackOrdersEditOpen,
+  trackOrdersFilterApply,
+  trackOrdersPageChange,
+  trackOrdersPageSizeChange,
+} from '@/features/platform/tracking/domains/ordersTracking';
 import { getOrderUserDisplayName } from '@/features/orders/utils/orderUsers';
 import OrderFilters from './components/OrderFilters';
 import { useOrderRowInteractions } from './hooks/useOrderRowInteractions';
@@ -150,14 +156,20 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
   };
 
   const handleFilterChange = useCallback((nextFilters: OrdersQueryParams) => {
+    trackOrdersFilterApply(nextFilters);
     setFilters(nextFilters);
   }, []);
 
-  const handlePageChange = useCallback((nextPage: number) => {
-    setFilters(prev => ({ ...prev, page: nextPage }));
-  }, []);
+  const handlePageChange = useCallback(
+    (nextPage: number) => {
+      trackOrdersPageChange(nextPage, pageSize);
+      setFilters(prev => ({ ...prev, page: nextPage }));
+    },
+    [pageSize]
+  );
 
   const handlePageSizeChange = useCallback((nextPageSize: number) => {
+    trackOrdersPageSizeChange(nextPageSize);
     setFilters(prev => ({ ...prev, pageSize: nextPageSize, page: 1 }));
   }, []);
 
@@ -170,7 +182,7 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
           <button
             onClick={event => {
               event.stopPropagation();
-              openResult(row.original.id);
+              openResult(row.original.id, 'button');
             }}
             className="text-left font-mono text-xs text-brand-600 transition-colors hover:text-brand-700 hover:underline"
           >
@@ -281,6 +293,7 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
             <button
               onClick={event => {
                 event.stopPropagation();
+                trackOrdersEditOpen(row.original.id);
                 if (onOpenEdit) onOpenEdit(row.original.id);
                 else navigate(`/create?orderId=${row.original.id}`);
               }}
@@ -291,7 +304,7 @@ const OrderList: React.FC<OrderListProps> = ({ onOpenResult, onOpenEdit, onCreat
             <button
               onClick={event => {
                 event.stopPropagation();
-                openResult(row.original.id);
+                openResult(row.original.id, 'button');
               }}
               className="flex items-center gap-1 rounded px-2 py-1 text-sm font-medium text-brand-600 transition-colors hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-brand-500/10"
             >

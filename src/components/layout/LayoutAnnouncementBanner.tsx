@@ -2,7 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, CircleAlert, CircleCheck, Info, X } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { usePlatformBootstrap } from '@/features/platform/queries/usePlatformBootstrap';
-import { trackEvent } from '@/features/platform/tracking/tracker';
+import {
+  trackAnnouncementClick,
+  trackAnnouncementDismiss,
+  trackAnnouncementView,
+} from '@/features/platform/tracking/domains/platformTracking';
 
 const DISMISSED_ANNOUNCEMENTS_KEY = 'platform:dismissedAnnouncements';
 
@@ -12,6 +16,7 @@ const readDismissedIds = (): number[] => {
     if (!raw) {
       return [];
     }
+
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed.map(item => Number(item)).filter(Number.isFinite) : [];
   } catch {
@@ -67,21 +72,13 @@ export function LayoutAnnouncementBanner() {
     if (!bootstrap?.trackingEnabled) {
       return;
     }
+
     announcements.forEach(announcement => {
       if (viewedAnnouncementIdsRef.current.has(announcement.id)) {
         return;
       }
       viewedAnnouncementIdsRef.current.add(announcement.id);
-      trackEvent({
-        eventName: 'announcement_view',
-        eventType: 'notice',
-        pagePath: window.location.hash || window.location.pathname,
-        target: String(announcement.id),
-        metadata: {
-          announcementId: announcement.id,
-          level: announcement.level,
-        },
-      });
+      trackAnnouncementView(announcement.id, announcement.level);
     });
   }, [announcements, bootstrap?.trackingEnabled]);
 
@@ -90,13 +87,7 @@ export function LayoutAnnouncementBanner() {
       const nextDismissedIds = Array.from(new Set([...dismissedIds, announcementId]));
       setDismissedIds(nextDismissedIds);
       localStorage.setItem(DISMISSED_ANNOUNCEMENTS_KEY, JSON.stringify(nextDismissedIds));
-      trackEvent({
-        eventName: 'announcement_dismiss',
-        eventType: 'notice',
-        pagePath: window.location.hash || window.location.pathname,
-        target: String(announcementId),
-        metadata: { announcementId },
-      });
+      trackAnnouncementDismiss(announcementId);
     },
     [dismissedIds]
   );
@@ -133,6 +124,7 @@ export function LayoutAnnouncementBanner() {
                 {announcement.linkText && announcement.linkUrl && (
                   <a
                     href={announcement.linkUrl}
+                    onClick={() => trackAnnouncementClick(announcement.id, announcement.linkUrl!)}
                     target={announcement.linkUrl.startsWith('http') ? '_blank' : undefined}
                     rel={announcement.linkUrl.startsWith('http') ? 'noreferrer' : undefined}
                     className="mt-3 inline-flex text-sm font-medium text-brand-600 hover:text-brand-500"

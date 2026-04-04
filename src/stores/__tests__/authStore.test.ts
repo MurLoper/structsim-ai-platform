@@ -1,29 +1,32 @@
-/**
- * Auth Store 测试
- */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock authApi before importing the store
 vi.mock('@/api', () => ({
   authApi: {
     getAllUsers: vi.fn(),
     getLoginMode: vi.fn(),
+    getLoginPublicKey: vi.fn(),
     login: vi.fn(),
     ssoCallbackLogin: vi.fn(),
     verifyToken: vi.fn(),
+    getSession: vi.fn(),
     heartbeat: vi.fn(),
     refreshToken: vi.fn(),
     logout: vi.fn(),
   },
 }));
 
-// Import after mocking
-import { useAuthStore } from '../authStore';
-import { authApi } from '@/api';
-import type { User, Permission } from '@/types';
+vi.mock('@/features/auth/security/loginPasswordCipher', () => ({
+  encryptPasswordForLogin: vi.fn(async (password: string) => ({
+    keyId: 'test-key',
+    passwordCiphertext: `encrypted:${password}`,
+  })),
+}));
 
-// Mock user data
+import { authApi } from '@/api';
+import type { Permission, User } from '@/types';
+import { useAuthStore } from '../authStore';
+
 const mockUsers: User[] = [
   {
     id: 'admin',
@@ -33,6 +36,7 @@ const mockUsers: User[] = [
     displayName: '管理员',
     email: 'admin@example.com',
     role: 'admin',
+    roleCodes: ['ADMIN'],
     permissions: ['VIEW_DASHBOARD', 'MANAGE_CONFIG', 'MANAGE_USERS'] as Permission[],
     status: 'active',
     created_at: '2024-01-01T00:00:00Z',
@@ -46,6 +50,7 @@ const mockUsers: User[] = [
     displayName: '工程师',
     email: 'engineer@example.com',
     role: 'engineer',
+    roleCodes: ['ENGINEER'],
     permissions: ['VIEW_DASHBOARD', 'CREATE_ORDER'] as Permission[],
     status: 'active',
     created_at: '2024-01-02T00:00:00Z',
@@ -53,7 +58,6 @@ const mockUsers: User[] = [
   },
 ];
 
-// Spy variables - will be set in beforeEach
 let setItemSpy: ReturnType<typeof vi.spyOn>;
 let removeItemSpy: ReturnType<typeof vi.spyOn>;
 
@@ -61,15 +65,17 @@ describe('useAuthStore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
-    // Set up spies before each test (after clearAllMocks)
     setItemSpy = vi.spyOn(window.localStorage, 'setItem');
     removeItemSpy = vi.spyOn(window.localStorage, 'removeItem');
-    // Reset store state
     useAuthStore.setState({
       user: null,
       token: null,
+      menus: [],
       isLoading: false,
       users: [],
+      isAuthenticated: false,
+      sessionHydrated: false,
+      lastHeartbeat: 0,
     });
   });
 
@@ -77,214 +83,144 @@ describe('useAuthStore', () => {
     vi.restoreAllMocks();
   });
 
-  describe('初始状态', () => {
-    it('应该有正确的初始状态', () => {
-      const state = useAuthStore.getState();
-
-      expect(state.user).toBeNull();
-      expect(state.token).toBeNull();
-      expect(state.isLoading).toBe(false);
-      expect(state.users).toEqual([]);
-    });
+  it('初始状态正确', () => {
+    const state = useAuthStore.getState();
+    expect(state.user).toBeNull();
+    expect(state.token).toBeNull();
+    expect(state.users).toEqual([]);
+    expect(state.isAuthenticated).toBe(false);
   });
 
-  describe('setUser', () => {
-    it('应该能设置用户', () => {
-      const { setUser } = useAuthStore.getState();
+  it('setUser 可以设置和清空用户', () => {
+    const { setUser } = useAuthStore.getState();
 
-      act(() => {
-        setUser(mockUsers[0]);
-      });
+    act(() => setUser(mockUsers[0]));
+    expect(useAuthStore.getState().user).toEqual(mockUsers[0]);
 
-      expect(useAuthStore.getState().user).toEqual(mockUsers[0]);
-    });
-
-    it('应该能清除用户', () => {
-      // First set a user
-      useAuthStore.setState({ user: mockUsers[0] });
-
-      const { setUser } = useAuthStore.getState();
-
-      act(() => {
-        setUser(null);
-      });
-
-      expect(useAuthStore.getState().user).toBeNull();
-    });
+    act(() => setUser(null));
+    expect(useAuthStore.getState().user).toBeNull();
   });
 
-  describe('setToken', () => {
-    it('应该能设置 token 并保存到 localStorage', () => {
-      const { setToken } = useAuthStore.getState();
-      const token = 'test-token-123';
+  it('setToken 会同步 localStorage', () => {
+    const { setToken } = useAuthStore.getState();
 
-      act(() => {
-        setToken(token);
-      });
+    act(() => setToken('token-123'));
+    expect(useAuthStore.getState().token).toBe('token-123');
+    expect(setItemSpy).toHaveBeenCalledWith('auth_token', 'token-123');
 
-      expect(useAuthStore.getState().token).toBe(token);
-      expect(setItemSpy).toHaveBeenCalledWith('auth_token', token);
-    });
-
-    it('应该能清除 token 并从 localStorage 移除', () => {
-      // First set a token
-      useAuthStore.setState({ token: 'old-token' });
-
-      const { setToken } = useAuthStore.getState();
-
-      act(() => {
-        setToken(null);
-      });
-
-      expect(useAuthStore.getState().token).toBeNull();
-      expect(removeItemSpy).toHaveBeenCalledWith('auth_token');
-    });
+    act(() => setToken(null));
+    expect(useAuthStore.getState().token).toBeNull();
+    expect(removeItemSpy).toHaveBeenCalledWith('auth_token');
   });
 
-  describe('login', () => {
-    it('应该能登录用户', async () => {
-      vi.mocked(authApi.login).mockResolvedValue({
-        code: 0,
-        msg: 'success',
-        data: {
-          token: 'test-token-123',
-        },
-      });
-      vi.mocked(authApi.verifyToken).mockResolvedValue({
-        code: 0,
-        msg: 'success',
-        data: {
-          user: mockUsers[0],
-          menus: [],
-        },
-      });
-
-      const { login } = useAuthStore.getState();
-
-      await act(async () => {
-        await login('z00012345', 'password');
-      });
-
-      const state = useAuthStore.getState();
-      expect(state.user).toEqual(mockUsers[0]);
-      expect(state.token).toBe('test-token-123');
-      expect(setItemSpy).toHaveBeenCalledWith('auth_token', 'test-token-123');
-      expect(state.isLoading).toBe(false);
+  it('login 成功后只保存 token，进入业务页前再拉取 session', async () => {
+    vi.mocked(authApi.login).mockResolvedValue({
+      code: 0,
+      msg: 'success',
+      data: { token: 'test-token-123' },
     });
-
-    it('用户不存在时不应该设置用户', async () => {
-      vi.mocked(authApi.login).mockResolvedValue({
-        code: 0,
-        msg: 'success',
-        data: { token: '' },
-      });
-
-      const { login } = useAuthStore.getState();
-
-      await act(async () => {
-        await expect(login('z00000000', 'password')).rejects.toThrow();
-      });
-
-      const state = useAuthStore.getState();
-      expect(state.user).toBeNull();
-      expect(state.isLoading).toBe(false);
-    });
-  });
-
-  describe('logout', () => {
-    it('应该能登出用户并清除状态', () => {
-      // Set up initial state
-      useAuthStore.setState({
+    vi.mocked(authApi.getSession).mockResolvedValue({
+      code: 0,
+      msg: 'success',
+      data: {
         user: mockUsers[0],
-        token: 'test-token',
-      });
+        menus: [],
+      },
+    });
 
-      const { logout } = useAuthStore.getState();
+    const { login } = useAuthStore.getState();
 
-      act(() => {
-        logout();
-      });
+    await act(async () => {
+      await login('z00012345', 'password');
+    });
 
-      const state = useAuthStore.getState();
-      expect(state.user).toBeNull();
-      expect(state.token).toBeNull();
-      expect(removeItemSpy).toHaveBeenCalledWith('auth_token');
+    const state = useAuthStore.getState();
+    expect(state.token).toBe('test-token-123');
+    expect(state.user).toBeNull();
+    expect(state.isAuthenticated).toBe(false);
+    expect(state.sessionHydrated).toBe(false);
+  });
+
+  it('hydrateSession 会在首屏加载时获取最新用户信息与菜单', async () => {
+    act(() => {
+      useAuthStore.getState().setToken('test-token-123');
+    });
+    vi.mocked(authApi.getSession).mockResolvedValue({
+      code: 0,
+      msg: 'success',
+      data: {
+        user: mockUsers[0],
+        menus: [],
+      },
+    });
+
+    await act(async () => {
+      await useAuthStore.getState().hydrateSession();
+    });
+
+    const state = useAuthStore.getState();
+    expect(state.user?.domainAccount).toBe('admin');
+    expect(state.isAuthenticated).toBe(true);
+    expect(state.sessionHydrated).toBe(true);
+  });
+
+  it('login 在缺少 token 时抛错', async () => {
+    vi.mocked(authApi.login).mockResolvedValue({
+      code: 0,
+      msg: 'success',
+      data: { token: '' },
+    });
+
+    const { login } = useAuthStore.getState();
+
+    await act(async () => {
+      await expect(login('z00000000', 'password')).rejects.toThrow();
     });
   });
 
-  describe('fetchUsers', () => {
-    it('应该能获取用户列表', async () => {
-      vi.mocked(authApi.getAllUsers).mockResolvedValue({
-        code: 0,
-        msg: 'success',
-        data: mockUsers,
-      });
-
-      const { fetchUsers } = useAuthStore.getState();
-
-      await act(async () => {
-        await fetchUsers();
-      });
-
-      expect(authApi.getAllUsers).toHaveBeenCalled();
-      expect(useAuthStore.getState().users).toEqual(mockUsers);
+  it('logout 会清理登录状态', () => {
+    useAuthStore.setState({
+      user: mockUsers[0],
+      token: 'test-token',
+      isAuthenticated: true,
     });
 
-    it('API 返回空数据时应该设置空数组', async () => {
-      vi.mocked(authApi.getAllUsers).mockResolvedValue({
-        code: 0,
-        msg: 'success',
-        data: [] as User[],
-      });
+    const { logout } = useAuthStore.getState();
+    act(() => logout());
 
-      const { fetchUsers } = useAuthStore.getState();
-
-      await act(async () => {
-        await fetchUsers();
-      });
-
-      expect(useAuthStore.getState().users).toEqual([]);
-    });
-
-    it('API 错误时应该保持原状态', async () => {
-      vi.mocked(authApi.getAllUsers).mockRejectedValue(new Error('Network Error'));
-
-      // Set initial users
-      useAuthStore.setState({ users: mockUsers });
-
-      const { fetchUsers } = useAuthStore.getState();
-
-      await act(async () => {
-        await fetchUsers();
-      });
-
-      // Users should remain unchanged on error
-      expect(useAuthStore.getState().users).toEqual(mockUsers);
-    });
+    const state = useAuthStore.getState();
+    expect(state.user).toBeNull();
+    expect(state.token).toBeNull();
+    expect(state.isAuthenticated).toBe(false);
+    expect(removeItemSpy).toHaveBeenCalledWith('auth_token');
   });
 
-  describe('hasPermission', () => {
-    it('用户有权限时应该返回 true', () => {
-      useAuthStore.setState({ user: mockUsers[0] });
-
-      const { hasPermission } = useAuthStore.getState();
-
-      expect(hasPermission('VIEW_DASHBOARD' as Permission)).toBe(true);
-      expect(hasPermission('MANAGE_CONFIG' as Permission)).toBe(true);
+  it('fetchUsers 成功时更新用户列表', async () => {
+    vi.mocked(authApi.getAllUsers).mockResolvedValue({
+      code: 0,
+      msg: 'success',
+      data: mockUsers,
     });
 
-    it('用户没有权限时应该返回 false', () => {
-      useAuthStore.setState({ user: mockUsers[1] }); // engineer
-
-      const { hasPermission } = useAuthStore.getState();
-
-      expect(hasPermission('MANAGE_USERS' as Permission)).toBe(false);
+    const { fetchUsers } = useAuthStore.getState();
+    await act(async () => {
+      await fetchUsers();
     });
 
-    it('用户未登录时应该返回 false', () => {
-      const { hasPermission } = useAuthStore.getState();
+    expect(useAuthStore.getState().users).toHaveLength(2);
+  });
 
-      expect(hasPermission('VIEW_DASHBOARD' as Permission)).toBe(false);
-    });
+  it('hasPermission 对管理员直接放行', () => {
+    useAuthStore.setState({ user: mockUsers[0] });
+    const { hasPermission } = useAuthStore.getState();
+    expect(hasPermission('VIEW_DASHBOARD' as Permission)).toBe(true);
+    expect(hasPermission('MANAGE_CONFIG' as Permission)).toBe(true);
+  });
+
+  it('hasPermission 对普通用户按权限判断', () => {
+    useAuthStore.setState({ user: mockUsers[1] });
+    const { hasPermission } = useAuthStore.getState();
+    expect(hasPermission('VIEW_DASHBOARD' as Permission)).toBe(true);
+    expect(hasPermission('MANAGE_USERS' as Permission)).toBe(false);
   });
 });

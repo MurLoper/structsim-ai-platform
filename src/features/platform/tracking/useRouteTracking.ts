@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/stores';
 import { usePlatformBootstrap } from '../queries/usePlatformBootstrap';
-import { trackEvent } from './tracker';
+import { trackPlatformPageView } from './domains/platformTracking';
 
 export const useRouteTracking = () => {
   const location = useLocation();
@@ -15,17 +15,14 @@ export const useRouteTracking = () => {
     if (!isAuthenticated || !hasAuthToken || !isSuccess || !bootstrap?.trackingEnabled) {
       return;
     }
-    const key = `${location.pathname}${location.search}`;
-    if (!key || key === lastTrackedRef.current) {
+
+    const routeKey = `${location.pathname}${location.search}`;
+    if (!routeKey || routeKey === lastTrackedRef.current) {
       return;
     }
-    lastTrackedRef.current = key;
-    trackEvent({
-      eventName: 'page_view',
-      eventType: 'navigation',
-      pagePath: key,
-      metadata: { hash: window.location.hash },
-    });
+
+    lastTrackedRef.current = routeKey;
+    trackPlatformPageView(location.pathname, location.search, window.location.hash);
   }, [
     bootstrap?.trackingEnabled,
     hasAuthToken,

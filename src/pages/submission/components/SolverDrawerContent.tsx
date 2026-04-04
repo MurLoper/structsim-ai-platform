@@ -2,13 +2,7 @@ import React, { useCallback, useEffect, useMemo } from 'react';
 import { FormItem, Checkbox } from '@/components/ui';
 import type { SimTypeConfig, SolverConfig, GlobalSolverConfig } from '../types';
 import type { Solver } from '@/types/config';
-
-interface ResourcePoolOption {
-  id: number;
-  name: string;
-  valid?: number;
-  cpuCores?: number;
-}
+import type { ResourcePoolOption } from '@/types/configGroups';
 
 interface SolverDrawerContentProps {
   config: SimTypeConfig;
@@ -333,7 +327,7 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
         </div>
       </FormItem>
 
-      {resourcePools.length > 0 && (
+      {!isGpuSolver && (
         <FormItem label={t('sub.solver.resource')}>
           <select
             className="w-full p-3 border rounded-lg bg-background text-foreground border-input focus:outline-none focus:ring-2 focus:ring-ring"
@@ -343,13 +337,11 @@ export const SolverDrawerContent: React.FC<SolverDrawerContentProps> = ({
             }
           >
             <option value="">-- {t('sub.solver.resource_select')} --</option>
-            {resourcePools
-              .filter(r => (typeof r.valid === 'number' ? r.valid === 1 : true))
-              .map(pool => (
-                <option key={pool.id} value={pool.id}>
-                  {pool.name}
-                </option>
-              ))}
+            {resourcePools.map(pool => (
+              <option key={pool.id} value={pool.id}>
+                {pool.name}
+              </option>
+            ))}
           </select>
         </FormItem>
       )}

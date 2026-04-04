@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/components/ui';
 import { rbacApi } from '@/api/rbac';
-import { useMenuStore } from '@/stores/menuStore';
+import { useAuthStore } from '@/stores';
 import type { MenuItem, PermissionItem, Role, User } from '@/types';
 import type { MenuRow } from '../components/permissions/permissionsConfigTypes';
 import {
@@ -13,8 +13,7 @@ import type { MenuFormState } from '../components/permissions/PermissionsFormMod
 
 export const usePermissionsReferenceData = (menuForm: MenuFormState) => {
   const { showToast } = useToast();
-  const clearMenus = useMenuStore(state => state.clearMenus);
-  const fetchMenus = useMenuStore(state => state.fetchMenus);
+  const hydrateSession = useAuthStore(state => state.hydrateSession);
 
   const [loading, setLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
@@ -44,12 +43,11 @@ export const usePermissionsReferenceData = (menuForm: MenuFormState) => {
 
   const refreshSidebarMenus = useCallback(async () => {
     try {
-      clearMenus();
-      await fetchMenus();
+      await hydrateSession();
     } catch (error) {
       console.error('刷新侧边栏菜单失败', error);
     }
-  }, [clearMenus, fetchMenus]);
+  }, [hydrateSession]);
 
   useEffect(() => {
     void loadData();

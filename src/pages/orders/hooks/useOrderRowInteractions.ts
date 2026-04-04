@@ -1,5 +1,9 @@
 import { useCallback, useRef } from 'react';
 import type { OrderListItem } from '@/types/order';
+import {
+  trackOrdersBaseDirCopy,
+  trackOrdersResultOpen,
+} from '@/features/platform/tracking/domains/ordersTracking';
 
 interface UseOrderRowInteractionsOptions {
   onOpenResult?: (orderId: number) => void;
@@ -50,7 +54,8 @@ export const useOrderRowInteractions = ({
   );
 
   const openResult = useCallback(
-    (orderId: number) => {
+    (orderId: number, source: 'button' | 'row' = 'row') => {
+      trackOrdersResultOpen(orderId, source);
       if (onOpenResult) {
         onOpenResult(orderId);
         return;
@@ -70,14 +75,17 @@ export const useOrderRowInteractions = ({
         clickTimerRef.current = null;
         const baseDir = order.baseDir?.trim();
         if (!baseDir) {
+          trackOrdersBaseDirCopy(order.id, 'empty');
           showThrottledToast('info', '该申请单暂无工作目录');
           return;
         }
 
         try {
           await copyText(baseDir);
+          trackOrdersBaseDirCopy(order.id, 'success');
           showThrottledToast('success', '工作目录已复制到剪贴板');
         } catch {
+          trackOrdersBaseDirCopy(order.id, 'failure');
           showThrottledToast('error', '复制工作目录失败');
         }
       }, ROW_CLICK_DELAY);
@@ -91,7 +99,7 @@ export const useOrderRowInteractions = ({
         window.clearTimeout(clickTimerRef.current);
         clickTimerRef.current = null;
       }
-      openResult(order.id);
+      openResult(order.id, 'row');
     },
     [openResult]
   );

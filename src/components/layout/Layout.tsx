@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   ChevronDownIcon,
@@ -11,7 +11,7 @@ import {
 import { EyeIcon } from '@heroicons/react/24/outline';
 import { Leaf } from 'lucide-react';
 import clsx from 'clsx';
-import { useAuthStore, useMenuStore, useUIStore } from '@/stores';
+import { useAuthStore, useUIStore } from '@/stores';
 import { RESOURCES } from '@/locales';
 import { getIconComponent, DefaultIcon } from '@/utils/iconMap';
 import type { MenuItem } from '@/types';
@@ -25,18 +25,13 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, noContainer }) => {
   const { theme, setTheme, language, setLanguage } = useUIStore();
-  const { user, logout } = useAuthStore();
-  const { menus, fetchMenus } = useMenuStore();
+  const { user, menus, logout } = useAuthStore();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<number[]>([]);
 
   const t = useMemo(() => (key: string) => RESOURCES[language][key] || key, [language]);
   const visibleMenus = useMemo(() => menus.filter(menu => !menu.hidden), [menus]);
-
-  useEffect(() => {
-    fetchMenus();
-  }, [fetchMenus]);
 
   const toggleSubmenu = (menuId: number) => {
     setExpandedMenus(previous =>

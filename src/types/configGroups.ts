@@ -232,12 +232,26 @@ export interface SolverOption {
   isDefault: number;
 }
 
+export interface PhaseOption {
+  phaseId: number;
+  phaseName: string;
+}
+
+export interface ResourcePoolOption {
+  id: number;
+  name: string;
+}
+
 export interface OrderInitConfig {
   projectId: number;
   projectName: string;
   simTypeId: number;
   simTypeName: string;
   simTypeCode: string;
+  phases: PhaseOption[];
+  defaultPhaseId?: number | null;
+  resourcePools: ResourcePoolOption[];
+  defaultResourceId?: number | null;
   defaultParamGroup?: ParamGroupOption;
   defaultOutputGroup?: OutputGroupOption;
   defaultSolver?: SolverConfig;

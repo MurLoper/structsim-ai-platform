@@ -6,7 +6,10 @@ import {
   useAcceptPrivacyPolicy,
   usePrivacyPolicy,
 } from '@/features/platform/queries/usePrivacyPolicy';
-import { trackEvent } from '@/features/platform/tracking/tracker';
+import {
+  trackPrivacyAccept,
+  trackPrivacyView,
+} from '@/features/platform/tracking/domains/platformTracking';
 
 type PrivacyLocationState = {
   from?: {
@@ -36,12 +39,8 @@ const PrivacyPolicyPage = () => {
   );
 
   useEffect(() => {
-    trackEvent({
-      eventName: 'privacy_view',
-      eventType: 'privacy',
-      pagePath: '/privacy',
-    });
-  }, []);
+    trackPrivacyView(policy?.version);
+  }, [policy?.version]);
 
   useEffect(() => {
     if (policy?.accepted) {
@@ -53,6 +52,7 @@ const PrivacyPolicyPage = () => {
     if (!policy) {
       return;
     }
+
     if (policy.required && !checked) {
       showToast('warning', '请先勾选同意隐私协议');
       return;
@@ -60,12 +60,7 @@ const PrivacyPolicyPage = () => {
 
     try {
       await acceptMutation.mutateAsync(policy.version);
-      trackEvent({
-        eventName: 'privacy_accept',
-        eventType: 'privacy',
-        pagePath: '/privacy',
-        metadata: { version: policy.version },
-      });
+      trackPrivacyAccept(policy.version);
       showToast('success', '隐私协议已确认');
       navigate(backPath, { replace: true });
     } catch (error) {

@@ -154,7 +154,14 @@ export const queryKeys = {
     bootstrap: () => [...queryKeys.platform.all, 'bootstrap'] as const,
     privacyPolicy: () => [...queryKeys.platform.all, 'privacyPolicy'] as const,
     adminContent: () => [...queryKeys.platform.all, 'adminContent'] as const,
-    analytics: (days: number) => [...queryKeys.platform.all, 'analytics', days] as const,
+    analyticsSummary: (days: number) =>
+      [...queryKeys.platform.all, 'analytics', 'summary', days] as const,
+    analyticsFeatures: (days: number) =>
+      [...queryKeys.platform.all, 'analytics', 'features', days] as const,
+    analyticsFunnels: (days: number) =>
+      [...queryKeys.platform.all, 'analytics', 'funnels', days] as const,
+    analyticsFailures: (days: number) =>
+      [...queryKeys.platform.all, 'analytics', 'failures', days] as const,
     analyticsAll: () => [...queryKeys.platform.all, 'analytics'] as const,
   },
 } as const;

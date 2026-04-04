@@ -10,12 +10,14 @@ import { FormField } from '@/components/forms/FormField';
 import { Button } from '@/components/ui';
 import { ChunkedUpload } from '@/components/FileUpload/ChunkedUpload';
 import type { Project, User } from '@/types';
+import type { PhaseOption } from '@/types/configGroups';
 import type { FoldType } from '@/api/config';
 import type { SubmissionFormValues, InpSetInfo } from '../types';
 import { ModelLevel } from '../types';
 
 interface ProjectDrawerContentProps {
   projects: Project[];
+  phases: PhaseOption[];
   foldTypes: FoldType[];
   users?: User[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -36,6 +38,7 @@ interface ProjectDrawerContentProps {
 
 export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
   projects,
+  phases,
   foldTypes,
   users = [],
   control,
@@ -44,6 +47,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
   onVerifyFile,
 }) => {
   const originType = useWatch({ control, name: 'originFile.type' }) ?? 1;
+  const phaseId = useWatch({ control, name: 'phaseId' }) ?? null;
   const originPath = useWatch({ control, name: 'originFile.path' }) ?? '';
   const originName = useWatch({ control, name: 'originFile.name' }) ?? '';
   const originVerified = useWatch({ control, name: 'originFile.verified' }) ?? false;
@@ -120,6 +124,34 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
           </select>
         )}
       />
+
+      <FormField
+        control={formControl}
+        name="phaseId"
+        label="项目阶段"
+        render={({ field }) => (
+          <select
+            className="w-full p-3 border rounded-lg bg-background text-foreground border-input"
+            value={field.value ?? ''}
+            disabled={phases.length === 0}
+            onChange={e => field.onChange(e.target.value ? Number(e.target.value) : null)}
+          >
+            <option value="">
+              {phases.length > 0 ? '-- 请选择项目阶段 --' : '-- 当前项目无可用阶段 --'}
+            </option>
+            {phases.map(phase => (
+              <option key={phase.phaseId} value={phase.phaseId}>
+                {phase.phaseName}
+              </option>
+            ))}
+          </select>
+        )}
+      />
+      {phaseId && phases.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          已选择阶段：{phases.find(phase => phase.phaseId === phaseId)?.phaseName || phaseId}
+        </p>
+      )}
 
       <div>
         <label className="block text-sm font-bold mb-2 text-foreground">

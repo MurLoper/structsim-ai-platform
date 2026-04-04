@@ -131,6 +131,7 @@ export interface GlobalSolverConfig extends SolverConfig {
 /** 项目信息（存储在 input_json.projectInfo） */
 export interface InputProjectInfo {
   projectId: number;
+  phaseId?: number | null;
   projectName?: string;
   modelLevelId: number;
   originFile: OriginFile;
@@ -214,6 +215,7 @@ export const submissionFormSchema = z.object({
     .number()
     .nullable()
     .refine(value => value !== null, { message: '请选择项目' }),
+  phaseId: z.number().nullable().optional(),
   issueTitle: z.string().max(200, { message: '标题不能超过200字' }).optional().default(''),
   modelLevelId: z.number().default(ModelLevel.WHOLE), // 模型级别
   originFile: z

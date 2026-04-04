@@ -13,6 +13,8 @@ import { useSubmissionDrawerActions } from './hooks/useSubmissionDrawerActions';
 import { useSubmissionDraftLifecycle } from './hooks/useSubmissionDraftLifecycle';
 import { useSubmissionOrderRestore } from './hooks/useSubmissionOrderRestore';
 import { useSubmissionProjectHabit } from './hooks/useSubmissionProjectHabit';
+import { useSubmissionProjectPhaseSync } from './hooks/useSubmissionProjectPhaseSync';
+import { useSubmissionResourcePoolSync } from './hooks/useSubmissionResourcePoolSync';
 import { useSubmissionSubmitHandler } from './hooks/useSubmissionSubmitHandler';
 import { useSubmissionSubmitMeta } from './hooks/useSubmissionSubmitMeta';
 import { submissionFormSchema, type SubmissionFormValues, type InpSetInfo } from './types';
@@ -73,6 +75,7 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
     resolver: zodResolver(submissionFormSchema),
     defaultValues: {
       projectId: null as unknown as number,
+      phaseId: null,
       issueTitle: '',
       modelLevelId: 1,
       originFile: { type: 1, path: '', name: '', verified: false },
@@ -170,6 +173,7 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
             PROJECT_HABIT_STORAGE_KEY
           )
         ) as unknown as number) ?? (null as unknown as number),
+      phaseId: null,
       issueTitle: '',
       modelLevelId: 1,
       originFile: { type: 1, path: '', name: '', verified: false },
@@ -300,6 +304,23 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
     selectedProjectId,
     userKey: String(user?.domainAccount || user?.id || ''),
     storageKey: PROJECT_HABIT_STORAGE_KEY,
+  });
+
+  useSubmissionProjectPhaseSync({
+    form,
+    selectedProjectId,
+    defaultPhaseId: state.defaultProjectPhaseId,
+    availablePhaseIds: state.projectPhases.map((item: { phaseId: number }) => item.phaseId),
+    isEditMode,
+  });
+
+  useSubmissionResourcePoolSync({
+    selectedProjectId,
+    selectedConditionIds: state.selectedSimTypes.map(item => item.conditionId),
+    simTypeConfigs: state.simTypeConfigs,
+    resourcePools: state.resourcePools,
+    defaultResourceId: state.defaultResourceId,
+    updateSolverConfig: state.updateSolverConfig,
   });
 
   useEffect(() => {

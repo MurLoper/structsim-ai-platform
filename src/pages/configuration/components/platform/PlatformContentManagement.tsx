@@ -8,6 +8,11 @@ import {
   useUpdatePlatformAdminContent,
   useUpdatePlatformAnnouncement,
 } from '@/features/platform/queries/usePlatformAdminContent';
+import {
+  trackAnnouncementDelete,
+  trackAnnouncementSave,
+  trackConfigurationSave,
+} from '@/features/platform/tracking/domains/configurationTracking';
 import type {
   PlatformAdminContent,
   PlatformAnnouncement,
@@ -47,7 +52,6 @@ export function PlatformContentManagement() {
   const announcements = useMemo(() => data?.announcements || [], [data?.announcements]);
   const isAnnouncementSubmitting =
     createAnnouncementMutation.isPending || updateAnnouncementMutation.isPending;
-
   const modalTitle = editingAnnouncement ? '编辑公告' : '新建公告';
 
   const summaryCards = useMemo(
@@ -88,8 +92,10 @@ export function PlatformContentManagement() {
 
     try {
       await updateSettingsMutation.mutateAsync(payload);
+      trackConfigurationSave('configuration.platform.settings', 'success');
       showToast('success', '平台配置已更新');
     } catch (error) {
+      trackConfigurationSave('configuration.platform.settings', 'failure');
       const message = error instanceof Error ? error.message : '平台配置更新失败';
       showToast('error', message);
     }
@@ -102,9 +108,11 @@ export function PlatformContentManagement() {
           announcementId: editingAnnouncement.id,
           payload,
         });
+        trackAnnouncementSave('update', editingAnnouncement.id);
         showToast('success', '公告已更新');
       } else {
-        await createAnnouncementMutation.mutateAsync(payload);
+        const created = await createAnnouncementMutation.mutateAsync(payload);
+        trackAnnouncementSave('create', created.id);
         showToast('success', '公告已创建');
       }
       setAnnouncementModalOpen(false);
@@ -122,6 +130,7 @@ export function PlatformContentManagement() {
 
     try {
       await deleteAnnouncementMutation.mutateAsync(announcement.id);
+      trackAnnouncementDelete(announcement.id);
       showToast('success', '公告已删除');
     } catch (error) {
       const message = error instanceof Error ? error.message : '公告删除失败';
@@ -228,7 +237,7 @@ export function PlatformContentManagement() {
           <div>
             <h3 className="text-lg font-semibold text-foreground">公告管理</h3>
             <p className="mt-1 text-sm text-muted-foreground">
-              公告支持轮询展示、排序和启用/停用。
+              公告支持轮询展示、排序，以及启用和停用。
             </p>
           </div>
           <Button

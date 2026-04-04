@@ -5,7 +5,6 @@ import { ordersApi } from '@/api';
 import type { CareDevice } from '@/types/config';
 import type { useSubmissionState } from '../hooks/useSubmissionState';
 import type { InpSetInfo, SubmissionFormValues } from '../types';
-import { MOCK_RESOURCE_POOLS } from '../constants';
 import {
   ProjectDrawerContent,
   ParamsDrawerContent,
@@ -42,6 +41,7 @@ export const SubmissionDrawerContent: React.FC<SubmissionDrawerContentProps> = (
     return (
       <ProjectDrawerContent
         projects={state.projects}
+        phases={state.projectPhases}
         foldTypes={state.safeFoldTypes}
         users={state.users}
         control={form.control}
@@ -118,7 +118,7 @@ export const SubmissionDrawerContent: React.FC<SubmissionDrawerContentProps> = (
         <SolverDrawerContent
           config={activeConfig}
           solvers={state.safeSolvers}
-          resourcePools={[...MOCK_RESOURCE_POOLS]}
+          resourcePools={state.resourcePools}
           globalSolver={state.globalSolver}
           maxCpuCores={submitLimitMaxCpuCores ?? userMaxCpuCores ?? undefined}
           onUpdate={updates => state.updateSolverConfig(state.activeConditionId!, updates)}

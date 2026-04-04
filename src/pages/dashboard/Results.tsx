@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { OrderConditionSummary } from '@/api/results';
 import { Activity, BarChart3, Boxes, FileStack, Gauge, Orbit } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -11,6 +11,11 @@ import { ResultsHeaderSection } from './components/results/ResultsHeaderSection'
 import { ResultsInvalidState } from './components/results/ResultsInvalidState';
 import { ResultsOverviewSection } from './components/results/ResultsOverviewSection';
 import { useResultsData } from './hooks/useResultsData';
+import {
+  trackResultsConditionFocus,
+  trackResultsTabChange,
+  trackResultsView,
+} from '@/features/platform/tracking/domains/resultsTracking';
 
 type ResultsTabKey = 'overview' | 'detail' | 'analysis';
 
@@ -211,11 +216,26 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
 
   const handleOpenCondition = useCallback(
     (conditionId: number, targetTab: 'detail' | 'analysis' = 'detail') => {
+      if (resolvedOrderId) {
+        trackResultsConditionFocus(resolvedOrderId, conditionId, 'overview');
+      }
       setFocusedConditionId(conditionId);
       setActiveTab(targetTab);
     },
-    [setFocusedConditionId]
+    [resolvedOrderId, setFocusedConditionId]
   );
+
+  useEffect(() => {
+    if (resolvedOrderId) {
+      trackResultsView(resolvedOrderId);
+    }
+  }, [resolvedOrderId]);
+
+  useEffect(() => {
+    if (resolvedOrderId) {
+      trackResultsTabChange(resolvedOrderId, activeTab);
+    }
+  }, [activeTab, resolvedOrderId]);
 
   if (invalidOrderId) {
     return (

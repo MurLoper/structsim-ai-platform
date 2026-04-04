@@ -2,6 +2,10 @@ import { useMemo } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { ordersApi } from '@/api';
 import { queryClient, queryKeys } from '@/lib/queryClient';
+import {
+  trackSubmissionSubmitFailure,
+  trackSubmissionSubmitSuccess,
+} from '@/features/platform/tracking/domains/submissionTracking';
 import type { InpSetInfo, SubmissionFormValues } from '../types';
 import { useSubmissionState } from './useSubmissionState';
 
@@ -105,6 +109,7 @@ export const useSubmissionSubmitHandler = ({
 
         const payload = {
           projectId: values.projectId!,
+          phaseId: values.phaseId ?? null,
           modelLevelId: values.modelLevelId,
           originFile,
           originFoldTypeId: values.originFoldTypeId ?? null,
@@ -114,6 +119,7 @@ export const useSubmissionSubmitHandler = ({
             version: 2,
             projectInfo: {
               projectId: values.projectId!,
+              phaseId: values.phaseId ?? null,
               projectName: state.projects.find(project => project.id === values.projectId)?.name,
               modelLevelId: values.modelLevelId,
               originFile: values.originFile,
@@ -134,6 +140,7 @@ export const useSubmissionSubmitHandler = ({
           showToast('success', t('sub.update_success'));
         } else {
           await ordersApi.createOrder(payload);
+          trackSubmissionSubmitSuccess(values.projectId!, conditions.length, submitRounds);
           showToast('success', t('sub.submit_success'));
           clearDraft();
         }
@@ -144,6 +151,7 @@ export const useSubmissionSubmitHandler = ({
       } catch (error) {
         console.error('提交订单失败:', error);
         const message = (error as { message?: string })?.message || t('sub.submit_fail');
+        trackSubmissionSubmitFailure(values.projectId, message);
         showToast('error', message);
       }
     },

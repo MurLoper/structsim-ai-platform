@@ -112,6 +112,9 @@ export const restoreOrderSnapshot = ({
 
   form.reset({
     projectId: toNumber(order.projectId ?? order.project_id) as unknown as number,
+    phaseId: toNumber(
+      order.phaseId ?? order.phase_id ?? projectInfo.phaseId ?? projectInfo.phase_id
+    ),
     issueTitle: String(projectInfo.issueTitle ?? projectInfo.issue_title ?? ''),
     modelLevelId: toNumber(order.modelLevelId ?? order.model_level_id) ?? 1,
     originFile: {

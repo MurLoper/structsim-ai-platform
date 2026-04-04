@@ -1,7 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { User, Permission, MenuItem } from '@/types';
+import { MenuItem, Permission, User } from '@/types';
 import { authApi } from '@/api';
+import {
+  clearCachedLoginPublicKey,
+  encryptPasswordForLogin,
+} from '@/features/auth/security/loginPasswordCipher';
 
 const AUTH_TOKEN_KEY = 'auth_token';
 const AUTH_STORAGE_KEY = 'auth-storage';
@@ -13,9 +17,25 @@ const clearPersistedAuth = () => {
 
 const getStoredAuthToken = () => localStorage.getItem(AUTH_TOKEN_KEY);
 
+const shouldRetryLoginWithFreshPublicKey = (message: string, code?: number | string | null) => {
+  const normalizedMessage = String(message || '').toLowerCase();
+  const normalizedCode = code == null ? '' : String(code).trim();
+
+  return (
+    normalizedCode === '400004' ||
+    normalizedMessage.includes('登录密钥') ||
+    normalizedMessage.includes('密钥版本') ||
+    normalizedMessage.includes('登录密文') ||
+    normalizedMessage.includes('解密失败') ||
+    normalizedMessage.includes('密钥不匹配') ||
+    normalizedMessage.includes('密钥') ||
+    normalizedMessage.includes('解密')
+  );
+};
+
 const normalizePermissions = (user: User | null): Permission[] => {
-  const perms = (user?.permissions ?? user?.permissionCodes ?? []) as Permission[];
-  return Array.from(new Set(perms));
+  const permissions = (user?.permissions ?? user?.permissionCodes ?? []) as Permission[];
+  return Array.from(new Set(permissions));
 };
 
 const isAdminUser = (user: User | null): boolean => {
@@ -28,6 +48,7 @@ const normalizeUser = (user: User): User => {
   const roleIds = user.roleIds ?? user.roleIdList ?? [];
   const domainAccount = user.domainAccount || user.id;
   const displayName = user.realName || user.userName || user.displayName || domainAccount;
+
   return {
     ...user,
     id: domainAccount,
@@ -60,6 +81,7 @@ interface AuthState {
   users: User[];
   loginMode: LoginMode;
   isAuthenticated: boolean;
+  sessionHydrated: boolean;
   lastHeartbeat: number;
 
   setUser: (user: User | null) => void;
@@ -93,6 +115,7 @@ export const useAuthStore = create<AuthState>()(
         uidExpireSeconds: 1800,
       },
       isAuthenticated: false,
+      sessionHydrated: false,
       lastHeartbeat: 0,
 
       setUser: user =>
@@ -102,12 +125,19 @@ export const useAuthStore = create<AuthState>()(
         }),
 
       setToken: token => {
+        const preserveHydratedSession = !!token && !!get().user && get().sessionHydrated;
         if (token) {
           localStorage.setItem(AUTH_TOKEN_KEY, token);
         } else {
           localStorage.removeItem(AUTH_TOKEN_KEY);
         }
-        set({ token });
+        set({
+          token,
+          user: token ? get().user : null,
+          menus: token ? get().menus : [],
+          isAuthenticated: preserveHydratedSession,
+          sessionHydrated: preserveHydratedSession,
+        });
       },
 
       setMenus: menus => set({ menus }),
@@ -119,6 +149,7 @@ export const useAuthStore = create<AuthState>()(
           token: null,
           menus: [],
           isAuthenticated: false,
+          sessionHydrated: false,
           lastHeartbeat: 0,
         });
       },
@@ -144,7 +175,7 @@ export const useAuthStore = create<AuthState>()(
         }
 
         try {
-          const response = await authApi.verifyToken();
+          const response = await authApi.getSession();
           const payload = response?.data;
           if (!payload?.user) {
             get().clearAuthState();
@@ -153,9 +184,11 @@ export const useAuthStore = create<AuthState>()(
 
           const userData = normalizeUser(payload.user as User);
           set({
+            token,
             user: userData,
             menus: payload.menus || [],
             isAuthenticated: true,
+            sessionHydrated: true,
           });
           return true;
         } catch {
@@ -167,21 +200,45 @@ export const useAuthStore = create<AuthState>()(
       login: async (domainAccount: string, password: string) => {
         set({ isLoading: true });
         try {
-          const response = await authApi.login({ domainAccount, password });
+          const submitLogin = async (forceRefresh = false) => {
+            const encrypted = await encryptPasswordForLogin(password, forceRefresh);
+            return authApi.login({
+              domainAccount,
+              passwordCiphertext: encrypted.passwordCiphertext,
+              keyId: encrypted.keyId,
+            });
+          };
+
+          let response;
+          try {
+            response = await submitLogin(false);
+          } catch (error: unknown) {
+            const err = error as {
+              response?: { data?: { message?: string; code?: number | string } };
+              message?: string;
+            };
+            const firstMessage = err.response?.data?.message || err.message || '';
+            const firstCode = err.response?.data?.code;
+            if (!shouldRetryLoginWithFreshPublicKey(firstMessage, firstCode)) {
+              throw error;
+            }
+            clearCachedLoginPublicKey();
+            response = await submitLogin(true);
+          }
+
           const payload = response?.data;
-          if (payload?.token) {
-            get().setToken(payload.token);
+          if (!payload?.token) {
+            throw new Error('登录失败');
           }
-          const hydrated = await get().hydrateSession();
-          if (!hydrated) {
-            throw new Error('登录成功，但获取用户信息失败，请重试');
-          }
-          set({ isLoading: false });
+
+          get().setToken(payload.token);
+          set({ user: null, menus: [], isAuthenticated: false, sessionHydrated: false });
         } catch (error: unknown) {
-          set({ isLoading: false });
           const err = error as { response?: { data?: { message?: string } }; message?: string };
           const message = err.response?.data?.message || err.message || '登录失败';
           throw new Error(message);
+        } finally {
+          set({ isLoading: false });
         }
       },
 
@@ -190,24 +247,19 @@ export const useAuthStore = create<AuthState>()(
         try {
           const response = await authApi.ssoCallbackLogin({ uid });
           const payload = response?.data;
-          if (payload?.token) {
-            get().setToken(payload.token);
+          if (!payload?.token) {
+            throw new Error('SSO 登录失败');
           }
-          const hydrated = await get().hydrateSession();
-          if (!hydrated) {
-            throw new Error('SSO 登录成功，但获取用户信息失败，请重试');
-          }
-          set({ isLoading: false });
-        } catch (error: unknown) {
-          set({ isLoading: false });
-          const err = error as { response?: { data?: { message?: string } }; message?: string };
-          const message = err.response?.data?.message || err.message || 'SSO登录失败';
-          throw new Error(message);
-        }
-      },
 
-      logout: () => {
-        get().clearAuthState();
+          get().setToken(payload.token);
+          set({ user: null, menus: [], isAuthenticated: false, sessionHydrated: false });
+        } catch (error: unknown) {
+          const err = error as { response?: { data?: { message?: string } }; message?: string };
+          const message = err.response?.data?.message || err.message || 'SSO 登录失败';
+          throw new Error(message);
+        } finally {
+          set({ isLoading: false });
+        }
       },
 
       verifyToken: async () => {
@@ -216,15 +268,12 @@ export const useAuthStore = create<AuthState>()(
           get().clearAuthState();
           return false;
         }
+
         set({ isLoading: true });
         try {
-          const hydrated = await get().hydrateSession();
+          return await get().hydrateSession();
+        } finally {
           set({ isLoading: false });
-          return hydrated;
-        } catch {
-          get().logout();
-          set({ isLoading: false });
-          return false;
         }
       },
 
@@ -233,6 +282,7 @@ export const useAuthStore = create<AuthState>()(
         if (!token || !get().isAuthenticated) {
           return false;
         }
+
         try {
           const response = await authApi.heartbeat();
           const payload = response?.data;
@@ -265,6 +315,10 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
+      logout: () => {
+        get().clearAuthState();
+      },
+
       fetchUsers: async () => {
         try {
           const response = await authApi.getAllUsers();
@@ -280,26 +334,30 @@ export const useAuthStore = create<AuthState>()(
         if (isAdminUser(user)) {
           return true;
         }
-        const permissions = user?.permissions ?? [];
-        return permissions.includes(perm);
+        return (user?.permissions ?? []).includes(perm);
       },
     }),
     {
-      name: 'auth-storage',
+      name: AUTH_STORAGE_KEY,
       partialize: state => ({ user: state.user, token: state.token, menus: state.menus }),
       onRehydrateStorage: () => state => {
-        if (state) {
-          const token = getStoredAuthToken();
-          if (!token) {
-            state.user = null;
-            state.token = null;
-            state.menus = [];
-            state.isAuthenticated = false;
-            return;
-          }
-          state.token = token;
-          state.isAuthenticated = !!state.user;
+        if (!state) {
+          return;
         }
+
+        const token = getStoredAuthToken();
+        if (!token) {
+          state.user = null;
+          state.token = null;
+          state.menus = [];
+          state.isAuthenticated = false;
+          state.sessionHydrated = false;
+          return;
+        }
+
+        state.token = token;
+        state.isAuthenticated = false;
+        state.sessionHydrated = false;
       },
     }
   )

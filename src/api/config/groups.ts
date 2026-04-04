@@ -244,6 +244,6 @@ export const configRelationsApi = {
 
 // ============ 提单初始化 API ============
 export const orderInitApi = {
-  getOrderInitConfig: (projectId: number, simTypeId?: number) =>
-    api.get('/orders/init-config', { params: { projectId, simTypeId } }),
+  getOrderInitConfig: <T>(projectId: number, simTypeId?: number) =>
+    api.get<T>('/orders/init-config', { params: { projectId, simTypeId } }),
 };

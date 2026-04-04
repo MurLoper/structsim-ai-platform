@@ -4,6 +4,7 @@ export interface OrderListItem {
   id: number;
   orderNo: string;
   projectId: number;
+  phaseId?: number | null;
   projectName?: string;
   simTypeIds: number[];
   remark?: string | null;
@@ -54,6 +55,7 @@ export interface OrderDetail extends OrderListItem {
   originFile: OrderOriginFile;
   originFoldTypeId?: number | null;
   modelLevelId?: number;
+  phaseId?: number | null;
   participantIds?: string[];
   remark?: string | null;
   optParam?: Record<string, unknown>;
@@ -67,6 +69,7 @@ export interface OrderDetail extends OrderListItem {
 
 export interface OrderCreatePayload {
   projectId: number;
+  phaseId?: number | null;
   projectName?: string;
   modelLevelId?: number;
   originFile: OrderOriginFile;
