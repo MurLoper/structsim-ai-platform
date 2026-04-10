@@ -32,7 +32,7 @@ export const useSubmissionState = (
     paramGroups,
     outputSets,
     conditionConfigs,
-    users,
+    participantCandidates,
     selectedProject,
     projectPhases,
     defaultProjectPhaseId,
@@ -134,7 +134,7 @@ export const useSubmissionState = (
 
   return {
     projects,
-    users,
+    participantCandidates,
     resourcePools,
     safeSimTypes,
     safeFoldTypes,

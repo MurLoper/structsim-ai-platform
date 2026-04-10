@@ -126,15 +126,6 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
     enabled: isEditMode && orderId !== null,
   });
 
-  const { data: submitLimitsResp } = useQuery({
-    queryKey: ['orders', 'submitLimits', user?.domainAccount || user?.id || 'anonymous'],
-    queryFn: () => ordersApi.getSubmitLimits(),
-    enabled: !!(user?.domainAccount || user?.id),
-    staleTime: 60 * 1000,
-  });
-
-  const submitLimits = submitLimitsResp?.data;
-
   const currentSubmitConditions = useMemo(
     () =>
       state.selectedSimTypes.map(item => {
@@ -159,20 +150,25 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
 
   const submitMeta = useSubmissionSubmitMeta({
     conditions: currentSubmitConditions,
-    submitLimits,
     user,
   });
+
+  const preferredProjectIds = useMemo(() => {
+    const recentProjectIds = Array.isArray(user?.recentProjectIds) ? user.recentProjectIds : [];
+    const habitProjectIds = getProjectHabitIds(
+      String(user?.domainAccount || user?.id || ''),
+      PROJECT_HABIT_STORAGE_KEY
+    );
+    return [...habitProjectIds, ...recentProjectIds].filter(
+      (projectId, index, source) => source.indexOf(projectId) === index
+    );
+  }, [user?.domainAccount, user?.id, user?.recentProjectIds]);
 
   const defaultFormValues = useMemo<SubmissionFormValues>(
     () => ({
       projectId:
-        (getPreferredProjectId(
-          state.projects || [],
-          getProjectHabitIds(
-            String(user?.domainAccount || user?.id || ''),
-            PROJECT_HABIT_STORAGE_KEY
-          )
-        ) as unknown as number) ?? (null as unknown as number),
+        (getPreferredProjectId(state.projects || [], preferredProjectIds) as unknown as number) ??
+        (null as unknown as number),
       phaseId: null,
       issueTitle: '',
       modelLevelId: 1,
@@ -183,7 +179,7 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
       remark: '',
       simTypeIds: [],
     }),
-    [state.projects, user?.domainAccount, user?.id]
+    [preferredProjectIds, state.projects]
   );
 
   const conditionOrderMap = useMemo(() => {
@@ -441,7 +437,7 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
         isOpen={state.isDrawerOpen}
         onClose={() => state.setIsDrawerOpen(false)}
         title={getDrawerTitle()}
-        width={state.drawerMode === 'output' ? 'xwide' : 'normal'}
+        width="xwide"
         resizable={state.drawerMode === 'params' || state.drawerMode === 'output'}
         activeMode={state.drawerMode}
         onModeChange={mode => {
@@ -457,7 +453,6 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
           setInpSets={setInpSets}
           t={t}
           userMaxCpuCores={user?.maxCpuCores}
-          submitLimitMaxCpuCores={submitLimits?.maxCpuCores}
         />
       </ConfigDrawer>
       <ConfirmDialogComponent />

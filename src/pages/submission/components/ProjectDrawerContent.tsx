@@ -9,8 +9,8 @@ import {
 import { FormField } from '@/components/forms/FormField';
 import { Button } from '@/components/ui';
 import { ChunkedUpload } from '@/components/FileUpload/ChunkedUpload';
-import type { Project, User } from '@/types';
-import type { PhaseOption } from '@/types/configGroups';
+import type { Project } from '@/types';
+import type { ParticipantCandidate, PhaseOption } from '@/types/configGroups';
 import type { FoldType } from '@/api/config';
 import type { SubmissionFormValues, InpSetInfo } from '../types';
 import { ModelLevel } from '../types';
@@ -19,7 +19,7 @@ interface ProjectDrawerContentProps {
   projects: Project[];
   phases: PhaseOption[];
   foldTypes: FoldType[];
-  users?: User[];
+  participantCandidates?: ParticipantCandidate[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   control: Control<SubmissionFormValues, any>;
   setValue: UseFormSetValue<SubmissionFormValues>;
@@ -40,7 +40,7 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
   projects,
   phases,
   foldTypes,
-  users = [],
+  participantCandidates = [],
   control,
   setValue,
   t,
@@ -338,22 +338,29 @@ export const ProjectDrawerContent: React.FC<ProjectDrawerContentProps> = ({
         </div>
       </div>
 
-      {users.length > 0 && (
+      {participantCandidates.length > 0 && (
         <FormField
           control={formControl}
           name="participantIds"
           label={t('sub.participants_select')}
           render={({ field }) => {
             const selectedIds = (field.value || []) as string[];
-            // 已选中的用户排在前面
-            const sortedUsers = [...users].sort((a, b) => {
+            const sortedUsers = [...participantCandidates].sort((a, b) => {
               const aIdentity = a.domainAccount || a.id || '';
               const bIdentity = b.domainAccount || b.id || '';
               const aSelected = selectedIds.includes(aIdentity);
               const bSelected = selectedIds.includes(bIdentity);
               if (aSelected && !bSelected) return -1;
               if (!aSelected && bSelected) return 1;
-              return 0;
+              const aFrequent = !!a.isProjectFrequent;
+              const bFrequent = !!b.isProjectFrequent;
+              if (aFrequent && !bFrequent) return -1;
+              if (!aFrequent && bFrequent) return 1;
+              return String(
+                a.realName || a.userName || a.displayName || a.domainAccount || a.id || ''
+              ).localeCompare(
+                String(b.realName || b.userName || b.displayName || b.domainAccount || b.id || '')
+              );
             });
             return (
               <div className="space-y-1 max-h-48 overflow-y-auto border border-input rounded-lg p-2">

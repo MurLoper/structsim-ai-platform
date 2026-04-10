@@ -24,6 +24,7 @@ interface UseSubmissionSubmitHandlerOptions {
     domainAccount?: string | null;
     maxBatchSize?: number | null;
     dailyRoundLimit?: number | null;
+    todayUsedRounds?: number | null;
   } | null;
   t: (key: string) => string;
   showToast: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
@@ -74,13 +75,10 @@ export const useSubmissionSubmitHandler = ({
   const handleSubmit = form.handleSubmit(
     async values => {
       try {
-        const limitResponse = await ordersApi.getSubmitLimits();
-        const limitData = limitResponse?.data;
-
         const latestSubmitMeta = {
-          maxBatchSize: limitData?.maxBatchSize ?? user?.maxBatchSize ?? 200,
-          dailyRoundLimit: limitData?.dailyRoundLimit ?? user?.dailyRoundLimit ?? 500,
-          todayUsedRounds: limitData?.todayUsedRounds ?? 0,
+          maxBatchSize: user?.maxBatchSize ?? 200,
+          dailyRoundLimit: user?.dailyRoundLimit ?? 500,
+          todayUsedRounds: user?.todayUsedRounds ?? 0,
         };
 
         if (submitRounds > latestSubmitMeta.maxBatchSize) {

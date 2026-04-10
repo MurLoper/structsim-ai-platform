@@ -1,5 +1,6 @@
 import { api } from './client';
 import type { OrdersListResponse, OrderDetail, OrderCreatePayload } from '@/types/order';
+import type { UserResourcePoolsPayload } from '@/types/configGroups';
 import type { OrderStatistics, OrderTrend, StatusDistribution } from '@/types/statistics';
 import {
   getMockOrdersList,
@@ -58,6 +59,7 @@ export const ordersApi = {
     }>('/orders/verify-file', { path, type }),
 
   getSubmitLimits: () => api.get<SubmitLimitsResponse>('/orders/submit-limits'),
+  getUserResourcePools: () => api.get<UserResourcePoolsPayload>('/orders/resource-pools'),
 
   // 统计相关接口（开发环境使用 mock 数据）
   getStatistics: async () => {

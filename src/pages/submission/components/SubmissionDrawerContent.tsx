@@ -24,7 +24,6 @@ interface SubmissionDrawerContentProps {
   setInpSets: React.Dispatch<React.SetStateAction<InpSetInfo[]>>;
   t: (key: string) => string;
   userMaxCpuCores?: number | null;
-  submitLimitMaxCpuCores?: number | null;
 }
 
 export const SubmissionDrawerContent: React.FC<SubmissionDrawerContentProps> = ({
@@ -35,7 +34,6 @@ export const SubmissionDrawerContent: React.FC<SubmissionDrawerContentProps> = (
   setInpSets,
   t,
   userMaxCpuCores,
-  submitLimitMaxCpuCores,
 }) => {
   if (state.drawerMode === 'project') {
     return (
@@ -43,7 +41,7 @@ export const SubmissionDrawerContent: React.FC<SubmissionDrawerContentProps> = (
         projects={state.projects}
         phases={state.projectPhases}
         foldTypes={state.safeFoldTypes}
-        users={state.users}
+        participantCandidates={state.participantCandidates}
         control={form.control}
         setValue={form.setValue}
         t={t}
@@ -120,7 +118,7 @@ export const SubmissionDrawerContent: React.FC<SubmissionDrawerContentProps> = (
           solvers={state.safeSolvers}
           resourcePools={state.resourcePools}
           globalSolver={state.globalSolver}
-          maxCpuCores={submitLimitMaxCpuCores ?? userMaxCpuCores ?? undefined}
+          maxCpuCores={userMaxCpuCores ?? undefined}
           onUpdate={updates => state.updateSolverConfig(state.activeConditionId!, updates)}
           onGlobalSolverChange={state.setGlobalSolver}
           onApplyToAll={state.applySolverToAll}

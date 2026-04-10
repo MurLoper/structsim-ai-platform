@@ -59,7 +59,11 @@ export interface User {
   nodeList?: number[];
   dailyRoundLimitDefault?: number;
   dailyRoundLimit?: number;
+  todayUsedRounds?: number;
+  todayRemainingRounds?: number;
   defaultResourceId?: number | null;
+  recentProjectIds?: number[];
+  recentSimTypeIds?: number[];
   valid?: number;
   created_at?: string;
   updated_at?: string;

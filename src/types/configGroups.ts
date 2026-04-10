@@ -1,3 +1,5 @@
+import type { User } from './user';
+
 // ============ 参数组合相关类型 ============
 export interface ParamGroup {
   id: number;
@@ -242,15 +244,27 @@ export interface ResourcePoolOption {
   name: string;
 }
 
-export interface OrderInitConfig {
+export interface ParticipantCandidate extends User {
+  isProjectFrequent?: boolean;
+  projectFrequency?: number;
+  isCurrentUser?: boolean;
+}
+
+export interface UserResourcePoolsPayload {
+  resourcePools: ResourcePoolOption[];
+  defaultResourceId?: number | null;
+}
+
+export interface OrderProjectInitConfig {
   projectId: number;
   projectName: string;
-  simTypeId: number;
-  simTypeName: string;
-  simTypeCode: string;
+  simTypeId?: number | null;
+  simTypeName?: string | null;
+  simTypeCode?: string | null;
   phases: PhaseOption[];
   defaultPhaseId?: number | null;
-  resourcePools: ResourcePoolOption[];
+  participantCandidates: ParticipantCandidate[];
+  resourcePools?: ResourcePoolOption[];
   defaultResourceId?: number | null;
   defaultParamGroup?: ParamGroupOption;
   defaultOutputGroup?: OutputGroupOption;

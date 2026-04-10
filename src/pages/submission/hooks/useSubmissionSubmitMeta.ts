@@ -16,29 +16,21 @@ export interface SubmissionConditionLike {
 
 interface UseSubmissionSubmitMetaOptions {
   conditions: SubmissionConditionLike[];
-  submitLimits?: {
-    maxBatchSize?: number;
-    dailyRoundLimit?: number;
-    todayUsedRounds?: number;
-  };
   user?: {
     maxBatchSize?: number;
     dailyRoundLimit?: number;
+    todayUsedRounds?: number;
   } | null;
 }
 
-export const useSubmissionSubmitMeta = ({
-  conditions,
-  submitLimits,
-  user,
-}: UseSubmissionSubmitMetaOptions) => {
+export const useSubmissionSubmitMeta = ({ conditions, user }: UseSubmissionSubmitMetaOptions) => {
   return useMemo(() => {
     const currentSubmitRounds = estimateRoundsFromConditions(
       conditions as Array<Record<string, unknown>>
     );
-    const maxBatchSize = submitLimits?.maxBatchSize ?? user?.maxBatchSize ?? 200;
-    const dailyRoundLimit = submitLimits?.dailyRoundLimit ?? user?.dailyRoundLimit ?? 500;
-    const todayUsedRounds = submitLimits?.todayUsedRounds ?? 0;
+    const maxBatchSize = user?.maxBatchSize ?? 200;
+    const dailyRoundLimit = user?.dailyRoundLimit ?? 500;
+    const todayUsedRounds = user?.todayUsedRounds ?? 0;
 
     return {
       currentSubmitRounds,
@@ -48,5 +40,5 @@ export const useSubmissionSubmitMeta = ({
       willExceedBatchLimit: currentSubmitRounds > maxBatchSize,
       willExceedDailyLimit: todayUsedRounds + currentSubmitRounds > dailyRoundLimit,
     };
-  }, [conditions, submitLimits, user]);
+  }, [conditions, user]);
 };

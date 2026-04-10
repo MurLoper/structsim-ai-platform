@@ -62,7 +62,11 @@ const normalizeUser = (user: User): User => {
     maxBatchSize: user.maxBatchSize ?? 200,
     dailyRoundLimitDefault: user.dailyRoundLimitDefault ?? 500,
     dailyRoundLimit: user.dailyRoundLimit ?? user.dailyRoundLimitDefault ?? 500,
+    todayUsedRounds: user.todayUsedRounds ?? 0,
+    todayRemainingRounds: user.todayRemainingRounds ?? 0,
     nodeList: user.nodeList ?? [],
+    recentProjectIds: user.recentProjectIds ?? [],
+    recentSimTypeIds: user.recentSimTypeIds ?? [],
   };
 };
 
