@@ -4,6 +4,8 @@ import { useAuthStore } from '@/stores';
 import { usePlatformBootstrap } from '../queries/usePlatformBootstrap';
 import { trackPlatformPageView } from './domains/platformTracking';
 
+let lastTrackedRouteKey = '';
+
 export const useRouteTracking = () => {
   const location = useLocation();
   const { isAuthenticated, token } = useAuthStore();
@@ -17,11 +19,12 @@ export const useRouteTracking = () => {
     }
 
     const routeKey = `${location.pathname}${location.search}`;
-    if (!routeKey || routeKey === lastTrackedRef.current) {
+    if (!routeKey || routeKey === lastTrackedRef.current || routeKey === lastTrackedRouteKey) {
       return;
     }
 
     lastTrackedRef.current = routeKey;
+    lastTrackedRouteKey = routeKey;
     trackPlatformPageView(location.pathname, location.search, window.location.hash);
   }, [
     bootstrap?.trackingEnabled,

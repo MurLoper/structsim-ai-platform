@@ -21,5 +21,7 @@ export interface ResultsConditionCard {
   completedRounds: number;
   failedRounds: number;
   progress: number;
+  status: number;
+  canResubmit?: boolean;
   statusMeta: ResultsStatusMeta;
 }

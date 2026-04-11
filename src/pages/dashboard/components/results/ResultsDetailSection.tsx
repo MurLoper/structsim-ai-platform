@@ -1,5 +1,5 @@
 import React from 'react';
-import { Badge, Card } from '@/components/ui';
+import { Badge, Button, Card } from '@/components/ui';
 import { FileStack } from 'lucide-react';
 import type { ConditionRoundsGroup } from '../../hooks/resultsAnalysisTypes';
 import { ConditionResultTable } from '../ConditionResultTable';
@@ -12,6 +12,11 @@ interface ResultsDetailSectionProps {
   focusConditionLabel: string;
   isResultsLoading: boolean;
   onSelectCondition: (conditionId: number) => void;
+  onResubmitCondition: (conditionId: number) => void;
+  resubmitLabel: string;
+  resubmittingLabel: string;
+  resubmittingConditionId: number | null;
+  isResubmittingCondition: boolean;
   onPageChange: (conditionId: number, page: number) => void;
   onPageSizeChange: (conditionId: number, pageSize: number) => void;
 }
@@ -23,6 +28,11 @@ export const ResultsDetailSection: React.FC<ResultsDetailSectionProps> = ({
   focusConditionLabel,
   isResultsLoading,
   onSelectCondition,
+  onResubmitCondition,
+  resubmitLabel,
+  resubmittingLabel,
+  resubmittingConditionId,
+  isResubmittingCondition,
   onPageChange,
   onPageSizeChange,
 }) => (
@@ -36,31 +46,47 @@ export const ResultsDetailSection: React.FC<ResultsDetailSectionProps> = ({
         <div className="space-y-3">
           {conditionCards.map(condition => {
             const active = condition.id === (focusedConditionId || focusedGroup?.conditionId);
+            const isCurrentResubmitting =
+              isResubmittingCondition && resubmittingConditionId === condition.id;
             return (
-              <button
+              <div
                 key={condition.id}
-                type="button"
-                onClick={() => onSelectCondition(condition.id)}
-                className={`w-full rounded-2xl border px-4 py-4 text-left transition-colors ${
+                className={`rounded-2xl border px-4 py-4 transition-colors ${
                   active
                     ? 'border-brand-500 bg-brand-50 dark:bg-brand-500/10'
                     : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-950'
                 }`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="font-medium text-slate-900 dark:text-white">
-                      {condition.label}
+                <button
+                  type="button"
+                  onClick={() => onSelectCondition(condition.id)}
+                  className="w-full text-left"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-medium text-slate-900 dark:text-white">
+                        {condition.label}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        {condition.totalRounds.toLocaleString()} 轮
+                      </div>
                     </div>
-                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      {condition.totalRounds.toLocaleString()} 轮
-                    </div>
+                    <Badge variant={condition.statusMeta.variant} size="sm">
+                      {condition.statusMeta.label}
+                    </Badge>
                   </div>
-                  <Badge variant={condition.statusMeta.variant} size="sm">
-                    {condition.statusMeta.label}
-                  </Badge>
-                </div>
-              </button>
+                </button>
+                {condition.canResubmit && (
+                  <Button
+                    variant="danger"
+                    className="mt-3 w-full"
+                    disabled={isCurrentResubmitting}
+                    onClick={() => onResubmitCondition(condition.id)}
+                  >
+                    {isCurrentResubmitting ? resubmittingLabel : resubmitLabel}
+                  </Button>
+                )}
+              </div>
             );
           })}
         </div>

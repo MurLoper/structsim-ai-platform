@@ -1,5 +1,6 @@
 import { api } from './client';
 import type { OrdersListResponse, OrderDetail, OrderCreatePayload } from '@/types/order';
+import type { OrderConditionSummary } from './results';
 import type { UserResourcePoolsPayload } from '@/types/configGroups';
 import type { OrderStatistics, OrderTrend, StatusDistribution } from '@/types/statistics';
 import {
@@ -33,6 +34,11 @@ export interface SubmitLimitsResponse {
   todayRemainingRounds: number;
 }
 
+export interface ResubmitOrderConditionResponse {
+  order: OrderDetail;
+  condition: OrderConditionSummary;
+}
+
 // Mock 数据开关（可通过环境变量控制）
 const useMockData = false; // 改为使用真实API
 
@@ -47,6 +53,8 @@ export const ordersApi = {
   createOrder: (payload: OrderCreatePayload) => api.post<OrderDetail>('/orders', payload),
   updateOrder: (orderId: number, payload: Partial<OrderCreatePayload>) =>
     api.put<OrderDetail>(`/orders/${orderId}`, payload),
+  resubmitOrderCondition: (orderConditionId: number) =>
+    api.post<ResubmitOrderConditionResponse>(`/orders/conditions/${orderConditionId}/resubmit`),
 
   /** 验证源文件（路径/ID）并解析 INP set 集 */
   verifyFile: (path: string, type: number) =>

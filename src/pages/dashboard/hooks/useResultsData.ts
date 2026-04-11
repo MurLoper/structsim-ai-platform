@@ -73,6 +73,32 @@ export const useResultsData = (
     staleTime: 30 * 1000,
   });
 
+  const { data: externalConditionSummaries = [], refetch: refetchExternalConditionSummaries } =
+    useQuery({
+      queryKey: ['results', 'orderConditionExternalSummaries', resolvedOrderId],
+      queryFn: async () => {
+        if (!resolvedOrderId) return [] as OrderConditionSummary[];
+        const response = await resultsApi.getOrderConditionExternalSummaries(resolvedOrderId);
+        return response.data || [];
+      },
+      enabled: !!resolvedOrderId && orderConditions.length > 0,
+      staleTime: 30 * 1000,
+    });
+
+  const resolvedOrderConditions = useMemo(() => {
+    if (!externalConditionSummaries.length) return orderConditions;
+    const externalMap = new Map(externalConditionSummaries.map(item => [item.id, item]));
+    return orderConditions.map(condition => {
+      const external = externalMap.get(condition.id);
+      if (!external) return condition;
+      return {
+        ...condition,
+        ...external,
+        conditionSnapshot: external.conditionSnapshot ?? condition.conditionSnapshot,
+      };
+    });
+  }, [externalConditionSummaries, orderConditions]);
+
   const displayOrderId = orderDetail?.orderNo || (resolvedOrderId ? `#${resolvedOrderId}` : '-');
   const orderStatus = typeof orderDetail?.status === 'number' ? orderDetail.status : null;
   const orderProgress = typeof orderDetail?.progress === 'number' ? orderDetail.progress : null;
@@ -86,7 +112,7 @@ export const useResultsData = (
   );
 
   const viewState = useResultsViewState({
-    orderConditions,
+    orderConditions: resolvedOrderConditions,
     orderDetailConditionIds,
   });
 
@@ -143,11 +169,14 @@ export const useResultsData = (
   };
 
   const conditionResults = useMemo(
-    () => buildConditionResults(orderConditions, roundQueries.conditionRoundGroups),
-    [orderConditions, roundQueries.conditionRoundGroups]
+    () => buildConditionResults(resolvedOrderConditions, roundQueries.conditionRoundGroups),
+    [resolvedOrderConditions, roundQueries.conditionRoundGroups]
   );
 
-  const overviewStats = useMemo(() => buildOverviewStats(orderConditions), [orderConditions]);
+  const overviewStats = useMemo(
+    () => buildOverviewStats(resolvedOrderConditions),
+    [resolvedOrderConditions]
+  );
 
   const results = useMemo(
     () => buildResultRecords(metric, roundQueries.conditionRoundGroups),
@@ -207,6 +236,7 @@ export const useResultsData = (
     if (resolvedOrderId) {
       void refetchOrder();
       void refetchOrderConditions();
+      void refetchExternalConditionSummaries();
       if (roundQueries.shouldFetchDetailRounds) {
         void roundQueries.refetchRounds();
       }

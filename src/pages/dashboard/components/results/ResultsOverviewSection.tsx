@@ -12,6 +12,11 @@ interface ResultsOverviewSectionProps {
   scaleChartData: Array<{ conditionName: string; value: number }>;
   conditionCards: ResultsConditionCard[];
   onOpenCondition: (conditionId: number, targetTab: 'detail' | 'analysis') => void;
+  onResubmitCondition: (conditionId: number) => void;
+  resubmitLabel: string;
+  resubmittingLabel: string;
+  resubmittingConditionId: number | null;
+  isResubmittingCondition: boolean;
 }
 
 export const ResultsOverviewSection: React.FC<ResultsOverviewSectionProps> = ({
@@ -22,6 +27,11 @@ export const ResultsOverviewSection: React.FC<ResultsOverviewSectionProps> = ({
   scaleChartData,
   conditionCards,
   onOpenCondition,
+  onResubmitCondition,
+  resubmitLabel,
+  resubmittingLabel,
+  resubmittingConditionId,
+  isResubmittingCondition,
 }) => (
   <div className="space-y-6">
     <section className="grid gap-6 xl:grid-cols-[1fr_400px]">
@@ -128,6 +138,17 @@ export const ResultsOverviewSection: React.FC<ResultsOverviewSectionProps> = ({
                 >
                   进入分析
                 </Button>
+                {condition.canResubmit && (
+                  <Button
+                    variant="danger"
+                    disabled={isResubmittingCondition && resubmittingConditionId === condition.id}
+                    onClick={() => onResubmitCondition(condition.id)}
+                  >
+                    {isResubmittingCondition && resubmittingConditionId === condition.id
+                      ? resubmittingLabel
+                      : resubmitLabel}
+                  </Button>
+                )}
               </div>
             </div>
           </Card>

@@ -4,12 +4,14 @@ import { Activity, BarChart3, Boxes, FileStack, Gauge, Orbit } from 'lucide-reac
 import { useNavigate, useParams } from 'react-router-dom';
 import { RESOURCES } from '@/locales';
 import { useUIStore } from '@/stores';
+import { useToast } from '@/components/ui';
 import { ResultsAnalysisSection } from './components/results/ResultsAnalysisSection';
 import { ResultsDetailSection } from './components/results/ResultsDetailSection';
 import { ResultsErrorSection } from './components/results/ResultsErrorSection';
 import { ResultsHeaderSection } from './components/results/ResultsHeaderSection';
 import { ResultsInvalidState } from './components/results/ResultsInvalidState';
 import { ResultsOverviewSection } from './components/results/ResultsOverviewSection';
+import { useOrderConditionResubmit } from './hooks/useOrderConditionResubmit';
 import { useResultsData } from './hooks/useResultsData';
 import {
   trackResultsConditionFocus,
@@ -69,6 +71,7 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { language } = useUIStore();
+  const { showToast } = useToast();
   const t = useCallback((key: string) => RESOURCES[language]?.[key] || key, [language]);
   const orderId = propOrderId !== undefined ? propOrderId : Number(id);
   const resolvedOrderId = Number.isFinite(orderId) ? orderId : null;
@@ -94,6 +97,13 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
     resultsError,
     retryResults,
   } = useResultsData(resolvedOrderId, activeTab);
+
+  const { resubmitCondition, isResubmittingCondition, resubmittingConditionId } =
+    useOrderConditionResubmit({
+      orderId: resolvedOrderId,
+      onSuccess: () => showToast('success', t('res.resubmit.success')),
+      onError: () => showToast('error', t('res.resubmit.failure')),
+    });
 
   const invalidOrderId = resolvedOrderId === null;
   const resultsErrorMessage = resultsError ? String(resultsError) : t('res.error_desc');
@@ -181,6 +191,8 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
           shortLabel: getBaseConditionTitle(detail, fallbackLabel),
           label: getConditionTitle(index + 1, detail, fallbackLabel),
           statusMeta,
+          status: item.status,
+          canResubmit: item.canResubmit === true,
         };
       }),
     [conditionDetailMap, conditionLabelMap, conditionResults]
@@ -289,6 +301,11 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
           scaleChartData={scaleChartData}
           conditionCards={conditionCards}
           onOpenCondition={handleOpenCondition}
+          onResubmitCondition={resubmitCondition}
+          resubmitLabel={t('res.resubmit')}
+          resubmittingLabel={t('res.resubmitting')}
+          resubmittingConditionId={resubmittingConditionId}
+          isResubmittingCondition={isResubmittingCondition}
         />
       )}
 
@@ -300,6 +317,11 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
           focusConditionLabel={focusConditionLabel}
           isResultsLoading={isResultsLoading}
           onSelectCondition={setFocusedConditionId}
+          onResubmitCondition={resubmitCondition}
+          resubmitLabel={t('res.resubmit')}
+          resubmittingLabel={t('res.resubmitting')}
+          resubmittingConditionId={resubmittingConditionId}
+          isResubmittingCondition={isResubmittingCondition}
           onPageChange={updateConditionRoundsPage}
           onPageSizeChange={updateConditionRoundsPageSize}
         />

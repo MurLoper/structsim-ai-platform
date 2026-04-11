@@ -123,6 +123,9 @@ export const buildConditionResults = (
     return {
       id: resolvedCondition.id,
       orderId: resolvedCondition.orderId,
+      optIssueId: resolvedCondition.optIssueId,
+      optJobId: resolvedCondition.optJobId,
+      canResubmit: resolvedCondition.canResubmit === true,
       simTypeId: resolvedCondition.id,
       simTypeName: buildConditionLabel(resolvedCondition),
       status: resolvedCondition.status,
@@ -174,6 +177,9 @@ export const buildOverviewStats = (
 
   return {
     ...stats,
+    resultSource: orderConditions.some(condition => condition.resultSource === 'external')
+      ? 'external'
+      : stats.resultSource,
     runningModules: Array.from(runningModuleSet),
   };
 };

@@ -81,6 +81,8 @@ export interface OrderConditionSummary {
   runningModule?: string | null;
   process: number;
   status: number;
+  canResubmit?: boolean;
+  resultSource?: string;
   statistics?: Record<string, unknown> | null;
   resultSummary?: Record<string, unknown> | null;
   conditionSnapshot?: Record<string, unknown> | null;
@@ -145,8 +147,11 @@ export const resultsApi = {
     }),
 
   /** 新链路：获取订单下所有工况方案摘要 */
-  getOrderConditions: (orderId: number) =>
-    api.get<OrderConditionSummary[]>(`/results/order/${orderId}/conditions`),
+  getOrderConditions: (orderId: number, params?: { includeExternal?: boolean }) =>
+    api.get<OrderConditionSummary[]>(`/results/order/${orderId}/conditions`, { params }),
+
+  getOrderConditionExternalSummaries: (orderId: number) =>
+    api.get<OrderConditionSummary[]>(`/results/order/${orderId}/conditions/external-summary`),
 
   /** 新链路：获取单个工况方案摘要 */
   getOrderCondition: (orderConditionId: number) =>

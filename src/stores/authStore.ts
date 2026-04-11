@@ -17,6 +17,8 @@ const clearPersistedAuth = () => {
 
 const getStoredAuthToken = () => localStorage.getItem(AUTH_TOKEN_KEY);
 
+let pendingSessionHydration: Promise<boolean> | null = null;
+
 const shouldRetryLoginWithFreshPublicKey = (message: string, code?: number | string | null) => {
   const normalizedMessage = String(message || '').toLowerCase();
   const normalizedCode = code == null ? '' : String(code).trim();
@@ -172,33 +174,43 @@ export const useAuthStore = create<AuthState>()(
       },
 
       hydrateSession: async () => {
+        if (pendingSessionHydration) {
+          return pendingSessionHydration;
+        }
+
         const token = get().token || getStoredAuthToken();
         if (!token) {
           get().clearAuthState();
           return false;
         }
 
-        try {
-          const response = await authApi.getSession();
-          const payload = response?.data;
-          if (!payload?.user) {
+        pendingSessionHydration = (async () => {
+          try {
+            const response = await authApi.getSession();
+            const payload = response?.data;
+            if (!payload?.user) {
+              get().clearAuthState();
+              return false;
+            }
+
+            const userData = normalizeUser(payload.user as User);
+            set({
+              token,
+              user: userData,
+              menus: payload.menus || [],
+              isAuthenticated: true,
+              sessionHydrated: true,
+            });
+            return true;
+          } catch {
             get().clearAuthState();
             return false;
+          } finally {
+            pendingSessionHydration = null;
           }
+        })();
 
-          const userData = normalizeUser(payload.user as User);
-          set({
-            token,
-            user: userData,
-            menus: payload.menus || [],
-            isAuthenticated: true,
-            sessionHydrated: true,
-          });
-          return true;
-        } catch {
-          get().clearAuthState();
-          return false;
-        }
+        return pendingSessionHydration;
       },
 
       login: async (domainAccount: string, password: string) => {
