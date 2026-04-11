@@ -1,9 +1,40 @@
 import { useEffect, useMemo, useRef } from 'react';
-import ReactECharts from 'echarts-for-react';
-import type { ECharts, EChartsOption } from 'echarts';
+import { BarChart, LineChart, PieChart, ScatterChart } from 'echarts/charts';
+import {
+  DataZoomComponent,
+  DatasetComponent,
+  GridComponent,
+  LegendComponent,
+  TitleComponent,
+  ToolboxComponent,
+  TooltipComponent,
+  TransformComponent,
+  VisualMapComponent,
+} from 'echarts/components';
+import { init, use as registerEchartsModules, type EChartsType } from 'echarts/core';
+import { CanvasRenderer, SVGRenderer } from 'echarts/renderers';
+import type { EChartsOption } from 'echarts';
 import { useTheme } from '@/hooks/useTheme';
 import { cn } from '@/lib/utils';
 import { CHART_COLOR_PALETTE, CHART_LOADING_ACCENT, CHART_THEME_TOKENS } from './chartThemeTokens';
+
+registerEchartsModules([
+  BarChart,
+  CanvasRenderer,
+  DataZoomComponent,
+  DatasetComponent,
+  GridComponent,
+  LegendComponent,
+  LineChart,
+  PieChart,
+  ScatterChart,
+  SVGRenderer,
+  TitleComponent,
+  ToolboxComponent,
+  TooltipComponent,
+  TransformComponent,
+  VisualMapComponent,
+]);
 
 export interface BaseChartProps {
   option: EChartsOption;
@@ -12,7 +43,7 @@ export interface BaseChartProps {
   loading?: boolean;
   loadingText?: string;
   onEvents?: Record<string, (params: unknown) => void>;
-  onChartReady?: (chart: ECharts) => void;
+  onChartReady?: (chart: EChartsType) => void;
   className?: string;
   autoResize?: boolean;
   renderer?: 'canvas' | 'svg';
@@ -32,7 +63,8 @@ export function BaseChart({
   renderer = 'canvas',
   largeData = false,
 }: BaseChartProps) {
-  const chartRef = useRef<ReactECharts>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<EChartsType | null>(null);
   const { theme } = useTheme();
   const themeTokens = CHART_THEME_TOKENS[theme] || CHART_THEME_TOKENS.light;
 
@@ -119,38 +151,72 @@ export function BaseChart({
   );
 
   useEffect(() => {
-    if (chartRef.current && onChartReady) {
-      const chartInstance = chartRef.current.getEchartsInstance();
-      onChartReady(chartInstance);
+    if (!containerRef.current) {
+      return;
     }
-  }, [onChartReady]);
 
-  return (
-    <div className={cn('w-full', className)} style={{ width, height }}>
-      <ReactECharts
-        ref={chartRef}
-        option={mergedOption}
-        style={{ width: '100%', height: '100%' }}
-        showLoading={loading}
-        loadingOption={loadingOption}
-        onEvents={onEvents}
-        opts={{
-          renderer,
-          width: 'auto',
-          height: 'auto',
-        }}
-        notMerge={true}
-        lazyUpdate={true}
-      />
-    </div>
-  );
+    const chart = init(containerRef.current, undefined, {
+      renderer,
+      width: 'auto',
+      height: 'auto',
+    });
+    chartRef.current = chart;
+    onChartReady?.(chart);
+
+    const resizeObserver = new ResizeObserver(() => {
+      chart.resize();
+    });
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      chart.dispose();
+      chartRef.current = null;
+    };
+  }, [onChartReady, renderer]);
+
+  useEffect(() => {
+    chartRef.current?.setOption(mergedOption, {
+      notMerge: true,
+      lazyUpdate: true,
+    });
+  }, [mergedOption]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) {
+      return;
+    }
+
+    if (loading) {
+      chart.showLoading('default', loadingOption);
+    } else {
+      chart.hideLoading();
+    }
+  }, [loading, loadingOption]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !onEvents) {
+      return;
+    }
+
+    Object.entries(onEvents).forEach(([eventName, handler]) => {
+      chart.on(eventName, handler);
+    });
+
+    return () => {
+      Object.entries(onEvents).forEach(([eventName, handler]) => {
+        chart.off(eventName, handler);
+      });
+    };
+  }, [onEvents]);
+
+  return <div ref={containerRef} className={cn('w-full', className)} style={{ width, height }} />;
 }
 
-export function useChartInstance(chartRef: React.RefObject<ReactECharts>) {
+export function useChartInstance(chartRef: React.RefObject<EChartsType | null>) {
   return useMemo(() => {
-    if (chartRef.current) {
-      return chartRef.current.getEchartsInstance();
-    }
-    return null;
+    return chartRef.current;
   }, [chartRef]);
 }

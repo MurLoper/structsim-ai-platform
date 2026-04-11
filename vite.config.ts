@@ -29,16 +29,54 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
-      sourcemap: true,
+      sourcemap: mode !== 'production',
+      chunkSizeWarningLimit: 650,
       rollupOptions: {
         output: {
-          manualChunks: {
-            vendor: ['react', 'react-dom', 'react-router-dom'],
-            query: ['@tanstack/react-query', '@tanstack/react-table', '@tanstack/react-virtual'],
-            charts: ['echarts', 'echarts-for-react'],
-            flow: ['@xyflow/react'],
-            form: ['react-hook-form', '@hookform/resolvers', 'zod'],
-            ui: ['framer-motion', 'lucide-react', 'clsx', 'tailwind-merge'],
+          manualChunks(id) {
+            const normalizedId = id.replace(/\\/g, '/');
+            if (!normalizedId.includes('/node_modules/')) {
+              return undefined;
+            }
+
+            if (normalizedId.includes('/node_modules/echarts-gl/')) return 'charts3d';
+            if (normalizedId.includes('/node_modules/zrender/')) return 'chartRuntime';
+            if (normalizedId.includes('/node_modules/echarts/')) return 'charts';
+            if (normalizedId.includes('/node_modules/xlsx/')) return 'excel';
+            if (normalizedId.includes('/node_modules/html2canvas/')) return 'capture';
+            if (normalizedId.includes('/node_modules/@xyflow/')) return 'flow';
+            if (normalizedId.includes('/node_modules/@tanstack/react-query/')) return 'query';
+            if (
+              normalizedId.includes('/node_modules/@tanstack/react-table/') ||
+              normalizedId.includes('/node_modules/@tanstack/react-virtual/')
+            ) {
+              return 'table';
+            }
+            if (
+              normalizedId.includes('/node_modules/react-hook-form/') ||
+              normalizedId.includes('/node_modules/@hookform/') ||
+              normalizedId.includes('/node_modules/zod/')
+            ) {
+              return 'form';
+            }
+            if (
+              normalizedId.includes('/node_modules/framer-motion/') ||
+              normalizedId.includes('/node_modules/lucide-react/') ||
+              normalizedId.includes('/node_modules/clsx/') ||
+              normalizedId.includes('/node_modules/tailwind-merge/')
+            ) {
+              return 'ui';
+            }
+            if (
+              normalizedId.includes('/node_modules/react/') ||
+              normalizedId.includes('/node_modules/react-dom/') ||
+              normalizedId.includes('/node_modules/react-router-dom/') ||
+              normalizedId.includes('/node_modules/react-router/')
+            ) {
+              return 'vendor';
+            }
+
+            return undefined;
           },
         },
       },

@@ -1,9 +1,15 @@
-import * as Sentry from '@sentry/react';
+import type * as SentryTypes from '@sentry/react';
 
 /**
  * Sentry 初始化状态
  */
 let isInitialized = false;
+let sentryModulePromise: Promise<typeof SentryTypes> | null = null;
+
+const loadSentry = () => {
+  sentryModulePromise ||= import('@sentry/react');
+  return sentryModulePromise;
+};
 
 /**
  * 初始化 Sentry 错误监控
@@ -20,7 +26,7 @@ function parseSampleRate(value: string | undefined, fallback: number) {
   return Math.min(1, Math.max(0, parsed));
 }
 
-export function initSentry() {
+export async function initSentry() {
   // 防止重复初始化
   if (isInitialized) {
     return;
@@ -40,6 +46,7 @@ export function initSentry() {
     return;
   }
 
+  const Sentry = await loadSentry();
   const environment = import.meta.env.VITE_SENTRY_ENV || import.meta.env.MODE;
   const tracesSampleRate = parseSampleRate(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE, 0.1);
   const replaysSessionSampleRate = parseSampleRate(
@@ -109,8 +116,10 @@ export function isSentryInitialized(): boolean {
  */
 export function captureError(error: Error, context?: Record<string, unknown>) {
   if (isInitialized) {
-    Sentry.captureException(error, {
-      extra: context,
+    void loadSentry().then(Sentry => {
+      Sentry.captureException(error, {
+        extra: context,
+      });
     });
     return;
   }
@@ -126,23 +135,38 @@ export function setUser(user: {
   domainAccount?: string;
   userName?: string;
 }) {
-  Sentry.setUser(user);
+  if (!isInitialized) {
+    return;
+  }
+  void loadSentry().then(Sentry => Sentry.setUser(user));
 }
 
 /**
  * 清除用户信息（登出时调用）
  */
 export function clearUser() {
-  Sentry.setUser(null);
+  if (!isInitialized) {
+    return;
+  }
+  void loadSentry().then(Sentry => Sentry.setUser(null));
 }
 
 /**
  * 添加面包屑（操作记录）
  */
-export function addBreadcrumb(message: string, category?: string, level?: Sentry.SeverityLevel) {
-  Sentry.addBreadcrumb({
-    message,
-    category: category || 'user-action',
-    level: level || 'info',
-  });
+export function addBreadcrumb(
+  message: string,
+  category?: string,
+  level?: SentryTypes.SeverityLevel
+) {
+  if (!isInitialized) {
+    return;
+  }
+  void loadSentry().then(Sentry =>
+    Sentry.addBreadcrumb({
+      message,
+      category: category || 'user-action',
+      level: level || 'info',
+    })
+  );
 }

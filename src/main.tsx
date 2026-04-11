@@ -9,10 +9,11 @@ if (!rootElement) {
   throw new Error('Could not find root element to mount to');
 }
 
-initSentry();
+void initSentry();
 
 window.addEventListener('error', event => {
-  const err = event.error instanceof Error ? event.error : new Error(event.message || 'Unknown error');
+  const err =
+    event.error instanceof Error ? event.error : new Error(event.message || 'Unknown error');
   captureError(err, {
     type: 'window.error',
     filename: event.filename,
@@ -22,9 +23,10 @@ window.addEventListener('error', event => {
 });
 
 window.addEventListener('unhandledrejection', event => {
-  const reason = event.reason instanceof Error
-    ? event.reason
-    : new Error(typeof event.reason === 'string' ? event.reason : 'Unhandled promise rejection');
+  const reason =
+    event.reason instanceof Error
+      ? event.reason
+      : new Error(typeof event.reason === 'string' ? event.reason : 'Unhandled promise rejection');
   captureError(reason, { type: 'unhandledrejection' });
 });
 
