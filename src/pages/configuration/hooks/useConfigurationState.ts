@@ -20,7 +20,6 @@ export const useConfigurationState = () => {
     outputDefs,
     foldTypes,
     careDevices,
-    solverResources,
   } = useConfigurationReferenceData();
   const { saveEntity, deleteEntity } = useConfigurationCrud();
 
@@ -108,7 +107,6 @@ export const useConfigurationState = () => {
     outputDefs: outputDefs || [],
     foldTypes: foldTypes || [],
     careDevices: careDevices || [],
-    solverResources: solverResources || [],
     // 状态
     activeTab,
     setActiveTab,

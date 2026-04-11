@@ -31,6 +31,8 @@ const normalizeMetadata = (metadata?: PlatformTrackingMetadata) => {
   );
 };
 
+const getTrackingOccurredAt = () => Math.floor(Date.now() / 1000);
+
 export const flushPlatformTrackingEvents = async () => {
   if (isFlushing || queue.length === 0) {
     return;
@@ -66,7 +68,7 @@ export const trackPlatformEvent = (event: PlatformTrackingEventInput) => {
     eventType: event.eventType || 'interaction',
     ...event,
     sessionId: event.sessionId || getTrackingSessionId(),
-    occurredAt: event.occurredAt || Date.now(),
+    occurredAt: event.occurredAt || getTrackingOccurredAt(),
     metadata: normalizeMetadata(event.metadata),
   });
 

@@ -24,9 +24,6 @@ import {
   useCreateCareDevice,
   useUpdateCareDevice,
   useDeleteCareDevice,
-  useCreateSolverResource,
-  useUpdateSolverResource,
-  useDeleteSolverResource,
 } from '@/features/config/queries';
 import type { ConfigurationModalType } from './configurationFormDefaults';
 
@@ -37,7 +34,6 @@ const CREATE_SUCCESS_MESSAGES: Record<ConfigurationModalType, string> = {
   simType: '仿真类型创建成功',
   paramDef: '参数定义创建成功',
   solver: '求解器创建成功',
-  solverResource: '资源池创建成功',
   conditionDef: '工况定义创建成功',
   outputDef: '输出定义创建成功',
   foldType: '姿态类型创建成功',
@@ -49,7 +45,6 @@ const UPDATE_SUCCESS_MESSAGES: Record<ConfigurationModalType, string> = {
   simType: '仿真类型更新成功',
   paramDef: '参数定义更新成功',
   solver: '求解器更新成功',
-  solverResource: '资源池更新成功',
   conditionDef: '工况定义更新成功',
   outputDef: '输出定义更新成功',
   foldType: '姿态类型更新成功',
@@ -88,10 +83,6 @@ export const useConfigurationCrud = () => {
   const createCareDevice = useCreateCareDevice();
   const updateCareDevice = useUpdateCareDevice();
   const deleteCareDevice = useDeleteCareDevice();
-
-  const createSolverResource = useCreateSolverResource();
-  const updateSolverResource = useUpdateSolverResource();
-  const deleteSolverResource = useDeleteSolverResource();
 
   const saveEntity = useCallback(
     async (
@@ -158,13 +149,6 @@ export const useConfigurationCrud = () => {
           }
           await createCareDevice.mutateAsync(data);
           return CREATE_SUCCESS_MESSAGES.careDevice;
-        case 'solverResource':
-          if (entityId) {
-            await updateSolverResource.mutateAsync({ id: entityId, data });
-            return UPDATE_SUCCESS_MESSAGES.solverResource;
-          }
-          await createSolverResource.mutateAsync(data);
-          return CREATE_SUCCESS_MESSAGES.solverResource;
         default:
           return '';
       }
@@ -178,7 +162,6 @@ export const useConfigurationCrud = () => {
       createProject,
       createSimType,
       createSolver,
-      createSolverResource,
       updateCareDevice,
       updateConditionDef,
       updateFoldType,
@@ -187,7 +170,6 @@ export const useConfigurationCrud = () => {
       updateProject,
       updateSimType,
       updateSolver,
-      updateSolverResource,
     ]
   );
 
@@ -218,9 +200,6 @@ export const useConfigurationCrud = () => {
         case 'careDevice':
           await deleteCareDevice.mutateAsync(id);
           return;
-        case 'solverResource':
-          await deleteSolverResource.mutateAsync(id);
-          return;
         default:
           return;
       }
@@ -234,7 +213,6 @@ export const useConfigurationCrud = () => {
       deleteProject,
       deleteSimType,
       deleteSolver,
-      deleteSolverResource,
     ]
   );
 

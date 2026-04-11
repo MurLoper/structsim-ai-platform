@@ -5,7 +5,6 @@ export { ConfigurationModalForm } from './ConfigurationModalForm';
 export { ParamGroupsManagement } from './ParamGroupsManagement';
 export { OutputGroupsManagement } from './OutputGroupsManagement';
 export { ConfigRelationsManagement } from './ConfigRelationsManagement';
-export { ProjectSimTypeManagement } from './ProjectSimTypeManagement';
 export { SystemConfigManagement } from './SystemConfigManagement';
 export { FoldTypeSimTypeManagement } from './FoldTypeSimTypeManagement';
 export { ConditionManagement } from './ConditionManagement';

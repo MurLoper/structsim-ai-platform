@@ -258,18 +258,7 @@ export interface UserResourcePoolsPayload {
 export interface OrderProjectInitConfig {
   projectId: number;
   projectName: string;
-  simTypeId?: number | null;
-  simTypeName?: string | null;
-  simTypeCode?: string | null;
   phases: PhaseOption[];
   defaultPhaseId?: number | null;
   participantCandidates: ParticipantCandidate[];
-  resourcePools?: ResourcePoolOption[];
-  defaultResourceId?: number | null;
-  defaultParamGroup?: ParamGroupOption;
-  defaultOutputGroup?: OutputGroupOption;
-  defaultSolver?: SolverConfig;
-  paramGroupOptions: ParamGroupOption[];
-  outputGroupOptions: OutputGroupOption[];
-  solverOptions: SolverOption[];
 }

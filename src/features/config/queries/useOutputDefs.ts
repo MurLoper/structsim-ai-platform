@@ -2,7 +2,7 @@
  * 输出定义 Query Hooks
  * 使用 TanStack Query 管理输出定义数据的服务端状态
  */
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { baseConfigApi } from '@/api/config/base';
 import { queryKeys } from '@/lib/queryClient';
 import type { OutputDef } from '@/types/config';
@@ -48,6 +48,34 @@ export function useOutputDefs() {
       return items.map(normalizeOutputDef);
     },
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function usePaginatedOutputDefs(params: {
+  page: number;
+  pageSize: number;
+  keyword?: string;
+}) {
+  return useQuery({
+    queryKey: [...queryKeys.outputDefs.list(), 'paginated', params] as const,
+    queryFn: async () => {
+      const response = await baseConfigApi.getOutputDefsPaginated({
+        page: params.page,
+        pageSize: params.pageSize,
+        keyword: params.keyword || undefined,
+      });
+      const data = response.data ?? {
+        items: [],
+        total: 0,
+        page: params.page,
+        pageSize: params.pageSize,
+      };
+      return {
+        ...data,
+        items: data.items.map(normalizeOutputDef),
+      };
+    },
+    placeholderData: keepPreviousData,
   });
 }
 

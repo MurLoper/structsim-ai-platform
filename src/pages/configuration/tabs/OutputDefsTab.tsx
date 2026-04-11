@@ -1,20 +1,23 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { BarChart3, Download, Plus, Upload } from 'lucide-react';
 import { Card, SearchBar, useConfirmDialog, useToast } from '@/components/ui';
 import { baseConfigApi } from '@/api';
+import { usePaginatedOutputDefs } from '@/features/config/queries';
 import type { OutputDef } from '@/types';
 import { ActionButtons, EditModal, FormInput, FormSelect } from '../components';
 import { OutputDefsUploadModal } from './outputDefs/OutputDefsUploadModal';
 
+const OUTPUT_DATA_TYPE_OPTIONS = [
+  { value: 'float', label: '浮点数' },
+  { value: 'int', label: '整数' },
+  { value: 'string', label: '字符串' },
+];
+
 export const OutputDefsTab: React.FC = () => {
-  const [outputDefs, setOutputDefs] = useState<OutputDef[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
   const [keyword, setKeyword] = useState('');
   const [searchInput, setSearchInput] = useState('');
-
   const [showEditModal, setShowEditModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingItem, setEditingItem] = useState<OutputDef | null>(null);
@@ -23,32 +26,24 @@ export const OutputDefsTab: React.FC = () => {
 
   const { showToast } = useToast();
   const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
+  const {
+    data: outputDefsPage,
+    isFetching,
+    refetch,
+  } = usePaginatedOutputDefs({
+    page,
+    pageSize,
+    keyword,
+  });
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await baseConfigApi.getOutputDefsPaginated({
-        page,
-        pageSize,
-        keyword: keyword || undefined,
-      });
-      setOutputDefs(response.data?.items || []);
-      setTotal(response.data?.total || 0);
-    } catch (error) {
-      console.error('加载输出定义失败:', error);
-      showToast('error', '加载失败');
-    } finally {
-      setLoading(false);
-    }
-  }, [keyword, page, pageSize, showToast]);
-
-  useEffect(() => {
-    void loadData();
-  }, [loadData]);
+  const outputDefs = outputDefsPage?.items ?? [];
+  const total = outputDefsPage?.total ?? 0;
+  const totalPages = Math.ceil(total / pageSize);
+  const loading = isFetching && !outputDefsPage;
 
   const handleSearch = () => {
     setPage(1);
-    setKeyword(searchInput);
+    setKeyword(searchInput.trim());
   };
 
   const openEditModal = (item?: OutputDef) => {
@@ -73,7 +68,7 @@ export const OutputDefsTab: React.FC = () => {
         showToast('success', '创建成功');
       }
       setShowEditModal(false);
-      await loadData();
+      await refetch();
     } catch {
       showToast('error', '保存失败');
     } finally {
@@ -89,7 +84,7 @@ export const OutputDefsTab: React.FC = () => {
         try {
           await baseConfigApi.deleteOutputDef(item.id);
           showToast('success', '删除成功');
-          await loadData();
+          await refetch();
         } catch {
           showToast('error', '删除失败');
         }
@@ -108,8 +103,6 @@ export const OutputDefsTab: React.FC = () => {
     link.download = '输出定义模板.csv';
     link.click();
   };
-
-  const totalPages = Math.ceil(total / pageSize);
 
   return (
     <>
@@ -243,11 +236,7 @@ export const OutputDefsTab: React.FC = () => {
           label="数据类型"
           value={formData.dataType || 'float'}
           onChange={value => setFormData(current => ({ ...current, dataType: value }))}
-          options={[
-            { value: 'float', label: '浮点数' },
-            { value: 'int', label: '整数' },
-            { value: 'string', label: '字符串' },
-          ]}
+          options={OUTPUT_DATA_TYPE_OPTIONS}
         />
         <FormInput
           label="单位"
@@ -268,7 +257,7 @@ export const OutputDefsTab: React.FC = () => {
           onClose={() => setShowUploadModal(false)}
           onSuccess={() => {
             setShowUploadModal(false);
-            void loadData();
+            void refetch();
           }}
           showToast={showToast}
         />

@@ -1,20 +1,31 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Download, Plus, SlidersHorizontal, Upload } from 'lucide-react';
 import { Card, SearchBar, useConfirmDialog, useToast } from '@/components/ui';
 import { baseConfigApi } from '@/api';
+import { usePaginatedParamDefs } from '@/features/config/queries';
 import type { ParamDef } from '@/types';
 import { ActionButtons, EditModal, FormInput, FormSelect } from '../components';
 import { ParamDefsUploadModal } from './paramDefs/ParamDefsUploadModal';
 
+const PARAM_DATA_TYPE_OPTIONS = [
+  { value: '1', label: '浮点数' },
+  { value: '2', label: '整数' },
+  { value: '3', label: '字符串' },
+];
+
+const createDefaultParamDef = (): Partial<ParamDef> => ({
+  valType: 1,
+  minVal: 0,
+  maxVal: 100,
+  precision: 3,
+  sort: 100,
+});
+
 export const ParamDefsTab: React.FC = () => {
-  const [paramDefs, setParamDefs] = useState<ParamDef[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
   const [keyword, setKeyword] = useState('');
   const [searchInput, setSearchInput] = useState('');
-
   const [showEditModal, setShowEditModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingItem, setEditingItem] = useState<ParamDef | null>(null);
@@ -23,39 +34,29 @@ export const ParamDefsTab: React.FC = () => {
 
   const { showToast } = useToast();
   const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
+  const {
+    data: paramDefsPage,
+    isFetching,
+    refetch,
+  } = usePaginatedParamDefs({
+    page,
+    pageSize,
+    keyword,
+  });
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await baseConfigApi.getParamDefsPaginated({
-        page,
-        pageSize,
-        keyword: keyword || undefined,
-      });
-      setParamDefs(response.data?.items || []);
-      setTotal(response.data?.total || 0);
-    } catch (error) {
-      console.error('加载参数定义失败:', error);
-      showToast('error', '加载失败');
-    } finally {
-      setLoading(false);
-    }
-  }, [keyword, page, pageSize, showToast]);
-
-  useEffect(() => {
-    void loadData();
-  }, [loadData]);
+  const paramDefs = paramDefsPage?.items ?? [];
+  const total = paramDefsPage?.total ?? 0;
+  const totalPages = Math.ceil(total / pageSize);
+  const loading = isFetching && !paramDefsPage;
 
   const handleSearch = () => {
     setPage(1);
-    setKeyword(searchInput);
+    setKeyword(searchInput.trim());
   };
 
   const openEditModal = (item?: ParamDef) => {
     setEditingItem(item || null);
-    setFormData(
-      item ? { ...item } : { valType: 1, minVal: 0, maxVal: 100, precision: 3, sort: 100 }
-    );
+    setFormData(item ? { ...item } : createDefaultParamDef());
     setShowEditModal(true);
   };
 
@@ -75,7 +76,7 @@ export const ParamDefsTab: React.FC = () => {
         showToast('success', '创建成功');
       }
       setShowEditModal(false);
-      await loadData();
+      await refetch();
     } catch {
       showToast('error', '保存失败');
     } finally {
@@ -91,7 +92,7 @@ export const ParamDefsTab: React.FC = () => {
         try {
           await baseConfigApi.deleteParamDef(item.id);
           showToast('success', '删除成功');
-          await loadData();
+          await refetch();
         } catch {
           showToast('error', '删除失败');
         }
@@ -110,8 +111,6 @@ export const ParamDefsTab: React.FC = () => {
     link.download = '参数定义模板.csv';
     link.click();
   };
-
-  const totalPages = Math.ceil(total / pageSize);
 
   return (
     <>
@@ -247,11 +246,7 @@ export const ParamDefsTab: React.FC = () => {
           label="数据类型"
           value={String(formData.valType || 1)}
           onChange={value => setFormData(current => ({ ...current, valType: Number(value) }))}
-          options={[
-            { value: '1', label: '浮点数' },
-            { value: '2', label: '整数' },
-            { value: '3', label: '字符串' },
-          ]}
+          options={PARAM_DATA_TYPE_OPTIONS}
         />
         <FormInput
           label="单位"
@@ -292,7 +287,7 @@ export const ParamDefsTab: React.FC = () => {
           onClose={() => setShowUploadModal(false)}
           onSuccess={() => {
             setShowUploadModal(false);
-            void loadData();
+            void refetch();
           }}
           showToast={showToast}
         />

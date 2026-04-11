@@ -2,7 +2,7 @@
  * 参数定义 Query Hooks
  * 使用 TanStack Query 管理参数定义数据的服务端状态
  */
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { baseConfigApi } from '@/api/config/base';
 import { queryKeys } from '@/lib/queryClient';
 import type { ParamDef } from '@/types/config';
@@ -43,6 +43,25 @@ export function useParamDefs() {
       return response.data || [];
     },
     staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function usePaginatedParamDefs(params: {
+  page: number;
+  pageSize: number;
+  keyword?: string;
+}) {
+  return useQuery({
+    queryKey: [...queryKeys.paramDefs.list(), 'paginated', params] as const,
+    queryFn: async () => {
+      const response = await baseConfigApi.getParamDefsPaginated({
+        page: params.page,
+        pageSize: params.pageSize,
+        keyword: params.keyword || undefined,
+      });
+      return response.data ?? { items: [], total: 0, page: params.page, pageSize: params.pageSize };
+    },
+    placeholderData: keepPreviousData,
   });
 }
 

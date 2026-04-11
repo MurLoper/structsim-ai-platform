@@ -3,7 +3,6 @@ export type ConfigurationModalType =
   | 'simType'
   | 'paramDef'
   | 'solver'
-  | 'solverResource'
   | 'conditionDef'
   | 'outputDef'
   | 'foldType'
@@ -50,8 +49,6 @@ export const getConfigurationDefaultFormData = (
       return { name: '', code: '', angle: 0, sort: 100, remark: '' };
     case 'careDevice':
       return { name: '', code: '', category: '', sort: 100, remark: '' };
-    case 'solverResource':
-      return { name: '', code: '', description: '', cpuCores: null, memoryGb: null, sort: 100 };
     default:
       return {};
   }

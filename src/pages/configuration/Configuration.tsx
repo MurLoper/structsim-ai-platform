@@ -15,7 +15,6 @@ import {
 import { ParamGroupsManagement } from './components/ParamGroupsManagement';
 import { OutputGroupsManagement } from './components/OutputGroupsManagement';
 import { ConfigRelationsManagement } from './components/ConfigRelationsManagement';
-import { ProjectSimTypeManagement } from './components/ProjectSimTypeManagement';
 import { SystemConfigManagement } from './components/SystemConfigManagement';
 import { StatusConfigManagement } from './components/StatusConfigManagement';
 import { FoldTypeSimTypeManagement } from './components/FoldTypeSimTypeManagement';
@@ -274,7 +273,6 @@ const Configuration: React.FC = () => {
             </Card>
           )}
 
-          {state.activeTab === 'projectSimTypes' && <ProjectSimTypeManagement />}
           {state.activeTab === 'systemConfig' && <SystemConfigManagement />}
           {state.activeTab === 'statusConfig' && <StatusConfigManagement />}
 

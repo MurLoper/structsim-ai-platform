@@ -7,7 +7,6 @@ import type {
   OutputDef,
   PostProcessMode,
   Solver,
-  SolverResource,
   FoldType,
   OutputSet,
   StatusDef,
@@ -21,9 +20,8 @@ import type {
   CareDevice,
 } from '@/types';
 
-// ============ 基础配置 CRUD API ============
+// ============ 鍩虹閰嶇疆 CRUD API ============
 export const baseConfigApi = {
-  // 项目配置
   getProjects: () => api.get<Project[]>('/config/projects'),
   getProject: (id: number) => api.get<Project>(`/config/projects/${id}`),
   createProject: (data: Partial<Project>) => api.post<Project>('/config/projects', data),
@@ -31,14 +29,12 @@ export const baseConfigApi = {
     api.put<Project>(`/config/projects/${id}`, data),
   deleteProject: (id: number) => api.delete(`/config/projects/${id}`),
 
-  // 仿真类型
   getSimTypes: () => api.get<SimType[]>('/config/sim-types'),
   createSimType: (data: Partial<SimType>) => api.post<SimType>('/config/sim-types', data),
   updateSimType: (id: number, data: Partial<SimType>) =>
     api.put<SimType>(`/config/sim-types/${id}`, data),
   deleteSimType: (id: number) => api.delete(`/config/sim-types/${id}`),
 
-  // 参数定义
   getParamDefs: () => api.get<ParamDef[]>('/config/param-defs'),
   getParamDefsPaginated: (params: { page: number; pageSize?: number; keyword?: string }) =>
     api.get<{ items: ParamDef[]; total: number; page: number; pageSize: number }>(
@@ -55,14 +51,12 @@ export const baseConfigApi = {
     api.put<ParamDef>(`/config/param-defs/${id}`, data),
   deleteParamDef: (id: number) => api.delete(`/config/param-defs/${id}`),
 
-  // 求解器
   getSolvers: () => api.get<Solver[]>('/config/solvers'),
   createSolver: (data: Partial<Solver>) => api.post<Solver>('/config/solvers', data),
   updateSolver: (id: number, data: Partial<Solver>) =>
     api.put<Solver>(`/config/solvers/${id}`, data),
   deleteSolver: (id: number) => api.delete(`/config/solvers/${id}`),
 
-  // 工况定义
   getConditionDefs: () => api.get<ConditionDef[]>('/config/condition-defs'),
   createConditionDef: (data: Partial<ConditionDef>) =>
     api.post<ConditionDef>('/config/condition-defs', data),
@@ -70,7 +64,6 @@ export const baseConfigApi = {
     api.put<ConditionDef>(`/config/condition-defs/${id}`, data),
   deleteConditionDef: (id: number) => api.delete(`/config/condition-defs/${id}`),
 
-  // 输出定义
   getOutputDefs: () => api.get<OutputDef[]>('/config/output-defs'),
   getPostProcessModes: () => api.get<PostProcessMode[]>('/config/post-process-modes'),
   getOutputDefsPaginated: (params: { page: number; pageSize?: number; keyword?: string }) =>
@@ -88,14 +81,12 @@ export const baseConfigApi = {
     api.put<OutputDef>(`/config/output-defs/${id}`, data),
   deleteOutputDef: (id: number) => api.delete(`/config/output-defs/${id}`),
 
-  // 姿态类型
   getFoldTypes: () => api.get<FoldType[]>('/config/fold-types'),
   createFoldType: (data: Partial<FoldType>) => api.post<FoldType>('/config/fold-types', data),
   updateFoldType: (id: number, data: Partial<FoldType>) =>
     api.put<FoldType>(`/config/fold-types/${id}`, data),
   deleteFoldType: (id: number) => api.delete(`/config/fold-types/${id}`),
 
-  // 关注器件
   getCareDevices: () => api.get<CareDevice[]>('/config/care-devices'),
   createCareDevice: (data: Partial<CareDevice>) =>
     api.post<CareDevice>('/config/care-devices', data),
@@ -103,15 +94,6 @@ export const baseConfigApi = {
     api.put<CareDevice>(`/config/care-devices/${id}`, data),
   deleteCareDevice: (id: number) => api.delete(`/config/care-devices/${id}`),
 
-  // 资源池
-  getSolverResources: () => api.get<SolverResource[]>('/config/solver-resources'),
-  createSolverResource: (data: Partial<SolverResource>) =>
-    api.post<SolverResource>('/config/solver-resources', data),
-  updateSolverResource: (id: number, data: Partial<SolverResource>) =>
-    api.put<SolverResource>(`/config/solver-resources/${id}`, data),
-  deleteSolverResource: (id: number) => api.delete(`/config/solver-resources/${id}`),
-
-  // 输出组合（旧版兼容，推荐使用 outputGroupsApi）
   getOutputGroups: (simTypeId?: number) =>
     api.get<OutputSet[]>('/config/output-groups', { params: { simTypeId } }),
   getStatusDefs: () => api.get<StatusDef[]>('/config/status-defs'),
@@ -121,7 +103,6 @@ export const baseConfigApi = {
   getWorkflows: () => api.get<Workflow[]>('/config/workflows'),
   getBaseData: () => api.get<BaseDataResponse>('/config/base-data'),
 
-  // 工况配置
   getWorkingConditions: () => api.get<WorkingCondition[]>('/config/working-conditions'),
   getWorkingConditionsByFoldType: (foldTypeId: number) =>
     api.get<WorkingCondition[]>(`/config/working-conditions/by-fold-type/${foldTypeId}`),
@@ -129,7 +110,6 @@ export const baseConfigApi = {
   getSimTypesByFoldType: (foldTypeId: number) =>
     api.get<SimTypeWithDefault[]>(`/config/fold-type-sim-type-rels/by-fold-type/${foldTypeId}`),
 
-  // 姿态-仿真类型关联管理
   getFoldTypeSimTypeRelsByFoldType: (foldTypeId: number) =>
     api.get<FoldTypeSimTypeRel[]>(`/config/fold-type-sim-type-rels/fold-type/${foldTypeId}/rels`),
   addSimTypeToFoldType: (foldTypeId: number, data: { simTypeId: number; isDefault?: number }) =>
@@ -139,7 +119,6 @@ export const baseConfigApi = {
   removeSimTypeFromFoldType: (foldTypeId: number, simTypeId: number) =>
     api.delete(`/config/fold-type-sim-type-rels/fold-type/${foldTypeId}/sim-type/${simTypeId}`),
 
-  // 工况配置（新版）
   getConditionConfigs: () => api.get<ConditionConfig[]>('/conditions'),
   getConditionConfig: (id: number) => api.get<ConditionConfig>(`/conditions/${id}`),
   getConditionByFoldSim: (foldTypeId: number, simTypeId: number) =>

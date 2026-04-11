@@ -1,20 +1,19 @@
 import { QueryClient } from '@tanstack/react-query';
 
 /**
- * TanStack Query 客户端配置
- *
- * 配置说明:
- * - staleTime: 数据过期时间，5分钟内不会重新请求
- * - gcTime: 垃圾回收时间，30分钟后清理未使用的缓存
- * - refetchOnWindowFocus: 禁用窗口聚焦时自动刷新
- * - retry: 请求失败重试1次
- * - refetchOnReconnect: 网络恢复时自动刷新
+ * TanStack Query 瀹㈡埛绔厤缃? *
+ * 閰嶇疆璇存槑:
+ * - staleTime: 鏁版嵁杩囨湡鏃堕棿锛?鍒嗛挓鍐呬笉浼氶噸鏂拌姹?
+ * - gcTime: 鍨冨溇鍥炴敹鏃堕棿锛?0鍒嗛挓鍚庢竻鐞嗘湭浣跨敤鐨勭紦瀛?
+ * - refetchOnWindowFocus: 绂佺敤绐楀彛鑱氱劍鏃惰嚜鍔ㄥ埛鏂?
+ * - retry: 璇锋眰澶辫触閲嶈瘯1娆?
+ * - refetchOnReconnect: 缃戠粶鎭㈠鏃惰嚜鍔ㄥ埛鏂?
  */
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5分钟
-      gcTime: 30 * 60 * 1000, // 30分钟
+      staleTime: 5 * 60 * 1000,
+      gcTime: 30 * 60 * 1000,
       refetchOnWindowFocus: false,
       retry: 1,
       refetchOnReconnect: true,
@@ -26,17 +25,15 @@ export const queryClient = new QueryClient({
 });
 
 /**
- * Query Keys 工厂函数
- * 统一管理所有 Query 的缓存键
+ * Query Keys 宸ュ巶鍑芥暟
+ * 缁熶竴绠＄悊鎵€鏈?Query 鐨勭紦瀛橀敭
  */
 export const queryKeys = {
-  // 项目
   projects: {
     all: ['projects'] as const,
     list: () => [...queryKeys.projects.all, 'list'] as const,
     detail: (id: number) => [...queryKeys.projects.all, 'detail', id] as const,
   },
-  // 仿真类型
   simTypes: {
     all: ['simTypes'] as const,
     list: () => [...queryKeys.simTypes.all, 'list'] as const,
@@ -44,19 +41,16 @@ export const queryKeys = {
     byFoldType: (foldTypeId: number | null) =>
       [...queryKeys.simTypes.all, 'byFoldType', foldTypeId] as const,
   },
-  // 参数定义
   paramDefs: {
     all: ['paramDefs'] as const,
     list: () => [...queryKeys.paramDefs.all, 'list'] as const,
     detail: (id: number) => [...queryKeys.paramDefs.all, 'detail', id] as const,
   },
-  // 工况定义
   conditionDefs: {
     all: ['conditionDefs'] as const,
     list: () => [...queryKeys.conditionDefs.all, 'list'] as const,
     detail: (id: number) => [...queryKeys.conditionDefs.all, 'detail', id] as const,
   },
-  // 输出定义
   outputDefs: {
     all: ['outputDefs'] as const,
     list: () => [...queryKeys.outputDefs.all, 'list'] as const,
@@ -66,19 +60,16 @@ export const queryKeys = {
     all: ['postProcessModes'] as const,
     list: () => [...queryKeys.postProcessModes.all, 'list'] as const,
   },
-  // 求解器
   solvers: {
     all: ['solvers'] as const,
     list: () => [...queryKeys.solvers.all, 'list'] as const,
     detail: (id: number) => [...queryKeys.solvers.all, 'detail', id] as const,
   },
-  // 姿态类型 (FoldType)
   foldTypes: {
     all: ['foldTypes'] as const,
     list: () => [...queryKeys.foldTypes.all, 'list'] as const,
     detail: (id: number) => [...queryKeys.foldTypes.all, 'detail', id] as const,
   },
-  // 参数组合 (ParamGroup)
   paramGroups: {
     all: ['paramGroups'] as const,
     list: (simTypeId?: number) =>
@@ -87,7 +78,6 @@ export const queryKeys = {
         : ([...queryKeys.paramGroups.all, 'list'] as const),
     detail: (id: number) => [...queryKeys.paramGroups.all, 'detail', id] as const,
   },
-  // 输出组合
   outputGroups: {
     all: ['outputGroups'] as const,
     list: (simTypeId?: number) =>
@@ -96,7 +86,6 @@ export const queryKeys = {
         : ([...queryKeys.outputGroups.all, 'list'] as const),
     detail: (id: number) => [...queryKeys.outputGroups.all, 'detail', id] as const,
   },
-  // 订单
   orders: {
     all: ['orders'] as const,
     list: () => [...queryKeys.orders.all, 'list'] as const,
@@ -105,26 +94,22 @@ export const queryKeys = {
     trends: (days: number) => [...queryKeys.orders.all, 'trends', days] as const,
     statusDistribution: () => [...queryKeys.orders.all, 'statusDistribution'] as const,
   },
-  // 工作流
   workflows: {
     all: ['workflows'] as const,
     list: () => [...queryKeys.workflows.all, 'list'] as const,
     detail: (id: number) => [...queryKeys.workflows.all, 'detail', id] as const,
   },
-  // 自动化模块
   automationModules: {
     all: ['automationModules'] as const,
     list: () => [...queryKeys.automationModules.all, 'list'] as const,
     detail: (id: number) => [...queryKeys.automationModules.all, 'detail', id] as const,
   },
-  // 工况配置
   workingConditions: {
     all: ['workingConditions'] as const,
     list: () => [...queryKeys.workingConditions.all, 'list'] as const,
     byFoldType: (foldTypeId: number | null) =>
       [...queryKeys.workingConditions.all, 'byFoldType', foldTypeId] as const,
   },
-  // 姿态-仿真类型关联
   conditionConfigs: {
     all: ['conditionConfigs'] as const,
     list: () => [...queryKeys.conditionConfigs.all, 'list'] as const,
@@ -137,17 +122,10 @@ export const queryKeys = {
     all: ['foldTypeSimTypeRels'] as const,
     list: () => [...queryKeys.foldTypeSimTypeRels.all, 'list'] as const,
   },
-  // 关注器件
   careDevices: {
     all: ['careDevices'] as const,
     list: () => [...queryKeys.careDevices.all, 'list'] as const,
     detail: (id: number) => [...queryKeys.careDevices.all, 'detail', id] as const,
-  },
-  // 资源池
-  solverResources: {
-    all: ['solverResources'] as const,
-    list: () => [...queryKeys.solverResources.all, 'list'] as const,
-    detail: (id: number) => [...queryKeys.solverResources.all, 'detail', id] as const,
   },
   platform: {
     all: ['platform'] as const,

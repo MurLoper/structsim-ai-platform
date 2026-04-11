@@ -8,7 +8,6 @@ import {
   useOutputDefs,
   useFoldTypes,
   useCareDevices,
-  useSolverResources,
 } from '@/features/config/queries';
 
 export const useConfigurationReferenceData = () => {
@@ -21,7 +20,6 @@ export const useConfigurationReferenceData = () => {
   const { data: outputDefs = [] } = useOutputDefs();
   const { data: foldTypes = [] } = useFoldTypes();
   const { data: careDevices = [] } = useCareDevices();
-  const { data: solverResources = [] } = useSolverResources();
 
   return {
     projects,
@@ -33,6 +31,5 @@ export const useConfigurationReferenceData = () => {
     outputDefs,
     foldTypes,
     careDevices,
-    solverResources,
   };
 };
