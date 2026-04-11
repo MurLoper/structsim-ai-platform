@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui';
+import { useI18n } from '@/hooks';
 import { ConfigTabs } from './components';
 import {
   MenuFormModal,
@@ -19,7 +20,8 @@ import { MENU_TYPE_OPTIONS, TABS } from './components/permissions/permissionsCon
 import type { ActiveTab } from './components/permissions/permissionsConfigTypes';
 import { usePermissionsConfigState } from './hooks/usePermissionsConfigState';
 
-const PermissionsConfig: React.FC = () => {
+const PermissionsConfig = () => {
+  const { t } = useI18n();
   const state = usePermissionsConfigState();
 
   const userColumns = useMemo(
@@ -27,8 +29,9 @@ const PermissionsConfig: React.FC = () => {
       buildUserColumns({
         onEdit: state.openEditUser,
         onDelete: state.handleDeleteUser,
+        t,
       }),
-    [state.handleDeleteUser, state.openEditUser]
+    [state.handleDeleteUser, state.openEditUser, t]
   );
 
   const roleColumns = useMemo(
@@ -36,8 +39,9 @@ const PermissionsConfig: React.FC = () => {
       buildRoleColumns({
         onEdit: state.openEditRole,
         onDelete: state.handleDeleteRole,
+        t,
       }),
-    [state.handleDeleteRole, state.openEditRole]
+    [state.handleDeleteRole, state.openEditRole, t]
   );
 
   const menuColumns = useMemo(
@@ -45,8 +49,9 @@ const PermissionsConfig: React.FC = () => {
       buildMenuColumns({
         onEdit: state.openEditMenu,
         onDelete: state.handleDeleteMenu,
+        t,
       }),
-    [state.handleDeleteMenu, state.openEditMenu]
+    [state.handleDeleteMenu, state.openEditMenu, t]
   );
 
   return (
@@ -54,11 +59,9 @@ const PermissionsConfig: React.FC = () => {
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 dark:text-white eyecare:text-foreground">
-            权限配置
+            {t('cfg.permissions.title')}
           </h1>
-          <p className="text-sm text-muted-foreground">
-            基于真实 RBAC 接口打通用户、权限组和菜单配置链路，便于提单、回显和 Mock 结果联调。
-          </p>
+          <p className="text-sm text-muted-foreground">{t('cfg.permissions.description')}</p>
         </div>
         <Button
           variant="outline"
@@ -66,7 +69,7 @@ const PermissionsConfig: React.FC = () => {
           onClick={() => void state.loadData()}
           loading={state.loading}
         >
-          刷新数据
+          {t('cfg.permissions.refresh')}
         </Button>
       </div>
 
@@ -137,6 +140,7 @@ const PermissionsConfig: React.FC = () => {
         onSave={() => void state.handleSaveMenu()}
         onChange={state.setMenuForm}
       />
+      <state.ConfirmDialogComponent />
     </div>
   );
 };

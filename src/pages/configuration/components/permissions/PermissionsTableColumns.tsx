@@ -1,20 +1,24 @@
-import React from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
 import { Badge, Button } from '@/components/ui';
+import type { TranslationParams } from '@/locales';
 import type { MenuItem, Role, User } from '@/types';
 import type { MenuRow, TableColumn } from './permissionsConfigTypes';
 import { getUserDisplayName, getUserIdentity } from './permissionsConfigData';
 
+type Translator = (key: string, params?: TranslationParams) => string;
+
 export const buildUserColumns = ({
   onEdit,
   onDelete,
+  t,
 }: {
   onEdit: (user: User) => void;
   onDelete: (user: User) => void;
+  t: Translator;
 }): TableColumn<User>[] => [
   {
     key: 'domainAccount',
-    title: '账号信息',
+    title: t('cfg.permissions.col.account_info'),
     render: (_: unknown, record: User) => (
       <div className="space-y-1">
         <div className="font-medium text-foreground">{getUserIdentity(record) || '-'}</div>
@@ -24,17 +28,19 @@ export const buildUserColumns = ({
   },
   {
     key: 'realName',
-    title: '用户信息',
+    title: t('cfg.permissions.col.user_info'),
     render: (_: unknown, record: User) => (
       <div className="space-y-1">
         <div className="font-medium text-foreground">{getUserDisplayName(record) || '-'}</div>
-        <div className="text-xs text-muted-foreground">{record.department || '未设置部门'}</div>
+        <div className="text-xs text-muted-foreground">
+          {record.department || t('cfg.permissions.unset_department')}
+        </div>
       </div>
     ),
   },
   {
     key: 'roleNames',
-    title: '权限组',
+    title: t('cfg.permissions.col.roles'),
     render: (_: unknown, record: User) => (
       <div className="flex flex-wrap gap-2">
         {(record.roleNames || []).length > 0 ? (
@@ -44,31 +50,31 @@ export const buildUserColumns = ({
             </Badge>
           ))
         ) : (
-          <span className="text-sm text-muted-foreground">未分配</span>
+          <span className="text-sm text-muted-foreground">{t('cfg.permissions.unassigned')}</span>
         )}
       </div>
     ),
   },
   {
     key: 'dailyRoundLimit',
-    title: '日轮次上限',
+    title: t('cfg.permissions.col.daily_round_limit'),
     render: (_: unknown, record: User) => record.dailyRoundLimit ?? '-',
   },
   {
     key: 'valid',
-    title: '状态',
+    title: t('common.status'),
     render: (value: unknown) =>
       Number(value) === 1 ? (
         <Badge size="sm" variant="success">
-          启用
+          {t('common.enabled')}
         </Badge>
       ) : (
-        <Badge size="sm">停用</Badge>
+        <Badge size="sm">{t('common.disabled')}</Badge>
       ),
   },
   {
     key: 'actions',
-    title: '操作',
+    title: t('common.actions'),
     align: 'right',
     render: (_: unknown, record: User) => (
       <div className="flex items-center justify-end gap-2">
@@ -78,7 +84,7 @@ export const buildUserColumns = ({
           icon={<Pencil className="h-4 w-4" />}
           onClick={() => onEdit(record)}
         >
-          编辑
+          {t('common.edit')}
         </Button>
         <Button
           size="sm"
@@ -86,7 +92,7 @@ export const buildUserColumns = ({
           icon={<Trash2 className="h-4 w-4" />}
           onClick={() => void onDelete(record)}
         >
-          删除
+          {t('common.delete')}
         </Button>
       </div>
     ),
@@ -96,55 +102,59 @@ export const buildUserColumns = ({
 export const buildRoleColumns = ({
   onEdit,
   onDelete,
+  t,
 }: {
   onEdit: (role: Role) => void;
   onDelete: (role: Role) => void;
+  t: Translator;
 }): TableColumn<Role>[] => [
   {
     key: 'name',
-    title: '权限组',
+    title: t('cfg.permissions.col.roles'),
     render: (_: unknown, record: Role) => (
       <div className="space-y-1">
         <div className="font-medium text-foreground">{record.name}</div>
-        <div className="text-xs text-muted-foreground">{record.code || '未配置编码'}</div>
+        <div className="text-xs text-muted-foreground">
+          {record.code || t('cfg.permissions.unconfigured_code')}
+        </div>
       </div>
     ),
   },
   {
     key: 'permissionIds',
-    title: '权限数量',
+    title: t('cfg.permissions.col.permission_count'),
     render: (_: unknown, record: Role) => (record.permissionIds || []).length,
   },
   {
     key: 'maxCpuCores',
-    title: '资源额度',
+    title: t('cfg.permissions.col.resource_quota'),
     render: (_: unknown, record: Role) => (
       <div className="space-y-1 text-sm">
-        <div>CPU 上限: {record.maxCpuCores ?? 192}</div>
-        <div>批量上限: {record.maxBatchSize ?? 200}</div>
+        <div>{t('cfg.permissions.cpu_limit_value', { value: record.maxCpuCores ?? 192 })}</div>
+        <div>{t('cfg.permissions.batch_limit_value', { value: record.maxBatchSize ?? 200 })}</div>
       </div>
     ),
   },
   {
     key: 'dailyRoundLimitDefault',
-    title: '日轮次默认值',
+    title: t('cfg.permissions.col.daily_round_default'),
     render: (value: unknown) => <span>{value ? String(value) : '-'}</span>,
   },
   {
     key: 'valid',
-    title: '状态',
+    title: t('common.status'),
     render: (value: unknown) =>
       Number(value) === 1 ? (
         <Badge size="sm" variant="success">
-          启用
+          {t('common.enabled')}
         </Badge>
       ) : (
-        <Badge size="sm">停用</Badge>
+        <Badge size="sm">{t('common.disabled')}</Badge>
       ),
   },
   {
     key: 'actions',
-    title: '操作',
+    title: t('common.actions'),
     align: 'right',
     render: (_: unknown, record: Role) => (
       <div className="flex items-center justify-end gap-2">
@@ -154,7 +164,7 @@ export const buildRoleColumns = ({
           icon={<Pencil className="h-4 w-4" />}
           onClick={() => onEdit(record)}
         >
-          编辑
+          {t('common.edit')}
         </Button>
         <Button
           size="sm"
@@ -162,7 +172,7 @@ export const buildRoleColumns = ({
           icon={<Trash2 className="h-4 w-4" />}
           onClick={() => void onDelete(record)}
         >
-          删除
+          {t('common.delete')}
         </Button>
       </div>
     ),
@@ -172,25 +182,27 @@ export const buildRoleColumns = ({
 export const buildMenuColumns = ({
   onEdit,
   onDelete,
+  t,
 }: {
   onEdit: (menu: MenuItem) => void;
   onDelete: (menu: MenuItem) => void;
+  t: Translator;
 }): TableColumn<MenuRow>[] => [
   {
     key: 'name',
-    title: '菜单名称',
+    title: t('cfg.permissions.col.menu_name'),
     render: (_: unknown, record: MenuRow) => (
       <div className="space-y-1" style={{ paddingLeft: `${record.depth * 20}px` }}>
         <div className="font-medium text-foreground">{record.name}</div>
         <div className="text-xs text-muted-foreground">
-          {record.titleI18nKey || '未配置 i18n key'}
+          {record.titleI18nKey || t('cfg.permissions.no_i18n_key')}
         </div>
       </div>
     ),
   },
   {
     key: 'path',
-    title: '路由与组件',
+    title: t('cfg.permissions.col.route_component'),
     render: (_: unknown, record: MenuRow) => (
       <div className="space-y-1 text-sm">
         <div>{record.path || '-'}</div>
@@ -200,36 +212,40 @@ export const buildMenuColumns = ({
   },
   {
     key: 'menuType',
-    title: '类型 / 权限',
+    title: t('cfg.permissions.col.type_permission'),
     render: (_: unknown, record: MenuRow) => (
       <div className="space-y-1">
         <Badge size="sm" variant="info">
           {record.menuType || 'MENU'}
         </Badge>
-        <div className="text-xs text-muted-foreground">{record.permissionCode || '无权限码'}</div>
+        <div className="text-xs text-muted-foreground">
+          {record.permissionCode || t('cfg.permissions.no_permission_code')}
+        </div>
       </div>
     ),
   },
   {
     key: 'sort',
-    title: '排序 / 状态',
+    title: t('cfg.permissions.col.sort_status'),
     render: (_: unknown, record: MenuRow) => (
       <div className="space-y-1">
-        <div className="text-sm">排序: {record.sort}</div>
+        <div className="text-sm">
+          {t('common.sort')}: {record.sort}
+        </div>
         <div className="flex items-center gap-2">
           {record.hidden ? (
-            <Badge size="sm">隐藏</Badge>
+            <Badge size="sm">{t('cfg.permissions.hidden')}</Badge>
           ) : (
             <Badge size="sm" variant="success">
-              显示
+              {t('cfg.permissions.visible')}
             </Badge>
           )}
           {Number(record.valid) === 1 ? (
             <Badge size="sm" variant="success">
-              启用
+              {t('common.enabled')}
             </Badge>
           ) : (
-            <Badge size="sm">停用</Badge>
+            <Badge size="sm">{t('common.disabled')}</Badge>
           )}
         </div>
       </div>
@@ -237,7 +253,7 @@ export const buildMenuColumns = ({
   },
   {
     key: 'actions',
-    title: '操作',
+    title: t('common.actions'),
     align: 'right',
     render: (_: unknown, record: MenuRow) => (
       <div className="flex items-center justify-end gap-2">
@@ -247,7 +263,7 @@ export const buildMenuColumns = ({
           icon={<Pencil className="h-4 w-4" />}
           onClick={() => onEdit(record)}
         >
-          编辑
+          {t('common.edit')}
         </Button>
         <Button
           size="sm"
@@ -255,7 +271,7 @@ export const buildMenuColumns = ({
           icon={<Trash2 className="h-4 w-4" />}
           onClick={() => void onDelete(record)}
         >
-          删除
+          {t('common.delete')}
         </Button>
       </div>
     ),

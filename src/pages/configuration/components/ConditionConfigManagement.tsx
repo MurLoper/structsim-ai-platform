@@ -3,13 +3,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, Pencil, Plus, Star, Trash2 } from 'lucide-react';
 import { Button, Card, CardHeader } from '@/components/ui';
 import { configApi } from '@/api';
-import { useConfirmDialog, useToast } from '@/hooks';
+import { useConfirmDialog, useI18n, useToast } from '@/hooks';
 import { queryKeys } from '@/lib/queryClient';
 import type { ConditionConfig } from '@/types';
 import type { OutputGroup, ParamGroup } from '@/types/configGroups';
 import { ConditionFormData, ConditionFormModal } from './conditions/ConditionFormModal';
 
 export const ConditionConfigManagement: React.FC = () => {
+  const { t } = useI18n();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
@@ -108,11 +109,11 @@ export const ConditionConfigManagement: React.FC = () => {
     mutationFn: (data: Partial<ConditionConfig>) => configApi.createConditionConfig(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.conditionConfigs.all });
-      showToast('success', '创建成功');
+      showToast('success', t('common.create_success'));
       handleCloseModal();
     },
     onError: (error: unknown) => {
-      const message = (error as { message?: string })?.message || '创建失败';
+      const message = (error as { message?: string })?.message || t('common.save_failed');
       showToast('error', message);
     },
   });
@@ -122,11 +123,11 @@ export const ConditionConfigManagement: React.FC = () => {
       configApi.updateConditionConfig(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.conditionConfigs.all });
-      showToast('success', '更新成功');
+      showToast('success', t('common.update_success'));
       handleCloseModal();
     },
     onError: (error: unknown) => {
-      const message = (error as { message?: string })?.message || '更新失败';
+      const message = (error as { message?: string })?.message || t('common.save_failed');
       showToast('error', message);
     },
   });
@@ -135,10 +136,10 @@ export const ConditionConfigManagement: React.FC = () => {
     mutationFn: (id: number) => configApi.deleteConditionConfig(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.conditionConfigs.all });
-      showToast('success', '删除成功');
+      showToast('success', t('common.delete_success'));
     },
     onError: (error: unknown) => {
-      const message = (error as { message?: string })?.message || '删除失败';
+      const message = (error as { message?: string })?.message || t('common.delete_failed');
       showToast('error', message);
     },
   });
@@ -181,8 +182,8 @@ export const ConditionConfigManagement: React.FC = () => {
 
   const handleDelete = (id: number, name: string) => {
     showConfirm(
-      '确认删除',
-      `确定要删除工况“${name}”吗？`,
+      t('cfg.condition_config.confirm_delete_title'),
+      t('cfg.condition_config.confirm_delete', { name }),
       () => {
         deleteMutation.mutate(id);
       },
@@ -204,29 +205,37 @@ export const ConditionConfigManagement: React.FC = () => {
       const newDefault = config.isDefault === 1 ? 0 : 1;
       await configApi.updateConditionConfig(config.id, { isDefault: newDefault });
       queryClient.invalidateQueries({ queryKey: queryKeys.conditionConfigs.all });
-      showToast('success', newDefault === 1 ? '已设为默认' : '已取消默认');
+      showToast(
+        'success',
+        newDefault === 1
+          ? t('cfg.condition_config.set_default_success')
+          : t('cfg.condition_config.cancel_default_success')
+      );
     } catch {
-      showToast('error', '设置默认失败');
+      showToast('error', t('cfg.condition_config.set_default_failed'));
     }
   };
 
   const handleSave = () => {
     if (!formData.name.trim()) {
-      showToast('error', '请输入工况名称');
+      showToast('error', t('cfg.condition_config.name_required'));
       return;
     }
     if (formData.foldTypeId === null) {
-      showToast('error', '请选择姿态');
+      showToast('error', t('cfg.condition_config.fold_type_required'));
       return;
     }
     if (formData.simTypeId === null) {
-      showToast('error', '请选择仿真类型');
+      showToast('error', t('cfg.condition_config.sim_type_required'));
       return;
     }
     if (isDuplicateCombo(formData.foldTypeId, formData.simTypeId)) {
       showToast(
         'error',
-        `“${getFoldTypeName(formData.foldTypeId)} / ${getSimTypeName(formData.simTypeId)}” 的组合已存在`
+        t('cfg.condition_config.combo_exists', {
+          foldType: getFoldTypeName(formData.foldTypeId),
+          simType: getSimTypeName(formData.simTypeId),
+        })
       );
       return;
     }
@@ -256,33 +265,43 @@ export const ConditionConfigManagement: React.FC = () => {
   return (
     <Card>
       <CardHeader
-        title="工况组合配置"
-        icon={<Link className="w-5 h-5" />}
-        subtitle="配置姿态、仿真类型、参数组、输出组与默认求解器之间的关联关系"
+        title={t('cfg.condition_config.list_title')}
+        icon={<Link className="h-5 w-5" />}
+        subtitle={t('cfg.condition_config.list_subtitle')}
         action={
           <Button size="sm" onClick={() => handleAdd()}>
-            <Plus className="w-4 h-4 mr-1" />
-            新增工况
+            <Plus className="mr-1 h-4 w-4" />
+            {t('cfg.condition_config.add_condition')}
           </Button>
         }
       />
-      <div className="p-4 overflow-x-auto">
-        <table className="w-full text-sm border-collapse">
+      <div className="overflow-x-auto p-4">
+        <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="bg-slate-100 dark:bg-slate-700">
-              <th className="p-3 text-left border dark:border-slate-600" rowSpan={2}>
-                目标姿态
+              <th className="border p-3 text-left dark:border-slate-600" rowSpan={2}>
+                {t('cfg.condition_config.fold_type')}
               </th>
-              <th className="p-3 text-left border dark:border-slate-600" colSpan={5}>
-                工况配置
+              <th className="border p-3 text-left dark:border-slate-600" colSpan={5}>
+                {t('cfg.condition_config.configs')}
               </th>
             </tr>
             <tr className="bg-slate-50 dark:bg-slate-700/50">
-              <th className="p-2 text-left border dark:border-slate-600 text-xs">仿真类型</th>
-              <th className="p-2 text-left border dark:border-slate-600 text-xs">参数组</th>
-              <th className="p-2 text-left border dark:border-slate-600 text-xs">输出组</th>
-              <th className="p-2 text-left border dark:border-slate-600 text-xs">默认求解器</th>
-              <th className="p-2 text-center border dark:border-slate-600 text-xs w-20">操作</th>
+              <th className="border p-2 text-left text-xs dark:border-slate-600">
+                {t('cfg.condition_config.sim_type')}
+              </th>
+              <th className="border p-2 text-left text-xs dark:border-slate-600">
+                {t('cfg.condition_config.available_param_groups')}
+              </th>
+              <th className="border p-2 text-left text-xs dark:border-slate-600">
+                {t('cfg.condition_config.available_output_groups')}
+              </th>
+              <th className="border p-2 text-left text-xs dark:border-slate-600">
+                {t('cfg.condition_config.default_solver')}
+              </th>
+              <th className="w-20 border p-2 text-center text-xs dark:border-slate-600">
+                {t('common.actions')}
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -294,41 +313,42 @@ export const ConditionConfigManagement: React.FC = () => {
                 configs.map((config, index) => (
                   <tr
                     key={config.id}
-                    className="border-b dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                    className="border-b hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50"
                   >
                     {index === 0 && (
                       <td
-                        className="p-3 font-medium border dark:border-slate-600 bg-slate-50 dark:bg-slate-800"
+                        className="border bg-slate-50 p-3 font-medium dark:border-slate-600 dark:bg-slate-800"
                         rowSpan={rowSpan}
                       >
                         <div className="flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-brand-500" />
+                          <span className="h-2 w-2 rounded-full bg-brand-500" />
                           {foldType.name}
                         </div>
-                        <div className="text-xs text-slate-500 mt-1">
-                          {foldType.code} | {foldType.angle}°
+                        <div className="mt-1 text-xs text-slate-500">
+                          {foldType.code} |{' '}
+                          {t('cfg.condition_management.angle_label', { angle: foldType.angle })}
                         </div>
                       </td>
                     )}
-                    <td className="p-2 border dark:border-slate-600">
+                    <td className="border p-2 dark:border-slate-600">
                       <div className="flex items-center gap-1">
-                        <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded text-xs">
+                        <span className="rounded bg-blue-100 px-2 py-1 text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
                           {getSimTypeName(config.simTypeId)}
                         </span>
                         {config.isDefault === 1 && (
-                          <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded text-xs">
-                            默认
+                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-600 dark:bg-amber-900/30 dark:text-amber-400">
+                            {t('cfg.condition_config.default_badge')}
                           </span>
                         )}
                       </div>
                     </td>
-                    <td className="p-2 border dark:border-slate-600">
+                    <td className="border p-2 dark:border-slate-600">
                       {config.paramGroupIds?.length ? (
                         <div className="flex flex-wrap gap-1">
                           {config.paramGroupIds.map((id: number) => (
                             <span
                               key={id}
-                              className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded text-xs"
+                              className="rounded bg-green-100 px-1.5 py-0.5 text-xs text-green-700 dark:bg-green-900/30 dark:text-green-400"
                             >
                               {getParamGroupName(id)}
                             </span>
@@ -338,13 +358,13 @@ export const ConditionConfigManagement: React.FC = () => {
                         <span className="text-slate-400">-</span>
                       )}
                     </td>
-                    <td className="p-2 border dark:border-slate-600">
+                    <td className="border p-2 dark:border-slate-600">
                       {config.outputGroupIds?.length ? (
                         <div className="flex flex-wrap gap-1">
                           {config.outputGroupIds.map((id: number) => (
                             <span
                               key={id}
-                              className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded text-xs"
+                              className="rounded bg-purple-100 px-1.5 py-0.5 text-xs text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
                             >
                               {getOutputGroupName(id)}
                             </span>
@@ -354,16 +374,16 @@ export const ConditionConfigManagement: React.FC = () => {
                         <span className="text-slate-400">-</span>
                       )}
                     </td>
-                    <td className="p-2 border dark:border-slate-600">
+                    <td className="border p-2 dark:border-slate-600">
                       {config.defaultSolverId ? (
-                        <span className="px-2 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 rounded text-xs">
+                        <span className="rounded bg-orange-100 px-2 py-1 text-xs text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
                           {getSolverName(config.defaultSolverId)}
                         </span>
                       ) : (
                         <span className="text-slate-400">-</span>
                       )}
                     </td>
-                    <td className="p-2 border dark:border-slate-600 text-center">
+                    <td className="border p-2 text-center dark:border-slate-600">
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => handleSetDefault(config)}
@@ -372,26 +392,30 @@ export const ConditionConfigManagement: React.FC = () => {
                               ? 'text-amber-500'
                               : 'text-slate-400 hover:text-amber-500'
                           }`}
-                          title={config.isDefault === 1 ? '取消默认' : '设为默认'}
+                          title={
+                            config.isDefault === 1
+                              ? t('cfg.condition_config.cancel_default_success')
+                              : t('cfg.condition_management.set_default')
+                          }
                         >
                           <Star
-                            className="w-4 h-4"
+                            className="h-4 w-4"
                             fill={config.isDefault === 1 ? 'currentColor' : 'none'}
                           />
                         </button>
                         <button
                           onClick={() => handleEdit(config)}
                           className="p-1 text-slate-500 hover:text-brand-600"
-                          title="编辑"
+                          title={t('common.edit')}
                         >
-                          <Pencil className="w-4 h-4" />
+                          <Pencil className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(config.id, config.name)}
                           className="p-1 text-slate-500 hover:text-red-600"
-                          title="删除"
+                          title={t('common.delete')}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Trash2 className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
@@ -399,21 +423,21 @@ export const ConditionConfigManagement: React.FC = () => {
                 ))
               ) : (
                 <tr key={foldType.id} className="border-b dark:border-slate-700">
-                  <td className="p-3 font-medium border dark:border-slate-600 bg-slate-50 dark:bg-slate-800">
+                  <td className="border bg-slate-50 p-3 font-medium dark:border-slate-600 dark:bg-slate-800">
                     <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-slate-300" />
+                      <span className="h-2 w-2 rounded-full bg-slate-300" />
                       {foldType.name}
                     </div>
                   </td>
-                  <td colSpan={5} className="p-3 border dark:border-slate-600">
+                  <td colSpan={5} className="border p-3 dark:border-slate-600">
                     <div className="flex items-center justify-center gap-2">
-                      <span className="text-slate-400">暂无工况配置</span>
+                      <span className="text-slate-400">{t('cfg.condition_management.empty')}</span>
                       <button
                         onClick={() => handleAdd(foldType.id)}
-                        className="inline-flex items-center gap-1 px-2 py-1 text-xs text-brand-600 hover:bg-brand-50 dark:hover:bg-brand-900/20 rounded transition-colors"
+                        className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-brand-600 transition-colors hover:bg-brand-50 dark:hover:bg-brand-900/20"
                       >
-                        <Plus className="w-3 h-3" />
-                        添加
+                        <Plus className="h-3 w-3" />
+                        {t('cfg.condition_config.add_for_fold')}
                       </button>
                     </div>
                   </td>

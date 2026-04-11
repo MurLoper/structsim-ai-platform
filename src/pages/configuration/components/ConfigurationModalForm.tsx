@@ -1,12 +1,6 @@
-import React from 'react';
+import { useMemo } from 'react';
+import { useI18n } from '@/hooks';
 import { FormInput, FormSelect } from './EditModal';
-
-const CATEGORY_OPTIONS = [
-  { value: 'STRUCTURE', label: '结构' },
-  { value: 'THERMAL', label: '热分析' },
-  { value: 'DYNAMIC', label: '动力学' },
-  { value: 'ACOUSTIC', label: '声学' },
-];
 
 interface ConfigurationModalFormProps {
   modalType?: string | null;
@@ -15,7 +9,7 @@ interface ConfigurationModalFormProps {
 }
 
 const textareaClassName =
-  'w-full rounded-lg border p-2 dark:border-slate-600 dark:bg-slate-700 eyecare:border-border eyecare:bg-card';
+  'w-full rounded-lg border border-input bg-background p-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring';
 
 const renderTextarea = (
   value: string,
@@ -37,29 +31,61 @@ export const ConfigurationModalForm = ({
   formData,
   updateFormData,
 }: ConfigurationModalFormProps) => {
+  const { t } = useI18n();
+
+  const categoryOptions = useMemo(
+    () => [
+      { value: 'STRUCTURE', label: t('cfg.category.structure') },
+      { value: 'THERMAL', label: t('cfg.category.thermal') },
+      { value: 'DYNAMIC', label: t('cfg.category.dynamic') },
+      { value: 'ACOUSTIC', label: t('cfg.category.acoustic') },
+    ],
+    [t]
+  );
+
+  const paramDataTypeOptions = useMemo(
+    () => [
+      { value: '1', label: t('cfg.data_type.float') },
+      { value: '2', label: t('cfg.data_type.int') },
+      { value: '3', label: t('cfg.data_type.string') },
+      { value: '4', label: t('cfg.data_type.enum') },
+      { value: '5', label: t('cfg.data_type.boolean') },
+    ],
+    [t]
+  );
+
+  const outputDataTypeOptions = useMemo(
+    () => [
+      { value: 'float', label: t('cfg.data_type.float') },
+      { value: 'int', label: t('cfg.data_type.int') },
+      { value: 'string', label: t('cfg.data_type.string') },
+    ],
+    [t]
+  );
+
   if (modalType === 'simType') {
     return (
       <>
         <FormInput
-          label="名称"
+          label={t('common.name')}
           value={String(formData.name || '')}
-          onChange={v => updateFormData('name', v)}
+          onChange={value => updateFormData('name', value)}
         />
         <FormInput
-          label="编码"
+          label={t('common.code')}
           value={String(formData.code || '')}
-          onChange={v => updateFormData('code', v)}
+          onChange={value => updateFormData('code', value)}
         />
         <FormSelect
-          label="分类"
+          label={t('cfg.category')}
           value={String(formData.category || 'STRUCTURE')}
-          onChange={v => updateFormData('category', v)}
-          options={CATEGORY_OPTIONS}
+          onChange={value => updateFormData('category', value)}
+          options={categoryOptions}
         />
         <FormInput
-          label="排序"
+          label={t('common.sort')}
           value={Number(formData.sort ?? 100)}
-          onChange={v => updateFormData('sort', Number(v))}
+          onChange={value => updateFormData('sort', Number(value))}
           type="number"
         />
       </>
@@ -70,66 +96,60 @@ export const ConfigurationModalForm = ({
     return (
       <>
         <FormInput
-          label="名称"
+          label={t('common.name')}
           value={String(formData.name || '')}
-          onChange={v => updateFormData('name', v)}
-          placeholder="请输入参数名称"
+          onChange={value => updateFormData('name', value)}
+          placeholder={t('cfg.params.name_placeholder')}
         />
         <FormInput
-          label="Key"
+          label={t('common.key')}
           value={String(formData.key || '')}
-          onChange={v => updateFormData('key', v)}
-          placeholder="请输入参数键名（英文）"
+          onChange={value => updateFormData('key', value)}
+          placeholder={t('cfg.params.key_placeholder')}
         />
         <FormSelect
-          label="数据类型"
+          label={t('cfg.params.val_type')}
           value={String(formData.valType || 1)}
-          onChange={v => updateFormData('valType', Number(v))}
-          options={[
-            { value: '1', label: '浮点数' },
-            { value: '2', label: '整数' },
-            { value: '3', label: '字符串' },
-            { value: '4', label: '枚举' },
-            { value: '5', label: '布尔' },
-          ]}
+          onChange={value => updateFormData('valType', Number(value))}
+          options={paramDataTypeOptions}
         />
         <FormInput
-          label="单位"
+          label={t('common.unit')}
           value={String(formData.unit || '')}
-          onChange={v => updateFormData('unit', v)}
-          placeholder="如：mm, kg, MPa"
+          onChange={value => updateFormData('unit', value)}
+          placeholder={t('cfg.params.unit_placeholder')}
         />
         <div className="grid grid-cols-2 gap-4">
           <FormInput
-            label="最小值"
+            label={t('cfg.params.min')}
             value={Number(formData.minVal ?? 0)}
-            onChange={v => updateFormData('minVal', Number(v))}
+            onChange={value => updateFormData('minVal', Number(value))}
             type="number"
           />
           <FormInput
-            label="最大值"
+            label={t('cfg.params.max')}
             value={Number(formData.maxVal ?? 100)}
-            onChange={v => updateFormData('maxVal', Number(v))}
+            onChange={value => updateFormData('maxVal', Number(value))}
             type="number"
           />
         </div>
         <FormInput
-          label="默认值"
+          label={t('cfg.params.default')}
           value={String(formData.defaultVal || '')}
-          onChange={v => updateFormData('defaultVal', v)}
-          placeholder="请输入默认值"
+          onChange={value => updateFormData('defaultVal', value)}
+          placeholder={t('cfg.params.default_placeholder')}
         />
         <div className="grid grid-cols-2 gap-4">
           <FormInput
-            label="精度"
+            label="Precision"
             value={Number(formData.precision ?? 3)}
-            onChange={v => updateFormData('precision', Number(v))}
+            onChange={value => updateFormData('precision', Number(value))}
             type="number"
           />
           <FormInput
-            label="排序"
+            label={t('common.sort')}
             value={Number(formData.sort ?? 100)}
-            onChange={v => updateFormData('sort', Number(v))}
+            onChange={value => updateFormData('sort', Number(value))}
             type="number"
           />
         </div>
@@ -141,79 +161,77 @@ export const ConfigurationModalForm = ({
     return (
       <>
         <FormInput
-          label="名称"
+          label={t('common.name')}
           value={String(formData.name || '')}
-          onChange={v => updateFormData('name', v)}
-          placeholder="请输入求解器名称"
+          onChange={value => updateFormData('name', value)}
+          placeholder={t('cfg.solver.name_placeholder')}
         />
         <div className="grid grid-cols-2 gap-4">
           <FormInput
-            label="编码"
+            label={t('common.code')}
             value={String(formData.code || '')}
-            onChange={v => updateFormData('code', v)}
-            placeholder="如：NASTRAN"
+            onChange={value => updateFormData('code', value)}
+            placeholder={t('cfg.solver.code_placeholder')}
           />
           <FormInput
-            label="版本"
+            label={t('cfg.solver.version')}
             value={String(formData.version || '')}
-            onChange={v => updateFormData('version', v)}
-            placeholder="如：2024"
+            onChange={value => updateFormData('version', value)}
+            placeholder={t('cfg.solver.version_placeholder')}
           />
         </div>
-        <div className="mt-2 border-t pt-4">
-          <h4 className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground">
-            CPU 核数配置
-          </h4>
+        <div className="mt-2 border-t border-border pt-4">
+          <h4 className="mb-3 text-sm font-medium text-foreground">{t('cfg.solver.cpu_config')}</h4>
           <div className="grid grid-cols-3 gap-4">
             <FormInput
-              label="最小核数"
+              label={t('cfg.solver.cpu_min')}
               value={Number(formData.cpuCoreMin ?? 1)}
-              onChange={v => updateFormData('cpuCoreMin', Number(v))}
+              onChange={value => updateFormData('cpuCoreMin', Number(value))}
               type="number"
             />
             <FormInput
-              label="最大核数"
+              label={t('cfg.solver.cpu_max')}
               value={Number(formData.cpuCoreMax ?? 64)}
-              onChange={v => updateFormData('cpuCoreMax', Number(v))}
+              onChange={value => updateFormData('cpuCoreMax', Number(value))}
               type="number"
             />
             <FormInput
-              label="默认核数"
+              label={t('cfg.solver.cpu_default')}
               value={Number(formData.cpuCoreDefault ?? 8)}
-              onChange={v => updateFormData('cpuCoreDefault', Number(v))}
+              onChange={value => updateFormData('cpuCoreDefault', Number(value))}
               type="number"
             />
           </div>
         </div>
-        <div className="mt-2 border-t pt-4">
-          <h4 className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground">
-            内存配置（GB）
+        <div className="mt-2 border-t border-border pt-4">
+          <h4 className="mb-3 text-sm font-medium text-foreground">
+            {t('cfg.solver.memory_config')}
           </h4>
           <div className="grid grid-cols-3 gap-4">
             <FormInput
-              label="最小内存"
+              label={t('cfg.solver.memory_min')}
               value={Number(formData.memoryMin ?? 1)}
-              onChange={v => updateFormData('memoryMin', Number(v))}
+              onChange={value => updateFormData('memoryMin', Number(value))}
               type="number"
             />
             <FormInput
-              label="最大内存"
+              label={t('cfg.solver.memory_max')}
               value={Number(formData.memoryMax ?? 1024)}
-              onChange={v => updateFormData('memoryMax', Number(v))}
+              onChange={value => updateFormData('memoryMax', Number(value))}
               type="number"
             />
             <FormInput
-              label="默认内存"
+              label={t('cfg.solver.memory_default')}
               value={Number(formData.memoryDefault ?? 64)}
-              onChange={v => updateFormData('memoryDefault', Number(v))}
+              onChange={value => updateFormData('memoryDefault', Number(value))}
               type="number"
             />
           </div>
         </div>
         <FormInput
-          label="排序"
+          label={t('common.sort')}
           value={Number(formData.sort ?? 100)}
-          onChange={v => updateFormData('sort', Number(v))}
+          onChange={value => updateFormData('sort', Number(value))}
           type="number"
         />
       </>
@@ -224,43 +242,43 @@ export const ConfigurationModalForm = ({
     return (
       <>
         <FormInput
-          label="名称"
+          label={t('common.name')}
           value={String(formData.name || '')}
-          onChange={v => updateFormData('name', v)}
-          placeholder="请输入工况名称"
+          onChange={value => updateFormData('name', value)}
+          placeholder={t('cfg.condition.name_placeholder')}
         />
         <FormInput
-          label="编码"
+          label={t('common.code')}
           value={String(formData.code || '')}
-          onChange={v => updateFormData('code', v)}
-          placeholder="请输入工况编码"
+          onChange={value => updateFormData('code', value)}
+          placeholder={t('cfg.condition.code_placeholder')}
         />
         <FormInput
-          label="分类"
+          label={t('cfg.category')}
           value={String(formData.category || '')}
-          onChange={v => updateFormData('category', v)}
-          placeholder="如：载荷、约束等"
+          onChange={value => updateFormData('category', value)}
+          placeholder={t('cfg.placeholder.category')}
         />
         <FormInput
-          label="单位"
+          label={t('common.unit')}
           value={String(formData.unit || '')}
-          onChange={v => updateFormData('unit', v)}
-          placeholder="如：N, MPa"
+          onChange={value => updateFormData('unit', value)}
+          placeholder="e.g. N, MPa"
         />
         <FormInput
-          label="排序"
+          label={t('common.sort')}
           value={Number(formData.sort ?? 100)}
-          onChange={v => updateFormData('sort', Number(v))}
+          onChange={value => updateFormData('sort', Number(value))}
           type="number"
         />
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground">
-            备注
+          <label className="mb-1 block text-sm font-medium text-foreground">
+            {t('cfg.remark')}
           </label>
           {renderTextarea(
             String(formData.remark ?? ''),
             value => updateFormData('remark', value),
-            '请输入备注信息（可选）'
+            t('cfg.remark_placeholder')
           )}
         </div>
       </>
@@ -271,47 +289,43 @@ export const ConfigurationModalForm = ({
     return (
       <>
         <FormInput
-          label="名称"
+          label={t('common.name')}
           value={String(formData.name || '')}
-          onChange={v => updateFormData('name', v)}
-          placeholder="请输入输出名称"
+          onChange={value => updateFormData('name', value)}
+          placeholder={t('cfg.outputs.name_placeholder')}
         />
         <FormInput
-          label="编码"
+          label={t('common.code')}
           value={String(formData.code || '')}
-          onChange={v => updateFormData('code', v)}
-          placeholder="请输入输出编码"
+          onChange={value => updateFormData('code', value)}
+          placeholder={t('cfg.outputs.code_placeholder')}
         />
         <FormInput
-          label="单位"
+          label={t('common.unit')}
           value={String(formData.unit || '')}
-          onChange={v => updateFormData('unit', v)}
-          placeholder="如：mm, MPa, Hz"
+          onChange={value => updateFormData('unit', value)}
+          placeholder="e.g. mm, MPa, Hz"
         />
         <FormSelect
-          label="数据类型"
+          label={t('cfg.outputs.data_type')}
           value={String(formData.dataType || 'float')}
-          onChange={v => updateFormData('dataType', v)}
-          options={[
-            { value: 'float', label: '浮点数' },
-            { value: 'int', label: '整数' },
-            { value: 'string', label: '字符串' },
-          ]}
+          onChange={value => updateFormData('dataType', value)}
+          options={outputDataTypeOptions}
         />
         <FormInput
-          label="排序"
+          label={t('common.sort')}
           value={Number(formData.sort ?? 100)}
-          onChange={v => updateFormData('sort', Number(v))}
+          onChange={value => updateFormData('sort', Number(value))}
           type="number"
         />
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground">
-            备注
+          <label className="mb-1 block text-sm font-medium text-foreground">
+            {t('cfg.remark')}
           </label>
           {renderTextarea(
             String(formData.remark ?? ''),
             value => updateFormData('remark', value),
-            '请输入备注信息（可选）'
+            t('cfg.remark_placeholder')
           )}
         </div>
       </>
@@ -322,38 +336,38 @@ export const ConfigurationModalForm = ({
     return (
       <>
         <FormInput
-          label="名称"
+          label={t('common.name')}
           value={String(formData.name || '')}
-          onChange={v => updateFormData('name', v)}
-          placeholder="请输入姿态名称"
+          onChange={value => updateFormData('name', value)}
+          placeholder={t('cfg.fold.name_placeholder')}
         />
         <FormInput
-          label="编码"
+          label={t('common.code')}
           value={String(formData.code || '')}
-          onChange={v => updateFormData('code', v)}
-          placeholder="请输入姿态编码"
+          onChange={value => updateFormData('code', value)}
+          placeholder={t('cfg.fold.code_placeholder')}
         />
         <FormInput
-          label="角度"
+          label={t('cfg.fold.angle')}
           value={Number(formData.angle ?? 0)}
-          onChange={v => updateFormData('angle', Number(v))}
+          onChange={value => updateFormData('angle', Number(value))}
           type="number"
-          placeholder="请输入角度值"
+          placeholder={t('cfg.fold.angle_placeholder')}
         />
         <FormInput
-          label="排序"
+          label={t('common.sort')}
           value={Number(formData.sort ?? 100)}
-          onChange={v => updateFormData('sort', Number(v))}
+          onChange={value => updateFormData('sort', Number(value))}
           type="number"
         />
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground">
-            备注
+          <label className="mb-1 block text-sm font-medium text-foreground">
+            {t('cfg.remark')}
           </label>
           {renderTextarea(
             String(formData.remark ?? ''),
             value => updateFormData('remark', value),
-            '请输入备注信息（可选）'
+            t('cfg.remark_placeholder')
           )}
         </div>
       </>
@@ -364,31 +378,31 @@ export const ConfigurationModalForm = ({
     return (
       <>
         <FormInput
-          label="项目名称"
+          label={t('cfg.project.name')}
           value={String(formData.name || '')}
-          onChange={v => updateFormData('name', v)}
-          placeholder="请输入项目名称"
+          onChange={value => updateFormData('name', value)}
+          placeholder={t('cfg.project.name_placeholder')}
         />
         <FormInput
-          label="项目编码"
+          label={t('cfg.project.code')}
           value={String(formData.code || '')}
-          onChange={v => updateFormData('code', v)}
-          placeholder="请输入项目编码（可选）"
+          onChange={value => updateFormData('code', value)}
+          placeholder={t('cfg.project.code_placeholder')}
         />
         <FormInput
-          label="排序"
+          label={t('common.sort')}
           value={Number(formData.sort ?? 100)}
-          onChange={v => updateFormData('sort', Number(v))}
+          onChange={value => updateFormData('sort', Number(value))}
           type="number"
         />
         <div>
-          <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground">
-            备注
+          <label className="mb-1 block text-sm font-medium text-foreground">
+            {t('cfg.remark')}
           </label>
           {renderTextarea(
             String(formData.remark ?? ''),
             value => updateFormData('remark', value),
-            '请输入备注信息（可选）',
+            t('cfg.remark_placeholder'),
             3
           )}
         </div>

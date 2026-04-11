@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Badge, Card } from '@/components/ui';
 import { configApi } from '@/api';
+import { useI18n } from '@/hooks/useI18n';
 
 interface StatusDef {
   id: number;
@@ -39,6 +40,7 @@ const getStatusColorClass = (colorTag?: string) =>
   STATUS_COLOR_CLASSES[colorTag ?? 'gray'] || STATUS_COLOR_CLASSES.gray;
 
 export const SystemConfigManagement: React.FC = () => {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<'status' | 'automation'>('status');
   const [statusDefs, setStatusDefs] = useState<StatusDef[]>([]);
   const [automationModules, setAutomationModules] = useState<AutomationModule[]>([]);
@@ -46,35 +48,33 @@ export const SystemConfigManagement: React.FC = () => {
   const [statusError, setStatusError] = useState<string | null>(null);
   const [automationError, setAutomationError] = useState<string | null>(null);
 
-  // 加载状态定义
-  const loadStatusDefs = async () => {
+  const loadStatusDefs = useCallback(async () => {
     try {
       setLoading(true);
       setStatusError(null);
       const response = await configApi.getStatusDefs();
       setStatusDefs(response.data || []);
     } catch (error) {
-      console.error('加载状态定义失败:', error);
-      setStatusError('加载状态定义失败，请稍后重试。');
+      console.error('Failed to load status definitions:', error);
+      setStatusError(t('cfg.system.status_load_failed'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
-  // 加载自动化模块
-  const loadAutomationModules = async () => {
+  const loadAutomationModules = useCallback(async () => {
     try {
       setLoading(true);
       setAutomationError(null);
       const response = await configApi.getAutomationModules();
       setAutomationModules(response.data || []);
     } catch (error) {
-      console.error('加载自动化模块失败:', error);
-      setAutomationError('加载自动化模块失败，请稍后重试。');
+      console.error('Failed to load automation modules:', error);
+      setAutomationError(t('cfg.system.automation_load_failed'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
 
   useEffect(() => {
     if (activeTab === 'status') {
@@ -82,46 +82,48 @@ export const SystemConfigManagement: React.FC = () => {
     } else {
       loadAutomationModules();
     }
-  }, [activeTab]);
+  }, [activeTab, loadAutomationModules, loadStatusDefs]);
+
+  const renderReadonlyHeader = (title: string) => (
+    <div className="flex flex-col gap-2 border-b p-4 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
+      <h3 className="text-lg font-semibold">{title}</h3>
+      <div className="flex items-center gap-2 text-xs text-slate-500">
+        <Badge variant="info" size="sm">
+          {t('cfg.system.readonly')}
+        </Badge>
+        <span>{t('cfg.system.synced_readonly')}</span>
+      </div>
+    </div>
+  );
 
   return (
     <div className="space-y-6">
-      {/* 标签页切换 */}
       <div className="flex gap-2 border-b dark:border-slate-700">
         <button
           onClick={() => setActiveTab('status')}
           className={`px-4 py-2 font-medium transition-colors ${
             activeTab === 'status'
-              ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-              : 'text-slate-600 dark:text-slate-400 eyecare:text-muted-foreground hover:text-slate-900 dark:hover:text-slate-200'
+              ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 eyecare:text-muted-foreground'
           }`}
         >
-          状态定义
+          {t('cfg.system.status_defs')}
         </button>
         <button
           onClick={() => setActiveTab('automation')}
           className={`px-4 py-2 font-medium transition-colors ${
             activeTab === 'automation'
-              ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
-              : 'text-slate-600 dark:text-slate-400 eyecare:text-muted-foreground hover:text-slate-900 dark:hover:text-slate-200'
+              ? 'border-b-2 border-blue-600 text-blue-600 dark:text-blue-400'
+              : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 eyecare:text-muted-foreground'
           }`}
         >
-          自动化模块
+          {t('cfg.system.automation_modules')}
         </button>
       </div>
 
-      {/* 状态定义 */}
       {activeTab === 'status' && (
         <Card>
-          <div className="p-4 border-b dark:border-slate-700 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h3 className="text-lg font-semibold">状态定义管理</h3>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <Badge variant="info" size="sm">
-                只读
-              </Badge>
-              <span>由系统同步，暂不支持编辑</span>
-            </div>
-          </div>
+          {renderReadonlyHeader(t('cfg.system.status_defs_title'))}
           <div className="p-4">
             {statusError && (
               <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300">
@@ -129,29 +131,31 @@ export const SystemConfigManagement: React.FC = () => {
               </div>
             )}
             {loading ? (
-              <div className="text-center py-8 text-slate-500">加载中...</div>
+              <div className="py-8 text-center text-slate-500">{t('common.loading')}</div>
             ) : statusDefs.length === 0 ? (
-              <div className="text-center py-12 text-slate-500">暂无状态定义</div>
+              <div className="py-12 text-center text-slate-500">
+                {t('cfg.system.empty_status_defs')}
+              </div>
             ) : (
               <div className="space-y-2">
                 {statusDefs.map(status => (
                   <div
                     key={status.id}
-                    className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg flex justify-between items-center"
+                    className="flex items-center justify-between rounded-lg bg-slate-50 p-4 dark:bg-slate-700/50"
                   >
                     <div className="flex items-center gap-3">
                       <span
-                        className={`w-3 h-3 rounded-full ${getStatusColorClass(status.colorTag)}`}
+                        className={`h-3 w-3 rounded-full ${getStatusColorClass(status.colorTag)}`}
                       />
                       <div>
                         <div className="font-medium">{status.name}</div>
-                        <div className="text-xs text-slate-500 mt-1">
+                        <div className="mt-1 text-xs text-slate-500">
                           {status.code} | {status.statusType}
                         </div>
                       </div>
                     </div>
                     <Badge variant="default" size="sm">
-                      只读
+                      {t('cfg.system.readonly')}
                     </Badge>
                   </div>
                 ))}
@@ -161,18 +165,9 @@ export const SystemConfigManagement: React.FC = () => {
         </Card>
       )}
 
-      {/* 自动化模块 */}
       {activeTab === 'automation' && (
         <Card>
-          <div className="p-4 border-b dark:border-slate-700 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <h3 className="text-lg font-semibold">自动化模块管理</h3>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
-              <Badge variant="info" size="sm">
-                只读
-              </Badge>
-              <span>由系统同步，暂不支持编辑</span>
-            </div>
-          </div>
+          {renderReadonlyHeader(t('cfg.system.automation_modules_title'))}
           <div className="p-4">
             {automationError && (
               <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-300">
@@ -180,27 +175,29 @@ export const SystemConfigManagement: React.FC = () => {
               </div>
             )}
             {loading ? (
-              <div className="text-center py-8 text-slate-500">加载中...</div>
+              <div className="py-8 text-center text-slate-500">{t('common.loading')}</div>
             ) : automationModules.length === 0 ? (
-              <div className="text-center py-12 text-slate-500">暂无自动化模块</div>
+              <div className="py-12 text-center text-slate-500">
+                {t('cfg.system.empty_automation_modules')}
+              </div>
             ) : (
               <div className="space-y-2">
                 {automationModules.map(module => (
                   <div
                     key={module.id}
-                    className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg flex justify-between items-center"
+                    className="flex items-center justify-between rounded-lg bg-slate-50 p-4 dark:bg-slate-700/50"
                   >
                     <div>
                       <div className="font-medium">{module.name}</div>
-                      <div className="text-xs text-slate-500 mt-1">
+                      <div className="mt-1 text-xs text-slate-500">
                         {module.code} | {module.moduleType} | v{module.version || '1.0'}
                       </div>
                       {module.remark && (
-                        <div className="text-xs text-slate-400 mt-1">{module.remark}</div>
+                        <div className="mt-1 text-xs text-slate-400">{module.remark}</div>
                       )}
                     </div>
                     <Badge variant="default" size="sm">
-                      只读
+                      {t('cfg.system.readonly')}
                     </Badge>
                   </div>
                 ))}

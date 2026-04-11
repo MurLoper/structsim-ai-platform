@@ -1,5 +1,6 @@
-import React, { memo, useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import { useI18n } from '@/hooks/useI18n';
 
 export interface PaginationProps {
   page: number;
@@ -14,7 +15,7 @@ export interface PaginationProps {
   disabled?: boolean;
 }
 
-const Pagination: React.FC<PaginationProps> = memo(
+const Pagination = memo(
   ({
     page,
     pageSize,
@@ -26,8 +27,8 @@ const Pagination: React.FC<PaginationProps> = memo(
     showTotal = true,
     showPageSize = true,
     disabled = false,
-  }) => {
-    // 计算显示的页码
+  }: PaginationProps) => {
+    const { t } = useI18n();
     const pageNumbers = useMemo(() => {
       const pages: (number | 'ellipsis')[] = [];
       const maxVisible = 5;
@@ -36,82 +37,73 @@ const Pagination: React.FC<PaginationProps> = memo(
         for (let i = 1; i <= totalPages; i++) pages.push(i);
       } else {
         pages.push(1);
-
         if (page > 3) pages.push('ellipsis');
 
         const start = Math.max(2, page - 1);
         const end = Math.min(totalPages - 1, page + 1);
-
         for (let i = start; i <= end; i++) pages.push(i);
 
         if (page < totalPages - 2) pages.push('ellipsis');
-
         pages.push(totalPages);
       }
 
       return pages;
     }, [page, totalPages]);
 
-    const btnClass = `px-3 py-1.5 text-sm rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed`;
-    const activeBtnClass = `bg-brand-500 text-white`;
-    const normalBtnClass = `bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200
-    hover:bg-slate-100 dark:hover:bg-slate-600 border border-slate-200 dark:border-slate-600`;
+    const btnClass =
+      'rounded-md px-3 py-1.5 text-sm transition-colors disabled:cursor-not-allowed disabled:opacity-50';
+    const activeBtnClass = 'bg-brand-500 text-white';
+    const normalBtnClass =
+      'border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600';
 
     if (totalPages <= 0) return null;
 
     return (
-      <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 dark:border-slate-700">
-        {/* 左侧：总数和每页条数 */}
+      <div className="flex items-center justify-between border-t border-slate-200 px-4 py-3 dark:border-slate-700">
         <div className="flex items-center gap-4">
           {showTotal && (
             <span className="text-sm text-slate-500 dark:text-slate-400">
-              共 <span className="font-medium text-slate-700 dark:text-slate-200">{total}</span> 条
+              {t('pagination.total', { total })}
             </span>
           )}
           {showPageSize && onPageSizeChange && (
             <select
               value={pageSize}
-              onChange={e => onPageSizeChange(Number(e.target.value))}
+              onChange={event => onPageSizeChange(Number(event.target.value))}
               disabled={disabled}
-              className="px-2 py-1 text-sm border border-slate-200 dark:border-slate-600 rounded-md
-              bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200
-              focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-700 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-slate-600 dark:bg-slate-700 dark:text-slate-200"
             >
               {pageSizeOptions.map(size => (
                 <option key={size} value={size}>
-                  {size} 条/页
+                  {t('pagination.page_size', { size })}
                 </option>
               ))}
             </select>
           )}
         </div>
 
-        {/* 右侧：分页按钮 */}
         <div className="flex items-center gap-1">
-          {/* 首页 */}
           <button
             onClick={() => onPageChange(1)}
             disabled={disabled || page <= 1}
             className={`${btnClass} ${normalBtnClass}`}
-            title="首页"
+            title={t('pagination.first')}
           >
-            <ChevronsLeft className="w-4 h-4" />
+            <ChevronsLeft className="h-4 w-4" />
           </button>
 
-          {/* 上一页 */}
           <button
             onClick={() => onPageChange(page - 1)}
             disabled={disabled || page <= 1}
             className={`${btnClass} ${normalBtnClass}`}
-            title="上一页"
+            title={t('pagination.previous')}
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="h-4 w-4" />
           </button>
 
-          {/* 页码 */}
-          {pageNumbers.map((num, idx) =>
+          {pageNumbers.map((num, index) =>
             num === 'ellipsis' ? (
-              <span key={`ellipsis-${idx}`} className="px-2 text-slate-400">
+              <span key={`ellipsis-${index}`} className="px-2 text-slate-400">
                 ...
               </span>
             ) : (
@@ -126,24 +118,22 @@ const Pagination: React.FC<PaginationProps> = memo(
             )
           )}
 
-          {/* 下一页 */}
           <button
             onClick={() => onPageChange(page + 1)}
             disabled={disabled || page >= totalPages}
             className={`${btnClass} ${normalBtnClass}`}
-            title="下一页"
+            title={t('pagination.next')}
           >
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="h-4 w-4" />
           </button>
 
-          {/* 末页 */}
           <button
             onClick={() => onPageChange(totalPages)}
             disabled={disabled || page >= totalPages}
             className={`${btnClass} ${normalBtnClass}`}
-            title="末页"
+            title={t('pagination.last')}
           >
-            <ChevronsRight className="w-4 h-4" />
+            <ChevronsRight className="h-4 w-4" />
           </button>
         </div>
       </div>

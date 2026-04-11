@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pencil, Trash2 } from 'lucide-react';
+import { useI18n } from '@/hooks/useI18n';
 import type { OutputGroup } from '@/types/configGroups';
 import type { OutputGroupTableRow } from './outputGroupTableRows';
 
@@ -21,12 +22,14 @@ export const OutputGroupsTable: React.FC<OutputGroupsTableProps> = ({
   onDeleteGroup,
   onRemoveOutput,
 }) => {
+  const { t } = useI18n();
+
   if (loading) {
-    return <div className="p-8 text-center text-muted-foreground">加载中...</div>;
+    return <div className="p-8 text-center text-muted-foreground">{t('common.loading')}</div>;
   }
 
   if (rows.length === 0) {
-    return <div className="p-8 text-center text-muted-foreground">暂无数据</div>;
+    return <div className="p-8 text-center text-muted-foreground">{t('common.noData')}</div>;
   }
 
   return (
@@ -34,13 +37,27 @@ export const OutputGroupsTable: React.FC<OutputGroupsTableProps> = ({
       <table className="w-full">
         <thead className="bg-muted">
           <tr>
-            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">组合名称</th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">描述</th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">输出数量</th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">输出名称</th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">编码</th>
-            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">单位</th>
-            <th className="px-4 py-3 text-center text-sm font-medium text-foreground">操作</th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">
+              {t('cfg.output_group.name')}
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">
+              {t('common.description')}
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">
+              {t('cfg.output_group.output_count')}
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">
+              {t('cfg.outputs.name')}
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">
+              {t('common.code')}
+            </th>
+            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">
+              {t('common.unit')}
+            </th>
+            <th className="px-4 py-3 text-center text-sm font-medium text-foreground">
+              {t('common.actions')}
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -62,7 +79,7 @@ export const OutputGroupsTable: React.FC<OutputGroupsTableProps> = ({
                         ))
                       ) : (
                         <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                          全局
+                          {t('cfg.param_group.global')}
                         </span>
                       )}
                     </div>
@@ -98,14 +115,14 @@ export const OutputGroupsTable: React.FC<OutputGroupsTableProps> = ({
                       <button
                         onClick={() => onEdit(row.group)}
                         className={actionButtonClass}
-                        title="编辑组合"
+                        title={t('cfg.output_group.edit_group')}
                       >
                         <Pencil className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => onDeleteGroup(row.group.id)}
                         className={actionButtonClass}
-                        title="删除组合"
+                        title={t('cfg.output_group.delete_group')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
@@ -115,7 +132,7 @@ export const OutputGroupsTable: React.FC<OutputGroupsTableProps> = ({
                     <button
                       onClick={() => onRemoveOutput(row.group.id, row.output!.outputDefId)}
                       className={actionButtonClass}
-                      title="移除输出"
+                      title={t('cfg.output_group.remove_output')}
                     >
                       <Trash2 className="h-4 w-4" />
                     </button>

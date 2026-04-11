@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, Search } from 'lucide-react';
 import { configApi } from '@/api';
 import type { ParamDef } from '@/api';
+import { useI18n } from '@/hooks/useI18n';
 import type { SearchParamResult } from '@/types/configGroups';
 import {
   managementInlineInputClass,
@@ -33,6 +34,7 @@ export const AddParamsModal: React.FC<AddParamsModalProps> = ({
   onRefresh,
   showToast,
 }) => {
+  const { t } = useI18n();
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<SearchParamResult[]>([]);
@@ -42,12 +44,12 @@ export const AddParamsModal: React.FC<AddParamsModalProps> = ({
   const [creating, setCreating] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const availableParams = paramDefs.filter(p => !existingParamIds.has(p.id));
+  const availableParams = paramDefs.filter(param => !existingParamIds.has(param.id));
   const filteredParams = availableParams.filter(
-    p =>
+    param =>
       !searchTerm ||
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.key.toLowerCase().includes(searchTerm.toLowerCase())
+      param.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      param.key.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSearch = useCallback(
@@ -61,7 +63,7 @@ export const AddParamsModal: React.FC<AddParamsModalProps> = ({
         const res = await configApi.searchParams(keyword, groupId);
         setSearchResults(res?.data?.params || []);
       } catch (error) {
-        console.error('搜索参数失败:', error);
+        console.error('Failed to search parameters:', error);
       } finally {
         setIsSearching(false);
       }
@@ -88,17 +90,17 @@ export const AddParamsModal: React.FC<AddParamsModalProps> = ({
   }, [searchTerm, handleSearch]);
 
   const toggleParam = (id: number) => {
-    const newSet = new Set(selectedIds);
-    if (newSet.has(id)) {
-      newSet.delete(id);
+    const nextSelectedIds = new Set(selectedIds);
+    if (nextSelectedIds.has(id)) {
+      nextSelectedIds.delete(id);
     } else {
-      newSet.add(id);
+      nextSelectedIds.add(id);
     }
-    setSelectedIds(newSet);
+    setSelectedIds(nextSelectedIds);
   };
 
   const selectAll = () => {
-    setSelectedIds(new Set(filteredParams.map(p => p.id)));
+    setSelectedIds(new Set(filteredParams.map(param => param.id)));
   };
 
   const clearAll = () => {
@@ -107,7 +109,7 @@ export const AddParamsModal: React.FC<AddParamsModalProps> = ({
 
   const handleCreateAndAdd = async () => {
     if (!newParamData.key.trim()) {
-      showToast('warning', '参数Key不能为空');
+      showToast('warning', t('cfg.param_group.key_required'));
       return;
     }
     setCreating(true);
@@ -120,7 +122,10 @@ export const AddParamsModal: React.FC<AddParamsModalProps> = ({
       if (res?.data?.added) {
         showToast(
           'success',
-          `参数「${res.data.param.paramName}」${res.data.created ? '创建并' : ''}添加成功`
+          t('cfg.param_group.create_add_success', {
+            name: res.data.param.paramName,
+            createdText: res.data.created ? t('cfg.param_group.created_text') : '',
+          })
         );
         setNewParamData({ key: '', name: '', unit: '' });
         setShowCreateForm(false);
@@ -132,10 +137,10 @@ export const AddParamsModal: React.FC<AddParamsModalProps> = ({
         showToast('warning', res.data.reason);
       }
     } catch (error: unknown) {
-      console.error('创建参数失败:', error);
+      console.error('Failed to create parameter:', error);
       const errMsg = (error as { response?: { data?: { message?: string } } })?.response?.data
         ?.message;
-      showToast('error', errMsg || '创建失败');
+      showToast('error', errMsg || t('cfg.param_group.create_failed'));
     } finally {
       setCreating(false);
     }
@@ -143,90 +148,94 @@ export const AddParamsModal: React.FC<AddParamsModalProps> = ({
 
   const displayParams =
     searchTerm.trim().length >= 2 && searchResults.length > 0
-      ? searchResults.filter(p => !p.inGroup)
+      ? searchResults.filter(param => !param.inGroup)
       : filteredParams;
 
   return (
     <div className={managementModalOverlayClass}>
       <div
-        className={`${managementModalPanelClass} w-full max-w-lg mx-4 max-h-[80vh] flex flex-col`}
+        className={`${managementModalPanelClass} mx-4 flex max-h-[80vh] w-full max-w-lg flex-col`}
       >
-        <div className="p-4 border-b dark:border-slate-700">
-          <h3 className="text-lg font-bold">添加参数到 {groupName}</h3>
-          <p className="text-sm text-slate-500 mt-1">选择要添加的参数，或快速创建新参数</p>
+        <div className="border-b p-4 dark:border-slate-700">
+          <h3 className="text-lg font-bold">
+            {t('cfg.param_group.add_params_title', { name: groupName })}
+          </h3>
+          <p className="mt-1 text-sm text-slate-500">{t('cfg.param_group.add_params_desc')}</p>
         </div>
 
-        <div className="p-4 border-b dark:border-slate-700 space-y-3">
+        <div className="space-y-3 border-b p-4 dark:border-slate-700">
           <div className="relative">
-            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
-              placeholder="搜索参数名称或 Key（输入2个字符开始搜索）..."
+              placeholder={t('cfg.param_group.search_placeholder')}
               value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
+              onChange={event => setSearchTerm(event.target.value)}
               className={managementSearchInputClass}
             />
             {isSearching && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
               </div>
             )}
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-slate-500">已选择 {selectedIds.size} 个参数</span>
+            <span className="text-slate-500">
+              {t('cfg.param_group.selected_count', { count: selectedIds.size })}
+            </span>
             <div className="flex gap-2">
               <button onClick={selectAll} className="text-blue-600 hover:underline">
-                全选
+                {t('cfg.param_group.select_all')}
               </button>
               <button onClick={clearAll} className="text-slate-500 hover:underline">
-                清空
+                {t('common.clear')}
               </button>
               <button
                 onClick={() => setShowCreateForm(!showCreateForm)}
-                className="text-green-600 hover:underline flex items-center gap-1"
+                className="flex items-center gap-1 text-green-600 hover:underline"
               >
-                <Plus className="w-3 h-3" />
-                快速创建
+                <Plus className="h-3 w-3" />
+                {t('cfg.param_group.quick_create')}
               </button>
             </div>
           </div>
         </div>
 
         {showCreateForm && (
-          <div className="p-4 border-b dark:border-slate-700 bg-green-50 dark:bg-green-900/20">
-            <h4 className="text-sm font-medium text-green-700 dark:text-green-400 mb-3">
-              快速创建新参数
+          <div className="border-b bg-green-50 p-4 dark:border-slate-700 dark:bg-green-900/20">
+            <h4 className="mb-3 text-sm font-medium text-green-700 dark:text-green-400">
+              {t('cfg.param_group.quick_create_title')}
             </h4>
             <div className="grid grid-cols-3 gap-2">
               <input
                 type="text"
-                placeholder="参数Key *"
+                placeholder={`${t('common.key')} *`}
                 value={newParamData.key}
-                onChange={e => setNewParamData(prev => ({ ...prev, key: e.target.value }))}
+                onChange={event => setNewParamData(prev => ({ ...prev, key: event.target.value }))}
                 className={managementInlineInputClass}
               />
               <input
                 type="text"
-                placeholder="参数名称"
+                placeholder={t('common.name')}
                 value={newParamData.name}
-                onChange={e => setNewParamData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={event => setNewParamData(prev => ({ ...prev, name: event.target.value }))}
                 className={managementInlineInputClass}
               />
               <input
                 type="text"
-                placeholder="单位"
+                placeholder={t('common.unit')}
                 value={newParamData.unit}
-                onChange={e => setNewParamData(prev => ({ ...prev, unit: e.target.value }))}
+                onChange={event => setNewParamData(prev => ({ ...prev, unit: event.target.value }))}
                 className={managementInlineInputClass}
               />
             </div>
-            <div className="flex justify-end mt-2">
+            <div className="mt-2 flex justify-end">
               <button
                 onClick={handleCreateAndAdd}
                 disabled={creating || !newParamData.key.trim()}
-                className="px-3 py-1.5 text-sm bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50"
+                className="rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700 disabled:opacity-50"
               >
-                {creating ? '创建中...' : '创建并添加'}
+                {creating ? t('cfg.param_group.creating') : t('cfg.param_group.create_and_add')}
               </button>
             </div>
           </div>
@@ -234,10 +243,10 @@ export const AddParamsModal: React.FC<AddParamsModalProps> = ({
 
         <div className="flex-1 overflow-y-auto p-4">
           {displayParams.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">
+            <div className="py-8 text-center text-slate-500">
               {searchTerm ? (
                 <div>
-                  <p>未找到匹配的参数</p>
+                  <p>{t('cfg.param_group.no_match')}</p>
                   <button
                     onClick={() => {
                       setNewParamData(prev => ({ ...prev, key: searchTerm }));
@@ -245,11 +254,11 @@ export const AddParamsModal: React.FC<AddParamsModalProps> = ({
                     }}
                     className="mt-2 text-green-600 hover:underline"
                   >
-                    点击创建「{searchTerm}」
+                    {t('cfg.param_group.create_keyword', { keyword: searchTerm })}
                   </button>
                 </div>
               ) : (
-                '没有可添加的参数'
+                t('cfg.param_group.no_available')
               )}
             </div>
           ) : (
@@ -261,21 +270,21 @@ export const AddParamsModal: React.FC<AddParamsModalProps> = ({
                 return (
                   <label
                     key={paramId}
-                    className={`flex items-center p-3 rounded-lg cursor-pointer transition-colors ${
+                    className={`flex cursor-pointer items-center rounded-lg p-3 transition-colors ${
                       selectedIds.has(paramId)
-                        ? 'bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-500'
-                        : 'bg-slate-50 dark:bg-slate-700 hover:bg-slate-100 dark:hover:bg-slate-600 eyecare:hover:bg-muted border-2 border-transparent'
+                        ? 'border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                        : 'border-2 border-transparent bg-slate-50 hover:bg-slate-100 dark:bg-slate-700 dark:hover:bg-slate-600 eyecare:hover:bg-muted'
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={selectedIds.has(paramId)}
                       onChange={() => toggleParam(paramId)}
-                      className="rounded mr-3"
+                      className="mr-3 rounded"
                     />
                     <div className="flex-1">
                       <div className="font-medium">{paramName}</div>
-                      <div className="text-xs text-slate-500 font-mono">{paramKey}</div>
+                      <div className="font-mono text-xs text-slate-500">{paramKey}</div>
                     </div>
                   </label>
                 );
@@ -284,16 +293,16 @@ export const AddParamsModal: React.FC<AddParamsModalProps> = ({
           )}
         </div>
 
-        <div className="flex justify-end gap-3 p-4 border-t dark:border-slate-700">
+        <div className="flex justify-end gap-3 border-t p-4 dark:border-slate-700">
           <button onClick={onClose} className={managementSecondaryButtonClass}>
-            取消
+            {t('common.cancel')}
           </button>
           <button
             onClick={() => onAdd(groupId, Array.from(selectedIds))}
             disabled={selectedIds.size === 0}
             className={managementPrimaryButtonDisabledClass}
           >
-            添加 ({selectedIds.size})
+            {t('common.add')} ({selectedIds.size})
           </button>
         </div>
       </div>

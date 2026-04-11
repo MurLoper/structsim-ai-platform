@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Button, Checkbox, Input, Modal, NumberInput, Select, Textarea } from '@/components/ui';
+import { useI18n } from '@/hooks';
 import type { PlatformAnnouncement, PlatformAnnouncementPayload } from '@/types';
 
 interface PlatformAnnouncementModalProps {
@@ -62,8 +63,19 @@ export function PlatformAnnouncementModal({
   onClose,
   onSubmit,
 }: PlatformAnnouncementModalProps) {
+  const { t } = useI18n();
   const [form, setForm] = useState<AnnouncementFormState>(() =>
     createInitialState(initialAnnouncement)
+  );
+
+  const levelOptions = useMemo(
+    () => [
+      { value: 'info', label: t('platform.content.announcement.level.info') },
+      { value: 'success', label: t('platform.content.announcement.level.success') },
+      { value: 'warning', label: t('platform.content.announcement.level.warning') },
+      { value: 'error', label: t('platform.content.announcement.level.error') },
+    ],
+    [t]
   );
 
   useEffect(() => {
@@ -83,36 +95,35 @@ export function PlatformAnnouncementModal({
     <Modal isOpen={isOpen} onClose={onClose} title={title} size="xl">
       <div className="space-y-4">
         <Input
-          label="公告标题"
+          label={t('platform.content.announcement.field.title')}
           value={form.title}
           onChange={event => updateField('title', event.target.value)}
         />
         <Textarea
           value={form.content}
           onChange={event => updateField('content', event.target.value)}
-          placeholder="请输入公告正文"
+          placeholder={t('platform.content.announcement.placeholder.content')}
         />
 
         <div className="grid gap-4 md:grid-cols-2">
           <Select
-            label="公告级别"
+            label={t('platform.content.announcement.field.level')}
             value={form.level}
             onChange={event =>
               updateField('level', event.target.value as PlatformAnnouncementPayload['level'])
             }
-            options={[
-              { value: 'info', label: '普通' },
-              { value: 'success', label: '成功' },
-              { value: 'warning', label: '提醒' },
-              { value: 'error', label: '警告' },
-            ]}
+            options={levelOptions}
           />
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">排序值</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t('platform.content.announcement.field.sort')}
+            </label>
             <NumberInput value={form.sort} onChange={value => updateField('sort', value ?? 100)} />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">生效开始时间</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t('platform.content.announcement.field.start_at')}
+            </label>
             <Input
               type="datetime-local"
               value={form.startAt}
@@ -120,7 +131,9 @@ export function PlatformAnnouncementModal({
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">生效结束时间</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t('platform.content.announcement.field.end_at')}
+            </label>
             <Input
               type="datetime-local"
               value={form.endAt}
@@ -131,12 +144,12 @@ export function PlatformAnnouncementModal({
 
         <div className="grid gap-4 md:grid-cols-2">
           <Input
-            label="链接文案"
+            label={t('platform.content.announcement.field.link_text')}
             value={form.linkText}
             onChange={event => updateField('linkText', event.target.value)}
           />
           <Input
-            label="链接地址"
+            label={t('platform.content.announcement.field.link_url')}
             value={form.linkUrl}
             onChange={event => updateField('linkUrl', event.target.value)}
           />
@@ -146,18 +159,18 @@ export function PlatformAnnouncementModal({
           <Checkbox
             checked={form.isActive}
             onChange={event => updateField('isActive', event.target.checked)}
-            label="启用公告"
+            label={t('platform.content.announcement.field.active')}
           />
           <Checkbox
             checked={form.dismissible}
             onChange={event => updateField('dismissible', event.target.checked)}
-            label="允许用户关闭"
+            label={t('platform.content.announcement.field.dismissible')}
           />
         </div>
 
         <div className="flex justify-end gap-3 border-t border-border pt-4">
           <Button variant="outline" onClick={onClose}>
-            取消
+            {t('common.cancel')}
           </Button>
           <Button
             onClick={() =>
@@ -176,7 +189,7 @@ export function PlatformAnnouncementModal({
             }
             disabled={isSubmitting || !form.title.trim() || !form.content.trim()}
           >
-            {isSubmitting ? '保存中...' : '保存公告'}
+            {isSubmitting ? t('common.saving') : t('platform.content.announcement.save')}
           </Button>
         </div>
       </div>

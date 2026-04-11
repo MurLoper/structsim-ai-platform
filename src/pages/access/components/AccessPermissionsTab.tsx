@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { PermissionTree } from '@/components/access';
 import { Badge, Button } from '@/components/ui';
 import { VirtualTable } from '@/components/tables/VirtualTable';
+import { useI18n } from '@/hooks/useI18n';
 import type { PermissionItem } from '@/types';
 import { getStatusVariant } from '../utils/accessUserIdentity';
 
@@ -20,10 +21,12 @@ export const AccessPermissionsTab: React.FC<AccessPermissionsTabProps> = ({
   onCreatePermission,
   onOpenPermissionModal,
 }) => {
+  const { t } = useI18n();
+
   const columns = useMemo<ColumnDef<PermissionItem>[]>(
     () => [
       {
-        header: '权限点',
+        header: t('access.permission.name'),
         accessorKey: 'name',
         cell: ({ row }) => {
           const record = row.original;
@@ -38,19 +41,19 @@ export const AccessPermissionsTab: React.FC<AccessPermissionsTabProps> = ({
         },
       },
       {
-        header: '编码',
+        header: t('common.code'),
         id: 'code',
         size: 180,
         cell: ({ row }) => <Badge size="sm">{row.original.code}</Badge>,
       },
       {
-        header: '类型',
+        header: t('common.type'),
         id: 'type',
         size: 120,
         cell: ({ row }) => <Badge size="sm">{row.original.type || 'OTHER'}</Badge>,
       },
       {
-        header: '资源',
+        header: t('access.permission.resource'),
         id: 'resource',
         size: 180,
         cell: ({ row }) => (
@@ -58,44 +61,44 @@ export const AccessPermissionsTab: React.FC<AccessPermissionsTabProps> = ({
         ),
       },
       {
-        header: '状态',
+        header: t('common.status'),
         id: 'status',
         size: 120,
         cell: ({ row }) => (
           <Badge variant={getStatusVariant(row.original.valid)}>
-            {row.original.valid === 0 ? '禁用' : '启用'}
+            {row.original.valid === 0 ? t('access.status.disabled') : t('access.status.enabled')}
           </Badge>
         ),
       },
       {
-        header: '操作',
+        header: t('common.actions'),
         id: 'actions',
         size: 120,
         cell: ({ row }) => (
           <div className="flex justify-end">
             <Button variant="ghost" size="sm" onClick={() => onOpenPermissionModal(row.original)}>
-              编辑
+              {t('common.edit')}
             </Button>
           </div>
         ),
       },
     ],
-    [onOpenPermissionModal]
+    [onOpenPermissionModal, t]
   );
 
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">权限点管理</h2>
-          <p className="text-sm text-muted-foreground">统一维护权限点、类型和资源标识。</p>
+          <h2 className="text-lg font-semibold text-foreground">{t('access.permission.title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('access.permission.description_text')}</p>
         </div>
         <Button
           variant="outline"
           onClick={onCreatePermission}
-          icon={<PlusIcon className="w-4 h-4" />}
+          icon={<PlusIcon className="h-4 w-4" />}
         >
-          新增权限
+          {t('access.permission.create')}
         </Button>
       </div>
 
@@ -104,7 +107,7 @@ export const AccessPermissionsTab: React.FC<AccessPermissionsTabProps> = ({
         data={permissions}
         getRowId={record => String(record.id)}
         loading={loading}
-        emptyText="暂无权限点"
+        emptyText={t('access.permission.empty')}
         containerHeight={360}
         rowHeight={52}
         enableSorting={false}
@@ -112,7 +115,7 @@ export const AccessPermissionsTab: React.FC<AccessPermissionsTabProps> = ({
 
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-          权限树
+          {t('access.permission.tree')}
           <Badge size="sm">{permissions.length}</Badge>
         </div>
         <PermissionTree permissions={permissions} selectedIds={[]} readOnly />

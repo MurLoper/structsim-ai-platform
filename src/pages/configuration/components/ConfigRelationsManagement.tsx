@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Card } from '@/components/ui';
+import { Card, useConfirmDialog } from '@/components/ui';
 import { configApi } from '@/api';
 import type {
   OutputGroup,
@@ -9,64 +9,85 @@ import type {
   SimTypeSolverRel,
 } from '@/types/configGroups';
 import type { SimType, Solver } from '@/types/config';
+import { useI18n } from '@/hooks';
 import { AddRelationModal } from './relations/AddRelationModal';
 import { RelationAssignmentsCard } from './relations/RelationAssignmentsCard';
 import { RelationSimTypeList } from './relations/RelationSimTypeList';
 import { RelationTabBar } from './relations/RelationTabBar';
 import type { RelationCardItem, RelationTab, RelationTabConfig } from './relations/types';
 
-const RELATION_TABS: RelationTabConfig[] = [
+const RELATION_TAB_KEYS = [
   {
     tab: 'paramGroups',
-    label: '参数组合',
-    title: '参数组合关联',
-    emptyText: '暂无参数组合关联',
-    addTitle: '添加参数组合关联',
+    labelKey: 'cfg.relations.param_groups',
+    titleKey: 'cfg.relations.param_groups_title',
+    emptyTextKey: 'cfg.relations.param_groups_empty',
+    addTitleKey: 'cfg.relations.param_groups_add',
   },
   {
     tab: 'outputGroups',
-    label: '输出组合',
-    title: '输出组合关联',
-    emptyText: '暂无输出组合关联',
-    addTitle: '添加输出组合关联',
+    labelKey: 'cfg.relations.output_groups',
+    titleKey: 'cfg.relations.output_groups_title',
+    emptyTextKey: 'cfg.relations.output_groups_empty',
+    addTitleKey: 'cfg.relations.output_groups_add',
   },
   {
     tab: 'solvers',
-    label: '求解器',
-    title: '求解器关联',
-    emptyText: '暂无求解器关联',
-    addTitle: '添加求解器关联',
+    labelKey: 'cfg.relations.solvers',
+    titleKey: 'cfg.relations.solvers_title',
+    emptyTextKey: 'cfg.relations.solvers_empty',
+    addTitleKey: 'cfg.relations.solvers_add',
   },
-];
+] satisfies Array<{
+  tab: RelationTab;
+  labelKey: string;
+  titleKey: string;
+  emptyTextKey: string;
+  addTitleKey: string;
+}>;
 
-const mapParamGroupRelations = (relations: SimTypeParamGroupRel[]): RelationCardItem[] =>
+type Translator = (key: string, params?: Record<string, string | number>) => string;
+
+const mapParamGroupRelations = (
+  relations: SimTypeParamGroupRel[],
+  t: Translator
+): RelationCardItem[] =>
   relations.map(relation => ({
     id: relation.id,
     itemId: relation.paramGroupId,
-    name: relation.paramGroupName || `参数组合 #${relation.paramGroupId}`,
+    name:
+      relation.paramGroupName ||
+      t('cfg.relations.param_group_fallback', { id: relation.paramGroupId }),
     description: relation.paramGroupDescription,
     isDefault: relation.isDefault === 1,
   }));
 
-const mapOutputGroupRelations = (relations: SimTypeOutputGroupRel[]): RelationCardItem[] =>
+const mapOutputGroupRelations = (
+  relations: SimTypeOutputGroupRel[],
+  t: Translator
+): RelationCardItem[] =>
   relations.map(relation => ({
     id: relation.id,
     itemId: relation.outputGroupId,
-    name: relation.outputGroupName || `输出组合 #${relation.outputGroupId}`,
+    name:
+      relation.outputGroupName ||
+      t('cfg.relations.output_group_fallback', { id: relation.outputGroupId }),
     description: relation.outputGroupDescription,
     isDefault: relation.isDefault === 1,
   }));
 
-const mapSolverRelations = (relations: SimTypeSolverRel[]): RelationCardItem[] =>
+const mapSolverRelations = (relations: SimTypeSolverRel[], t: Translator): RelationCardItem[] =>
   relations.map(relation => ({
     id: relation.id,
     itemId: relation.solverId,
-    name: relation.solverName || `求解器 #${relation.solverId}`,
+    name: relation.solverName || t('cfg.relations.solver_fallback', { id: relation.solverId }),
     description: relation.solverCode ? `${relation.solverCode} | v${relation.solverVersion}` : '',
     isDefault: relation.isDefault === 1,
   }));
 
 export const ConfigRelationsManagement: React.FC = () => {
+  const { t } = useI18n();
+  const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
   const [activeTab, setActiveTab] = useState<RelationTab>('paramGroups');
   const [simTypes, setSimTypes] = useState<SimType[]>([]);
   const [selectedSimType, setSelectedSimType] = useState<SimType | null>(null);
@@ -81,13 +102,25 @@ export const ConfigRelationsManagement: React.FC = () => {
   const [allOutputGroups, setAllOutputGroups] = useState<OutputGroup[]>([]);
   const [allSolvers, setAllSolvers] = useState<Solver[]>([]);
 
+  const translatedTabs = useMemo<RelationTabConfig[]>(
+    () =>
+      RELATION_TAB_KEYS.map(item => ({
+        tab: item.tab,
+        label: t(item.labelKey),
+        title: t(item.titleKey),
+        emptyText: t(item.emptyTextKey),
+        addTitle: t(item.addTitleKey),
+      })),
+    [t]
+  );
+
   const loadSimTypes = useCallback(async () => {
     try {
       setLoading(true);
       const response = await configApi.getSimTypes();
       setSimTypes(response.data || []);
     } catch (error) {
-      console.error('加载仿真类型失败:', error);
+      console.error('Failed to load simulation types:', error);
     } finally {
       setLoading(false);
     }
@@ -104,7 +137,7 @@ export const ConfigRelationsManagement: React.FC = () => {
       setAllOutputGroups((outputGroupsRes.data || []) as OutputGroup[]);
       setAllSolvers((solversRes.data || []) as Solver[]);
     } catch (error) {
-      console.error('加载配置失败:', error);
+      console.error('Failed to load relation config options:', error);
     }
   }, []);
 
@@ -123,7 +156,7 @@ export const ConfigRelationsManagement: React.FC = () => {
       const response = await configApi.getSimTypeSolvers(simTypeId);
       setSolverRelations((response.data || []) as SimTypeSolverRel[]);
     } catch (error) {
-      console.error('加载关联配置失败:', error);
+      console.error('Failed to load relation config:', error);
     }
   }, []);
 
@@ -141,11 +174,11 @@ export const ConfigRelationsManagement: React.FC = () => {
 
   const relationCards = useMemo(
     () => ({
-      paramGroups: mapParamGroupRelations(paramGroupRelations),
-      outputGroups: mapOutputGroupRelations(outputGroupRelations),
-      solvers: mapSolverRelations(solverRelations),
+      paramGroups: mapParamGroupRelations(paramGroupRelations, t),
+      outputGroups: mapOutputGroupRelations(outputGroupRelations, t),
+      solvers: mapSolverRelations(solverRelations, t),
     }),
-    [outputGroupRelations, paramGroupRelations, solverRelations]
+    [outputGroupRelations, paramGroupRelations, solverRelations, t]
   );
 
   const modalItems = useMemo(
@@ -157,7 +190,7 @@ export const ConfigRelationsManagement: React.FC = () => {
     [allOutputGroups, allParamGroups, allSolvers]
   );
 
-  const activeTabConfig = RELATION_TABS.find(item => item.tab === activeTab) || RELATION_TABS[0];
+  const activeTabConfig = translatedTabs.find(item => item.tab === activeTab) || translatedTabs[0];
   const activeRelations = relationCards[activeTab];
 
   const refreshCurrentTab = useCallback(async () => {
@@ -188,7 +221,7 @@ export const ConfigRelationsManagement: React.FC = () => {
         setActiveModalTab(null);
         await refreshCurrentTab();
       } catch (error) {
-        console.error('添加关联配置失败:', error);
+        console.error('Failed to add relation config:', error);
       }
     },
     [activeTab, refreshCurrentTab, selectedSimType]
@@ -208,33 +241,37 @@ export const ConfigRelationsManagement: React.FC = () => {
         }
         await refreshCurrentTab();
       } catch (error) {
-        console.error('设置默认关联失败:', error);
+        console.error('Failed to set default relation:', error);
       }
     },
     [activeTab, refreshCurrentTab, selectedSimType]
   );
 
   const handleRemoveRelation = useCallback(
-    async (itemId: number) => {
+    (itemId: number) => {
       if (!selectedSimType) return;
-      if (!window.confirm('确定要移除这个关联配置吗？')) {
-        return;
-      }
 
-      try {
-        if (activeTab === 'paramGroups') {
-          await configApi.removeParamGroupFromSimType(selectedSimType.id, itemId);
-        } else if (activeTab === 'outputGroups') {
-          await configApi.removeOutputGroupFromSimType(selectedSimType.id, itemId);
-        } else {
-          await configApi.removeSolverFromSimType(selectedSimType.id, itemId);
-        }
-        await refreshCurrentTab();
-      } catch (error) {
-        console.error('移除关联配置失败:', error);
-      }
+      showConfirm(
+        t('common.confirm'),
+        t('cfg.relations.remove_confirm'),
+        async () => {
+          try {
+            if (activeTab === 'paramGroups') {
+              await configApi.removeParamGroupFromSimType(selectedSimType.id, itemId);
+            } else if (activeTab === 'outputGroups') {
+              await configApi.removeOutputGroupFromSimType(selectedSimType.id, itemId);
+            } else {
+              await configApi.removeSolverFromSimType(selectedSimType.id, itemId);
+            }
+            await refreshCurrentTab();
+          } catch (error) {
+            console.error('Failed to remove relation:', error);
+          }
+        },
+        'danger'
+      );
     },
-    [activeTab, refreshCurrentTab, selectedSimType]
+    [activeTab, refreshCurrentTab, selectedSimType, showConfirm, t]
   );
 
   const existingIds = useMemo(
@@ -265,11 +302,13 @@ export const ConfigRelationsManagement: React.FC = () => {
       <div className="lg:col-span-3">
         {!selectedSimType ? (
           <Card>
-            <div className="p-12 text-center text-slate-500">请选择左侧仿真类型以查看关联配置</div>
+            <div className="p-12 text-center text-slate-500">
+              {t('cfg.relations.select_sim_type_tip')}
+            </div>
           </Card>
         ) : (
           <>
-            <RelationTabBar activeTab={activeTab} tabs={RELATION_TABS} onChange={setActiveTab} />
+            <RelationTabBar activeTab={activeTab} tabs={translatedTabs} onChange={setActiveTab} />
             <RelationAssignmentsCard
               title={`${selectedSimType.name} - ${activeTabConfig.title}`}
               emptyText={activeTabConfig.emptyText}
@@ -284,7 +323,10 @@ export const ConfigRelationsManagement: React.FC = () => {
 
       {activeModalTab && selectedSimType && (
         <AddRelationModal
-          title={RELATION_TABS.find(item => item.tab === activeModalTab)?.addTitle || '添加关联'}
+          title={
+            translatedTabs.find(item => item.tab === activeModalTab)?.addTitle ||
+            t('cfg.relations.add_relation')
+          }
           items={modalItems[activeModalTab]}
           existingIds={existingIds}
           onAdd={handleAddRelation}
@@ -293,6 +335,7 @@ export const ConfigRelationsManagement: React.FC = () => {
           getItemSubLabel={getModalItemSubLabel}
         />
       )}
+      <ConfirmDialogComponent />
     </div>
   );
 };

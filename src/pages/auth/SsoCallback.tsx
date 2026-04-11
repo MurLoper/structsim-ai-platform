@@ -1,26 +1,28 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useI18n } from '@/hooks';
 import { useAuthStore } from '@/stores';
 
 const SsoCallback = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { t } = useI18n();
   const { loginBySsoUid } = useAuthStore();
-  const [message, setMessage] = useState('正在完成 SSO 登录...');
+  const [message, setMessage] = useState(() => t('auth.sso.loading'));
 
   useEffect(() => {
     const uid = (searchParams.get('uid') || '').trim();
     if (!uid) {
-      setMessage('SSO 回调缺少 uid 参数，请重新登录。');
+      setMessage(t('auth.sso.missing_uid'));
       return;
     }
 
     loginBySsoUid(uid)
       .then(() => navigate('/', { replace: true }))
       .catch(error => {
-        setMessage(error instanceof Error ? error.message : 'SSO 登录失败。');
+        setMessage(error instanceof Error ? error.message : t('auth.sso.failed'));
       });
-  }, [loginBySsoUid, navigate, searchParams]);
+  }, [loginBySsoUid, navigate, searchParams, t]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">

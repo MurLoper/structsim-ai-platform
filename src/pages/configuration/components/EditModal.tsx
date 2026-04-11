@@ -1,42 +1,45 @@
-import React from 'react';
+import type { ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { Button } from '@/components/ui';
+import { useI18n } from '@/hooks';
 
 interface EditModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
   onSave: () => void;
   loading?: boolean;
 }
 
-export const EditModal: React.FC<EditModalProps> = ({
+export const EditModal = ({
   isOpen,
   onClose,
   title,
   children,
   onSave,
   loading,
-}) => {
+}: EditModalProps) => {
+  const { t } = useI18n();
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-card rounded-xl shadow-2xl w-full max-w-lg mx-4">
-        <div className="flex items-center justify-between p-4 border-b border-border">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="mx-4 w-full max-w-lg rounded-xl bg-card shadow-2xl">
+        <div className="flex items-center justify-between border-b border-border p-4">
           <h3 className="text-lg font-bold text-foreground">{title}</h3>
-          <button onClick={onClose} className="p-1 hover:bg-muted rounded">
-            <X className="w-5 h-5" />
+          <button onClick={onClose} className="rounded p-1 hover:bg-muted">
+            <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">{children}</div>
-        <div className="flex justify-end gap-3 p-4 border-t border-border">
+        <div className="max-h-[60vh] space-y-4 overflow-y-auto p-4">{children}</div>
+        <div className="flex justify-end gap-3 border-t border-border p-4">
           <Button variant="secondary" onClick={onClose}>
-            取消
+            {t('common.cancel')}
           </Button>
           <Button variant="primary" onClick={onSave} disabled={loading}>
-            {loading ? '保存中...' : '保存'}
+            {loading ? t('common.saving') : t('common.save')}
           </Button>
         </div>
       </div>
@@ -44,7 +47,6 @@ export const EditModal: React.FC<EditModalProps> = ({
   );
 };
 
-// 表单输入组件
 interface FormInputProps {
   label: string;
   value: unknown;
@@ -53,31 +55,29 @@ interface FormInputProps {
   placeholder?: string;
 }
 
-export const FormInput: React.FC<FormInputProps> = ({
+export const FormInput = ({
   label,
   value,
   onChange,
   type = 'text',
   placeholder,
-}) => {
-  // 将 unknown 类型安全地转换为可显示的值
+}: FormInputProps) => {
   const displayValue = value === null || value === undefined ? '' : String(value);
 
   return (
     <div>
-      <label className="block text-sm font-medium mb-1 text-foreground">{label}</label>
+      <label className="mb-1 block text-sm font-medium text-foreground">{label}</label>
       <input
         type={type}
         value={displayValue}
-        onChange={e => onChange(e.target.value)}
+        onChange={event => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full p-2 border rounded-lg bg-background text-foreground border-input focus:outline-none focus:ring-2 focus:ring-ring"
+        className="w-full rounded-lg border border-input bg-background p-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
       />
     </div>
   );
 };
 
-// 表单选择组件
 interface FormSelectProps {
   label: string;
   value: unknown;
@@ -85,21 +85,20 @@ interface FormSelectProps {
   options: { value: string; label: string }[];
 }
 
-export const FormSelect: React.FC<FormSelectProps> = ({ label, value, onChange, options }) => {
-  // 将 unknown 类型安全地转换为可显示的值
+export const FormSelect = ({ label, value, onChange, options }: FormSelectProps) => {
   const displayValue = value === null || value === undefined ? '' : String(value);
 
   return (
     <div>
-      <label className="block text-sm font-medium mb-1 text-foreground">{label}</label>
+      <label className="mb-1 block text-sm font-medium text-foreground">{label}</label>
       <select
         value={displayValue}
-        onChange={e => onChange(e.target.value)}
-        className="w-full p-2 border rounded-lg bg-background text-foreground border-input focus:outline-none focus:ring-2 focus:ring-ring"
+        onChange={event => onChange(event.target.value)}
+        className="w-full rounded-lg border border-input bg-background p-2 text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
       >
-        {options.map(opt => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
+        {options.map(option => (
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </select>

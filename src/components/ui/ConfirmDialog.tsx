@@ -1,5 +1,6 @@
 import React from 'react';
 import { ExclamationTriangleIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useI18n } from '@/hooks/useI18n';
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -16,12 +17,14 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   isOpen,
   title,
   message,
-  confirmText = '确定',
-  cancelText = '取消',
+  confirmText,
+  cancelText,
   onConfirm,
   onCancel,
   type = 'danger',
 }) => {
+  const { t } = useI18n();
+
   if (!isOpen) return null;
 
   const getTypeStyles = () => {
@@ -47,37 +50,37 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const styles = getTypeStyles();
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-card text-card-foreground rounded-xl shadow-2xl w-full max-w-md animate-scale-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md animate-scale-in rounded-xl bg-card text-card-foreground shadow-2xl">
         <div className="p-6">
           <div className="flex items-start gap-4">
             <div className={`flex-shrink-0 ${styles.icon}`}>
-              <ExclamationTriangleIcon className="w-6 h-6" />
+              <ExclamationTriangleIcon className="h-6 w-6" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
+              <h3 className="mb-2 text-lg font-semibold text-foreground">{title}</h3>
               <p className="text-sm text-muted-foreground">{message}</p>
             </div>
             <button
               onClick={onCancel}
-              className="flex-shrink-0 p-1 hover:bg-secondary rounded transition-colors"
+              className="flex-shrink-0 rounded p-1 transition-colors hover:bg-secondary"
             >
-              <XMarkIcon className="w-5 h-5 text-muted-foreground" />
+              <XMarkIcon className="h-5 w-5 text-muted-foreground" />
             </button>
           </div>
         </div>
         <div className="flex justify-end gap-3 px-6 pb-6">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-foreground hover:bg-secondary rounded-lg transition-colors"
+            className="rounded-lg px-4 py-2 text-foreground transition-colors hover:bg-secondary"
           >
-            {cancelText}
+            {cancelText || t('common.cancel')}
           </button>
           <button
             onClick={onConfirm}
-            className={`px-4 py-2 rounded-lg transition-colors ${styles.button}`}
+            className={`rounded-lg px-4 py-2 transition-colors ${styles.button}`}
           >
-            {confirmText}
+            {confirmText || t('common.confirm')}
           </button>
         </div>
       </div>
@@ -85,7 +88,6 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   );
 };
 
-// Hook for using confirm dialog
 export const useConfirmDialog = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [config, setConfig] = React.useState<{

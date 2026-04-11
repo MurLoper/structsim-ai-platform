@@ -4,6 +4,7 @@ import type { ColumnDef } from '@tanstack/react-table';
 import { BulkAssignPanel, PermissionMatrix } from '@/components/access';
 import { Badge, Button } from '@/components/ui';
 import { VirtualTable } from '@/components/tables/VirtualTable';
+import { useI18n } from '@/hooks/useI18n';
 import type { PermissionItem, Role } from '@/types';
 import type { AccessRolePermissionMap } from '../types';
 import { getStatusVariant, isAdminRole } from '../utils/accessUserIdentity';
@@ -31,10 +32,12 @@ export const AccessRolesTab: React.FC<AccessRolesTabProps> = ({
   onToggleRolePermission,
   onBulkApplyPermissions,
 }) => {
+  const { t } = useI18n();
+
   const columns = useMemo<ColumnDef<Role>[]>(
     () => [
       {
-        header: '角色',
+        header: t('access.role.name'),
         accessorKey: 'name',
         cell: ({ row }) => {
           const record = row.original;
@@ -49,13 +52,13 @@ export const AccessRolesTab: React.FC<AccessRolesTabProps> = ({
         },
       },
       {
-        header: '编码',
+        header: t('common.code'),
         id: 'code',
         size: 160,
         cell: ({ row }) => <Badge size="sm">{row.original.code || '--'}</Badge>,
       },
       {
-        header: '权限数',
+        header: t('access.role.permission_count'),
         id: 'permissionCount',
         size: 120,
         cell: ({ row }) => (
@@ -65,17 +68,17 @@ export const AccessRolesTab: React.FC<AccessRolesTabProps> = ({
         ),
       },
       {
-        header: '状态',
+        header: t('common.status'),
         id: 'status',
         size: 120,
         cell: ({ row }) => (
           <Badge variant={getStatusVariant(row.original.valid)}>
-            {row.original.valid === 0 ? '禁用' : '启用'}
+            {row.original.valid === 0 ? t('access.status.disabled') : t('access.status.enabled')}
           </Badge>
         ),
       },
       {
-        header: '操作',
+        header: t('common.actions'),
         id: 'actions',
         size: 180,
         cell: ({ row }) => {
@@ -89,7 +92,7 @@ export const AccessRolesTab: React.FC<AccessRolesTabProps> = ({
                 onClick={() => onOpenRoleModal(record)}
                 disabled={adminRole}
               >
-                编辑
+                {t('common.edit')}
               </Button>
               <Button
                 variant="outline"
@@ -97,27 +100,25 @@ export const AccessRolesTab: React.FC<AccessRolesTabProps> = ({
                 onClick={() => onOpenRolePermissionModal(record)}
                 disabled={adminRole}
               >
-                配置权限
+                {t('cfg.permissions.role.configure_permissions')}
               </Button>
             </div>
           );
         },
       },
     ],
-    [onOpenRoleModal, onOpenRolePermissionModal]
+    [onOpenRoleModal, onOpenRolePermissionModal, t]
   );
 
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-semibold text-foreground">角色列表</h2>
-          <p className="text-sm text-muted-foreground">
-            配置角色与权限集合，支持批量授权和逐项校验。
-          </p>
+          <h2 className="text-lg font-semibold text-foreground">{t('access.role.title')}</h2>
+          <p className="text-sm text-muted-foreground">{t('access.role.description_text')}</p>
         </div>
-        <Button variant="outline" onClick={onCreateRole} icon={<PlusIcon className="w-4 h-4" />}>
-          新增角色
+        <Button variant="outline" onClick={onCreateRole} icon={<PlusIcon className="h-4 w-4" />}>
+          {t('cfg.permissions.role.create')}
         </Button>
       </div>
 
@@ -126,7 +127,7 @@ export const AccessRolesTab: React.FC<AccessRolesTabProps> = ({
         data={roles}
         getRowId={record => String(record.id)}
         loading={loading}
-        emptyText="暂无角色"
+        emptyText={t('access.role.empty')}
         containerHeight={360}
         rowHeight={52}
         enableSorting={false}
@@ -136,7 +137,7 @@ export const AccessRolesTab: React.FC<AccessRolesTabProps> = ({
 
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-          权限矩阵
+          {t('access.role.matrix')}
           <Badge size="sm">{permissions.length}</Badge>
         </div>
         <PermissionMatrix

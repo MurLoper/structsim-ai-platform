@@ -3,11 +3,22 @@ import { Activity, AlertTriangle, Bell, FileBarChart2, ShieldCheck, Users } from
 import { BarChart, LineChart } from '@/components/charts';
 import { Button, Card } from '@/components/ui';
 import { usePlatformAnalytics } from '@/features/platform/queries/usePlatformAnalytics';
+import {
+  formatPlatformAnalyticsConversionLabel,
+  formatPlatformAnalyticsRangeLabel,
+  formatPlatformAnalyticsStepLabel,
+  getPlatformAnalyticsEventLabel,
+  getPlatformAnalyticsFeatureLabel,
+  getPlatformAnalyticsFunnelLabel,
+  getPlatformAnalyticsPageLabel,
+} from '@/features/platform/analytics/platformAnalyticsLabels';
 import { trackAnalyticsView } from '@/features/platform/tracking/domains/platformTracking';
+import { useI18n } from '@/hooks';
 
 const RANGE_OPTIONS = [7, 14, 30] as const;
 
 const PlatformAnalyticsPage = () => {
+  const { t } = useI18n();
   const [days, setDays] = useState<(typeof RANGE_OPTIONS)[number]>(7);
   const { summary, features, funnels, failures, isLoading, error } = usePlatformAnalytics(days);
 
@@ -23,44 +34,69 @@ const PlatformAnalyticsPage = () => {
 
   const summaryCards = useMemo(
     () => [
-      { key: 'totalEvents', label: '总事件数', icon: Activity },
-      { key: 'pageViews', label: '页面访问', icon: FileBarChart2 },
-      { key: 'uniqueUsers', label: '活跃用户', icon: Users },
-      { key: 'announcementViews', label: '公告曝光', icon: Bell },
-      { key: 'privacyAcceptances', label: '隐私确认', icon: ShieldCheck },
-      { key: 'failureEvents', label: '失败事件', icon: AlertTriangle },
+      { key: 'totalEvents', label: t('platform.analytics.card.total_events'), icon: Activity },
+      { key: 'pageViews', label: t('platform.analytics.card.page_views'), icon: FileBarChart2 },
+      { key: 'uniqueUsers', label: t('platform.analytics.card.unique_users'), icon: Users },
+      {
+        key: 'announcementViews',
+        label: t('platform.analytics.card.announcement_views'),
+        icon: Bell,
+      },
+      {
+        key: 'privacyAcceptances',
+        label: t('platform.analytics.card.privacy_acceptances'),
+        icon: ShieldCheck,
+      },
+      {
+        key: 'failureEvents',
+        label: t('platform.analytics.card.failure_events'),
+        icon: AlertTriangle,
+      },
     ],
-    []
+    [t]
   );
 
   const eventChartData = useMemo(
-    () => summary?.topEvents.map(item => ({ name: item.name, value: item.count })) || [],
-    [summary?.topEvents]
+    () =>
+      summary?.topEvents.map(item => ({
+        name: getPlatformAnalyticsEventLabel(t, item.name),
+        value: item.count,
+      })) || [],
+    [summary?.topEvents, t]
   );
   const pageChartData = useMemo(
     () =>
-      features?.pages.slice(0, 10).map(item => ({ name: item.pageKey, value: item.count })) || [],
-    [features?.pages]
+      features?.pages.slice(0, 10).map(item => ({
+        name: getPlatformAnalyticsPageLabel(t, item.pageKey),
+        value: item.count,
+      })) || [],
+    [features?.pages, t]
   );
   const featureChartData = useMemo(
     () =>
-      features?.features.slice(0, 12).map(item => ({ name: item.featureKey, value: item.count })) ||
-      [],
-    [features?.features]
+      features?.features.slice(0, 12).map(item => ({
+        name: getPlatformAnalyticsFeatureLabel(t, item.featureKey),
+        value: item.count,
+      })) || [],
+    [features?.features, t]
   );
   const failureChartData = useMemo(
-    () => failures?.topFailedEvents.map(item => ({ name: item.name, value: item.count })) || [],
-    [failures?.topFailedEvents]
+    () =>
+      failures?.topFailedEvents.map(item => ({
+        name: getPlatformAnalyticsEventLabel(t, item.name),
+        value: item.count,
+      })) || [],
+    [failures?.topFailedEvents, t]
   );
 
   return (
     <div className="space-y-6 py-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold text-foreground">埋点分析</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            查看页面访问、功能使用、关键流程转化和失败热点。
-          </p>
+          <h1 className="text-3xl font-semibold text-foreground">
+            {t('platform.analytics.title')}
+          </h1>
+          <p className="mt-2 text-sm text-muted-foreground">{t('platform.analytics.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2 rounded-full bg-muted p-1">
           {RANGE_OPTIONS.map(option => (
@@ -70,7 +106,7 @@ const PlatformAnalyticsPage = () => {
               size="sm"
               onClick={() => setDays(option)}
             >
-              最近 {option} 天
+              {formatPlatformAnalyticsRangeLabel(t, option)}
             </Button>
           ))}
         </div>
@@ -79,10 +115,8 @@ const PlatformAnalyticsPage = () => {
       {isForbidden && (
         <Card className="rounded-2xl border-amber-200 bg-amber-50/80 text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-100">
           <div className="space-y-2">
-            <h2 className="text-lg font-semibold">无权查看埋点分析</h2>
-            <p className="text-sm text-current/80">
-              当前账号缺少 VIEW_DASHBOARD 权限，无法访问平台埋点分析页面。
-            </p>
+            <h2 className="text-lg font-semibold">{t('platform.analytics.forbidden_title')}</h2>
+            <p className="text-sm text-current/80">{t('platform.analytics.forbidden_desc')}</p>
           </div>
         </Card>
       )}
@@ -113,23 +147,31 @@ const PlatformAnalyticsPage = () => {
 
           <div className="grid gap-6 xl:grid-cols-2">
             <Card>
-              <h2 className="mb-4 text-lg font-semibold text-foreground">事件趋势</h2>
+              <h2 className="mb-4 text-lg font-semibold text-foreground">
+                {t('platform.analytics.section.event_trend')}
+              </h2>
               {summary?.timeline && summary.timeline.length > 0 ? (
                 <LineChart data={summary.timeline} xField="date" yField="count" height={280} />
               ) : (
                 <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
-                  {isLoading ? '趋势数据加载中...' : '暂无趋势数据'}
+                  {isLoading
+                    ? t('platform.analytics.loading.trend')
+                    : t('platform.analytics.empty.trend')}
                 </div>
               )}
             </Card>
 
             <Card>
-              <h2 className="mb-4 text-lg font-semibold text-foreground">高频事件</h2>
+              <h2 className="mb-4 text-lg font-semibold text-foreground">
+                {t('platform.analytics.section.top_events')}
+              </h2>
               {eventChartData.length > 0 ? (
                 <BarChart data={eventChartData} xField="name" yField="value" height={280} />
               ) : (
                 <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
-                  {isLoading ? '事件数据加载中...' : '暂无事件数据'}
+                  {isLoading
+                    ? t('platform.analytics.loading.events')
+                    : t('platform.analytics.empty.events')}
                 </div>
               )}
             </Card>
@@ -137,7 +179,9 @@ const PlatformAnalyticsPage = () => {
 
           <div className="grid gap-6 xl:grid-cols-2">
             <Card>
-              <h2 className="mb-4 text-lg font-semibold text-foreground">页面使用排行</h2>
+              <h2 className="mb-4 text-lg font-semibold text-foreground">
+                {t('platform.analytics.section.page_usage')}
+              </h2>
               {pageChartData.length > 0 ? (
                 <BarChart
                   data={pageChartData}
@@ -148,13 +192,17 @@ const PlatformAnalyticsPage = () => {
                 />
               ) : (
                 <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">
-                  {isLoading ? '页面排行加载中...' : '暂无页面使用数据'}
+                  {isLoading
+                    ? t('platform.analytics.loading.pages')
+                    : t('platform.analytics.empty.pages')}
                 </div>
               )}
             </Card>
 
             <Card>
-              <h2 className="mb-4 text-lg font-semibold text-foreground">功能使用排行</h2>
+              <h2 className="mb-4 text-lg font-semibold text-foreground">
+                {t('platform.analytics.section.feature_usage')}
+              </h2>
               {featureChartData.length > 0 ? (
                 <BarChart
                   data={featureChartData}
@@ -165,7 +213,9 @@ const PlatformAnalyticsPage = () => {
                 />
               ) : (
                 <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">
-                  {isLoading ? '功能排行加载中...' : '暂无功能使用数据'}
+                  {isLoading
+                    ? t('platform.analytics.loading.features')
+                    : t('platform.analytics.empty.features')}
                 </div>
               )}
             </Card>
@@ -173,11 +223,15 @@ const PlatformAnalyticsPage = () => {
 
           <div className="grid gap-6 xl:grid-cols-2">
             <Card>
-              <h2 className="mb-4 text-lg font-semibold text-foreground">流程转化</h2>
+              <h2 className="mb-4 text-lg font-semibold text-foreground">
+                {t('platform.analytics.section.funnels')}
+              </h2>
               <div className="space-y-4">
                 {(funnels?.funnels || []).map(funnel => (
                   <div key={funnel.key} className="rounded-2xl bg-muted/40 p-4">
-                    <div className="mb-3 text-sm font-semibold text-foreground">{funnel.title}</div>
+                    <div className="mb-3 text-sm font-semibold text-foreground">
+                      {getPlatformAnalyticsFunnelLabel(t, funnel.key)}
+                    </div>
                     <div className="space-y-2">
                       {funnel.steps.map(step => (
                         <div
@@ -186,14 +240,19 @@ const PlatformAnalyticsPage = () => {
                         >
                           <div className="min-w-0">
                             <div className="font-medium text-foreground">
-                              Step {step.index} · {step.featureKey || step.eventName}
+                              {formatPlatformAnalyticsStepLabel(t, step.index)} ·{' '}
+                              {step.featureKey
+                                ? getPlatformAnalyticsFeatureLabel(t, step.featureKey)
+                                : getPlatformAnalyticsEventLabel(t, step.eventName)}
                             </div>
-                            <div className="text-xs text-muted-foreground">{step.eventName}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {getPlatformAnalyticsEventLabel(t, step.eventName)}
+                            </div>
                           </div>
                           <div className="text-right">
                             <div className="font-semibold text-foreground">{step.count}</div>
                             <div className="text-xs text-muted-foreground">
-                              转化 {step.conversionRate}%
+                              {formatPlatformAnalyticsConversionLabel(t, step.conversionRate)}
                             </div>
                           </div>
                         </div>
@@ -203,14 +262,16 @@ const PlatformAnalyticsPage = () => {
                 ))}
                 {!isLoading && (!funnels?.funnels || funnels.funnels.length === 0) && (
                   <div className="rounded-2xl bg-muted/40 px-4 py-8 text-center text-sm text-muted-foreground">
-                    暂无流程转化数据
+                    {t('platform.analytics.empty.funnels')}
                   </div>
                 )}
               </div>
             </Card>
 
             <Card>
-              <h2 className="mb-4 text-lg font-semibold text-foreground">失败热点</h2>
+              <h2 className="mb-4 text-lg font-semibold text-foreground">
+                {t('platform.analytics.section.failures')}
+              </h2>
               {failureChartData.length > 0 ? (
                 <BarChart
                   data={failureChartData}
@@ -221,7 +282,9 @@ const PlatformAnalyticsPage = () => {
                 />
               ) : (
                 <div className="flex h-[320px] items-center justify-center text-sm text-muted-foreground">
-                  {isLoading ? '失败热点加载中...' : '暂无失败事件'}
+                  {isLoading
+                    ? t('platform.analytics.loading.failures')
+                    : t('platform.analytics.empty.failures')}
                 </div>
               )}
             </Card>

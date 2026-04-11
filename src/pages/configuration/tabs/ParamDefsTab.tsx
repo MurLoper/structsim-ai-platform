@@ -1,17 +1,12 @@
-import React, { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Download, Plus, SlidersHorizontal, Upload } from 'lucide-react';
 import { Card, SearchBar, useConfirmDialog, useToast } from '@/components/ui';
 import { baseConfigApi } from '@/api';
 import { usePaginatedParamDefs } from '@/features/config/queries';
+import { useI18n } from '@/hooks';
 import type { ParamDef } from '@/types';
 import { ActionButtons, EditModal, FormInput, FormSelect } from '../components';
 import { ParamDefsUploadModal } from './paramDefs/ParamDefsUploadModal';
-
-const PARAM_DATA_TYPE_OPTIONS = [
-  { value: '1', label: '浮点数' },
-  { value: '2', label: '整数' },
-  { value: '3', label: '字符串' },
-];
 
 const createDefaultParamDef = (): Partial<ParamDef> => ({
   valType: 1,
@@ -21,7 +16,8 @@ const createDefaultParamDef = (): Partial<ParamDef> => ({
   sort: 100,
 });
 
-export const ParamDefsTab: React.FC = () => {
+export const ParamDefsTab = () => {
+  const { t } = useI18n();
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
   const [keyword, setKeyword] = useState('');
@@ -44,6 +40,14 @@ export const ParamDefsTab: React.FC = () => {
     keyword,
   });
 
+  const paramDataTypeOptions = useMemo(
+    () => [
+      { value: '1', label: t('cfg.data_type.float') },
+      { value: '2', label: t('cfg.data_type.int') },
+      { value: '3', label: t('cfg.data_type.string') },
+    ],
+    [t]
+  );
   const paramDefs = paramDefsPage?.items ?? [];
   const total = paramDefsPage?.total ?? 0;
   const totalPages = Math.ceil(total / pageSize);
@@ -62,7 +66,7 @@ export const ParamDefsTab: React.FC = () => {
 
   const handleSave = async () => {
     if (!formData.key?.trim() || !formData.name?.trim()) {
-      showToast('error', 'Key 和名称不能为空');
+      showToast('error', t('cfg.defs.required_name_key'));
       return;
     }
 
@@ -70,15 +74,15 @@ export const ParamDefsTab: React.FC = () => {
     try {
       if (editingItem) {
         await baseConfigApi.updateParamDef(editingItem.id, formData);
-        showToast('success', '更新成功');
+        showToast('success', t('common.update_success'));
       } else {
         await baseConfigApi.createParamDef(formData);
-        showToast('success', '创建成功');
+        showToast('success', t('common.create_success'));
       }
       setShowEditModal(false);
       await refetch();
     } catch {
-      showToast('error', '保存失败');
+      showToast('error', t('common.save_failed'));
     } finally {
       setSaving(false);
     }
@@ -86,15 +90,15 @@ export const ParamDefsTab: React.FC = () => {
 
   const handleDelete = (item: ParamDef) => {
     showConfirm(
-      '删除参数',
-      `确定要删除“${item.name}”吗？`,
+      t('cfg.params.delete_title'),
+      t('cfg.params.delete_confirm', { name: item.name }),
       async () => {
         try {
           await baseConfigApi.deleteParamDef(item.id);
-          showToast('success', '删除成功');
+          showToast('success', t('common.delete_success'));
           await refetch();
         } catch {
-          showToast('error', '删除失败');
+          showToast('error', t('common.delete_failed'));
         }
       },
       'danger'
@@ -102,13 +106,20 @@ export const ParamDefsTab: React.FC = () => {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = ['参数 Key(必填)', '参数名称(必填)', '单位', '最小值', '最大值', '默认值'];
-    const example = ['param_key_1', '参数名称示例', 'mm', '0', '100', '50'];
+    const headers = [
+      t('cfg.params.template.header.key'),
+      t('cfg.params.template.header.name'),
+      t('cfg.params.template.header.unit'),
+      t('cfg.params.template.header.min'),
+      t('cfg.params.template.header.max'),
+      t('cfg.params.template.header.default'),
+    ];
+    const example = ['param_key_1', t('cfg.params.template.example.name'), 'mm', '0', '100', '50'];
     const csv = [headers.join(','), example.join(',')].join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = '参数定义模板.csv';
+    link.download = t('cfg.params.template.file_name');
     link.click();
   };
 
@@ -119,8 +130,10 @@ export const ParamDefsTab: React.FC = () => {
           <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div className="flex items-center gap-2">
               <SlidersHorizontal className="h-5 w-5 text-primary" />
-              <h3 className="text-lg font-semibold text-foreground">参数定义管理</h3>
-              <span className="text-sm text-muted-foreground">共 {total} 条</span>
+              <h3 className="text-lg font-semibold text-foreground">{t('cfg.params.title')}</h3>
+              <span className="text-sm text-muted-foreground">
+                {t('cfg.defs.total', { count: total })}
+              </span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -129,21 +142,21 @@ export const ParamDefsTab: React.FC = () => {
                 className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
               >
                 <Download className="h-4 w-4" />
-                模板
+                {t('common.template')}
               </button>
               <button
                 onClick={() => setShowUploadModal(true)}
                 className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
               >
                 <Upload className="h-4 w-4" />
-                导入
+                {t('common.import')}
               </button>
               <button
                 onClick={() => openEditModal()}
                 className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 <Plus className="h-4 w-4" />
-                新建参数
+                {t('cfg.params.create')}
               </button>
             </div>
           </div>
@@ -153,27 +166,27 @@ export const ParamDefsTab: React.FC = () => {
               value={searchInput}
               onChange={setSearchInput}
               onSearch={handleSearch}
-              placeholder="搜索参数名称或 Key..."
+              placeholder={t('cfg.params.search_placeholder')}
             />
           </div>
         </div>
 
         <div className="overflow-x-auto">
           {loading ? (
-            <div className="p-12 text-center text-muted-foreground">加载中...</div>
+            <div className="p-12 text-center text-muted-foreground">{t('common.loading')}</div>
           ) : paramDefs.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">
-              {keyword ? '未找到匹配的参数' : '暂无参数定义'}
+              {keyword ? t('cfg.params.no_match') : t('cfg.params.empty')}
             </div>
           ) : (
             <table className="w-full text-left text-sm">
               <thead className="bg-muted">
                 <tr>
-                  <th className="p-3 text-foreground">名称</th>
-                  <th className="p-3 text-foreground">Key</th>
-                  <th className="p-3 text-foreground">单位</th>
-                  <th className="p-3 text-foreground">范围</th>
-                  <th className="w-24 p-3 text-foreground">操作</th>
+                  <th className="p-3 text-foreground">{t('common.name')}</th>
+                  <th className="p-3 text-foreground">{t('common.key')}</th>
+                  <th className="p-3 text-foreground">{t('common.unit')}</th>
+                  <th className="p-3 text-foreground">{t('common.range')}</th>
+                  <th className="w-24 p-3 text-foreground">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -201,7 +214,7 @@ export const ParamDefsTab: React.FC = () => {
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-border p-4">
             <span className="text-sm text-muted-foreground">
-              第 {page} / {totalPages} 页
+              {t('common.page_indicator', { page, totalPages })}
             </span>
             <div className="flex gap-2">
               <button
@@ -209,14 +222,14 @@ export const ParamDefsTab: React.FC = () => {
                 disabled={page === 1}
                 className="rounded border border-border px-3 py-1 disabled:opacity-50"
               >
-                上一页
+                {t('common.prev')}
               </button>
               <button
                 onClick={() => setPage(current => Math.min(totalPages, current + 1))}
                 disabled={page === totalPages}
                 className="rounded border border-border px-3 py-1 disabled:opacity-50"
               >
-                下一页
+                {t('common.next')}
               </button>
             </div>
           </div>
@@ -226,56 +239,56 @@ export const ParamDefsTab: React.FC = () => {
       <EditModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
-        title={editingItem ? '编辑参数' : '新建参数'}
+        title={editingItem ? t('cfg.params.edit') : t('cfg.params.create')}
         onSave={handleSave}
         loading={saving}
       >
         <FormInput
-          label="名称"
+          label={t('common.name')}
           value={formData.name || ''}
           onChange={value => setFormData(current => ({ ...current, name: value }))}
-          placeholder="请输入参数名称"
+          placeholder={t('cfg.params.name_placeholder')}
         />
         <FormInput
-          label="Key"
+          label={t('common.key')}
           value={formData.key || ''}
           onChange={value => setFormData(current => ({ ...current, key: value }))}
-          placeholder="请输入参数 Key（英文）"
+          placeholder={t('cfg.params.key_placeholder')}
         />
         <FormSelect
-          label="数据类型"
+          label={t('cfg.params.val_type')}
           value={String(formData.valType || 1)}
           onChange={value => setFormData(current => ({ ...current, valType: Number(value) }))}
-          options={PARAM_DATA_TYPE_OPTIONS}
+          options={paramDataTypeOptions}
         />
         <FormInput
-          label="单位"
+          label={t('common.unit')}
           value={formData.unit || ''}
           onChange={value => setFormData(current => ({ ...current, unit: value }))}
-          placeholder="如：mm, kg, MPa"
+          placeholder={t('cfg.params.unit_placeholder')}
         />
         <div className="grid grid-cols-2 gap-4">
           <FormInput
-            label="最小值"
+            label={t('cfg.params.min')}
             value={formData.minVal ?? 0}
             onChange={value => setFormData(current => ({ ...current, minVal: Number(value) }))}
             type="number"
           />
           <FormInput
-            label="最大值"
+            label={t('cfg.params.max')}
             value={formData.maxVal ?? 100}
             onChange={value => setFormData(current => ({ ...current, maxVal: Number(value) }))}
             type="number"
           />
         </div>
         <FormInput
-          label="默认值"
+          label={t('cfg.params.default')}
           value={formData.defaultVal || ''}
           onChange={value => setFormData(current => ({ ...current, defaultVal: value }))}
-          placeholder="请输入默认值"
+          placeholder={t('cfg.params.default_placeholder')}
         />
         <FormInput
-          label="排序"
+          label={t('common.sort')}
           value={formData.sort ?? 100}
           onChange={value => setFormData(current => ({ ...current, sort: Number(value) }))}
           type="number"

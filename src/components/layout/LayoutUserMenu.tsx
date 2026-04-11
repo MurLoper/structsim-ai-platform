@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRightOnRectangleIcon, EyeIcon, UserCircleIcon } from '@heroicons/react/24/outline';
 import { ChevronDown } from 'lucide-react';
 import { Dropdown } from '@/components/ui';
+import { useI18n } from '@/hooks';
 import type { User } from '@/types';
 
 interface LayoutUserMenuProps {
@@ -13,26 +14,31 @@ interface LayoutUserMenuProps {
 
 export function LayoutUserMenu({ user, onLogout, compact = false }: LayoutUserMenuProps) {
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   const displayName =
-    user?.realName || user?.userName || user?.displayName || user?.domainAccount || '当前用户';
+    user?.realName ||
+    user?.userName ||
+    user?.displayName ||
+    user?.domainAccount ||
+    t('platform.user_menu.current_user');
   const secondaryText = user?.domainAccount || user?.email || '';
 
   const items = useMemo(
     () => [
       {
         key: 'privacy',
-        label: '查看隐私协议',
+        label: t('platform.user_menu.privacy'),
         icon: <EyeIcon className="h-4 w-4" />,
       },
       {
         key: 'logout',
-        label: '退出登录',
+        label: t('platform.user_menu.logout'),
         icon: <ArrowRightOnRectangleIcon className="h-4 w-4" />,
         danger: true,
       },
     ],
-    []
+    [t]
   );
 
   return (

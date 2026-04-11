@@ -144,7 +144,9 @@ export const StatusEditModal: React.FC<StatusEditModalProps> = ({
                   className="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-sm text-foreground focus:border-ring focus:ring-2 focus:ring-ring"
                   placeholder="#000000"
                 />
-                <p className="mt-1 text-xs text-muted-foreground">点击左侧色块打开颜色选择器。</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t('cfg.status.color_picker_hint')}
+                </p>
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -164,7 +166,7 @@ export const StatusEditModal: React.FC<StatusEditModalProps> = ({
                       : 'border-transparent hover:border-muted-foreground/50'
                   )}
                   style={{ backgroundColor: color.value }}
-                  title={color.label}
+                  title={t(color.labelKey)}
                 />
               ))}
             </div>
@@ -209,7 +211,7 @@ export const StatusEditModal: React.FC<StatusEditModalProps> = ({
                 value={iconSearch}
                 onChange={event => onIconSearchChange(event.target.value)}
                 className="w-full rounded-md border border-input bg-background py-2 pl-9 pr-3 text-sm text-foreground focus:border-ring focus:ring-2 focus:ring-ring"
-                placeholder="搜索图标..."
+                placeholder={t('cfg.status.icon_search')}
               />
             </div>
 
@@ -249,12 +251,12 @@ export const StatusEditModal: React.FC<StatusEditModalProps> = ({
               {showMoreIcons ? (
                 <>
                   <ChevronUp className="h-4 w-4" />
-                  收起更多图标
+                  {t('cfg.status.hide_more_icons')}
                 </>
               ) : (
                 <>
                   <ChevronDown className="h-4 w-4" />
-                  显示更多图标
+                  {t('cfg.status.show_more_icons')}
                 </>
               )}
             </button>

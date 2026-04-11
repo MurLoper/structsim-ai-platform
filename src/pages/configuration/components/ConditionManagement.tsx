@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Card } from '@/components/ui';
+import { Card, useConfirmDialog, useToast } from '@/components/ui';
 import { PlusIcon, TrashIcon, StarIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { baseConfigApi } from '@/api/config/base';
 import { queryKeys } from '@/lib/queryClient';
+import { useI18n } from '@/hooks';
 import type { FoldType, SimType, FoldTypeSimTypeRel } from '@/types/config';
 
 interface SimTypeRelItem {
@@ -17,6 +18,9 @@ interface SimTypeRelItem {
 }
 
 export const ConditionManagement: React.FC = () => {
+  const { t } = useI18n();
+  const { showToast } = useToast();
+  const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
   const queryClient = useQueryClient();
   const [foldTypes, setFoldTypes] = useState<FoldType[]>([]);
   const [allSimTypes, setAllSimTypes] = useState<SimType[]>([]);
@@ -25,7 +29,6 @@ export const ConditionManagement: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingFoldTypeId, setEditingFoldTypeId] = useState<number | null>(null);
 
-  // 加载所有数据
   const loadAllData = async () => {
     try {
       setLoading(true);
@@ -40,37 +43,36 @@ export const ConditionManagement: React.FC = () => {
       setFoldTypes(foldTypesData);
       setAllSimTypes(simTypesData);
 
-      // 加载所有姿态的仿真类型关联
       const relMap = new Map<number, SimTypeRelItem[]>();
       await Promise.all(
-        foldTypesData.map(async (ft: FoldType) => {
+        foldTypesData.map(async (foldType: FoldType) => {
           try {
-            const relRes = await baseConfigApi.getFoldTypeSimTypeRelsByFoldType(ft.id);
+            const relRes = await baseConfigApi.getFoldTypeSimTypeRelsByFoldType(foldType.id);
             const rels = (relRes.data || []).map(
               (rel: FoldTypeSimTypeRel & { simTypeName?: string; simTypeCode?: string }) => ({
                 relId: rel.id,
                 simTypeId: rel.simTypeId,
                 simTypeName:
                   rel.simTypeName ||
-                  simTypesData.find((st: SimType) => st.id === rel.simTypeId)?.name ||
+                  simTypesData.find((simType: SimType) => simType.id === rel.simTypeId)?.name ||
                   '',
                 simTypeCode:
                   rel.simTypeCode ||
-                  simTypesData.find((st: SimType) => st.id === rel.simTypeId)?.code ||
+                  simTypesData.find((simType: SimType) => simType.id === rel.simTypeId)?.code ||
                   '',
                 isDefault: rel.isDefault,
                 sort: rel.sort,
               })
             );
-            relMap.set(ft.id, rels);
+            relMap.set(foldType.id, rels);
           } catch {
-            relMap.set(ft.id, []);
+            relMap.set(foldType.id, []);
           }
         })
       );
       setRelationsMap(relMap);
     } catch (error) {
-      console.error('加载数据失败:', error);
+      console.error('Failed to load condition relation data:', error);
     } finally {
       setLoading(false);
     }
@@ -80,7 +82,6 @@ export const ConditionManagement: React.FC = () => {
     loadAllData();
   }, []);
 
-  // 计算表格数据：按姿态类型分组，支持行合并
   const tableData = useMemo(() => {
     const rows: Array<{
       foldType: FoldType;
@@ -89,31 +90,30 @@ export const ConditionManagement: React.FC = () => {
       isFirstRow: boolean;
     }> = [];
 
-    foldTypes.forEach(ft => {
-      const simTypes = relationsMap.get(ft.id) || [];
+    foldTypes.forEach(foldType => {
+      const simTypes = relationsMap.get(foldType.id) || [];
       if (simTypes.length === 0) {
         rows.push({
-          foldType: ft,
+          foldType,
           simType: null,
           rowSpan: 1,
           isFirstRow: true,
         });
-      } else {
-        simTypes.forEach((st, idx) => {
-          rows.push({
-            foldType: ft,
-            simType: st,
-            rowSpan: idx === 0 ? simTypes.length : 0,
-            isFirstRow: idx === 0,
-          });
-        });
+        return;
       }
+      simTypes.forEach((simType, index) => {
+        rows.push({
+          foldType,
+          simType,
+          rowSpan: index === 0 ? simTypes.length : 0,
+          isFirstRow: index === 0,
+        });
+      });
     });
 
     return rows;
   }, [foldTypes, relationsMap]);
 
-  // 添加仿真类型关联
   const handleAddSimType = async (foldTypeId: number, simTypeId: number, isDefault: number) => {
     try {
       await baseConfigApi.addSimTypeToFoldType(foldTypeId, { simTypeId, isDefault });
@@ -122,37 +122,40 @@ export const ConditionManagement: React.FC = () => {
       setShowAddModal(false);
       setEditingFoldTypeId(null);
     } catch (error) {
-      console.error('添加仿真类型关联失败:', error);
-      alert('添加失败');
+      console.error('Failed to add simulation type relation:', error);
+      showToast('error', t('cfg.relations.add_failed'));
     }
   };
 
-  // 设置默认仿真类型
   const handleSetDefault = async (foldTypeId: number, simTypeId: number) => {
     try {
       await baseConfigApi.setDefaultSimTypeForFoldType(foldTypeId, simTypeId);
       await queryClient.invalidateQueries({ queryKey: queryKeys.foldTypeSimTypeRels.all });
       await loadAllData();
     } catch (error) {
-      console.error('设置默认仿真类型失败:', error);
-      alert('设置失败');
+      console.error('Failed to set default simulation type:', error);
+      showToast('error', t('cfg.relations.set_default_failed'));
     }
   };
 
-  // 移除仿真类型关联
-  const handleRemove = async (foldTypeId: number, simTypeId: number) => {
-    if (!confirm('确定要移除此工况配置吗？')) return;
-    try {
-      await baseConfigApi.removeSimTypeFromFoldType(foldTypeId, simTypeId);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.foldTypeSimTypeRels.all });
-      await loadAllData();
-    } catch (error) {
-      console.error('移除仿真类型关联失败:', error);
-      alert('移除失败');
-    }
+  const handleRemove = (foldTypeId: number, simTypeId: number) => {
+    showConfirm(
+      t('common.confirm'),
+      t('cfg.relations.remove_confirm'),
+      async () => {
+        try {
+          await baseConfigApi.removeSimTypeFromFoldType(foldTypeId, simTypeId);
+          await queryClient.invalidateQueries({ queryKey: queryKeys.foldTypeSimTypeRels.all });
+          await loadAllData();
+        } catch (error) {
+          console.error('Failed to remove simulation type relation:', error);
+          showToast('error', t('cfg.relations.remove_failed'));
+        }
+      },
+      'danger'
+    );
   };
 
-  // 打开添加模态框
   const openAddModal = (foldTypeId: number) => {
     setEditingFoldTypeId(foldTypeId);
     setShowAddModal(true);
@@ -160,66 +163,69 @@ export const ConditionManagement: React.FC = () => {
 
   return (
     <Card>
-      <div className="p-4 border-b dark:border-slate-700">
-        <div className="flex justify-between items-center">
+      <div className="border-b p-4 dark:border-slate-700">
+        <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold">工况管理</h3>
-            <p className="text-sm text-slate-500 mt-1">
-              管理目标姿态与仿真类型的配置关系，每个组合形成一个工况
-            </p>
+            <h3 className="text-lg font-semibold">{t('cfg.condition_management.title')}</h3>
+            <p className="mt-1 text-sm text-slate-500">{t('cfg.condition_management.desc')}</p>
           </div>
         </div>
       </div>
 
       <div className="overflow-x-auto">
         {loading ? (
-          <div className="p-12 text-center text-slate-500">加载中...</div>
+          <div className="p-12 text-center text-slate-500">{t('common.loading')}</div>
         ) : tableData.length === 0 ? (
-          <div className="p-12 text-center text-slate-500">暂无工况配置</div>
+          <div className="p-12 text-center text-slate-500">
+            {t('cfg.condition_management.empty')}
+          </div>
         ) : (
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-700/50">
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground w-48">
-                  目标姿态
+                <th className="w-48 px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground">
+                  {t('cfg.condition_management.fold_type')}
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground w-48">
-                  仿真类型
+                <th className="w-48 px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground">
+                  {t('cfg.condition_management.sim_type')}
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground w-32">
-                  默认
+                <th className="w-32 px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground">
+                  {t('cfg.condition_management.default')}
                 </th>
-                <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground w-24">
-                  操作
+                <th className="w-24 px-4 py-3 text-left text-sm font-semibold text-slate-700 dark:text-slate-300 eyecare:text-foreground">
+                  {t('common.actions')}
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
-              {tableData.map((row, idx) => (
+              {tableData.map((row, index) => (
                 <tr
-                  key={`${row.foldType.id}-${row.simType?.simTypeId || 'empty'}-${idx}`}
+                  key={`${row.foldType.id}-${row.simType?.simTypeId || 'empty'}-${index}`}
                   className="hover:bg-slate-50 dark:hover:bg-slate-700 eyecare:hover:bg-muted/30"
                 >
                   {row.rowSpan > 0 && (
                     <td
                       rowSpan={row.rowSpan}
-                      className="px-4 py-3 align-top border-r dark:border-slate-700"
+                      className="border-r px-4 py-3 align-top dark:border-slate-700"
                     >
                       <div className="flex items-start justify-between">
                         <div>
                           <div className="font-medium text-slate-900 dark:text-white eyecare:text-foreground">
                             {row.foldType.name}
                           </div>
-                          <div className="text-xs text-slate-500 mt-1">
-                            {row.foldType.code || '无编码'} | 角度: {row.foldType.angle}°
+                          <div className="mt-1 text-xs text-slate-500">
+                            {row.foldType.code || t('cfg.condition_management.no_code')} |{' '}
+                            {t('cfg.condition_management.angle_label', {
+                              angle: row.foldType.angle,
+                            })}
                           </div>
                         </div>
                         <button
                           onClick={() => openAddModal(row.foldType.id)}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                          title="添加仿真类型"
+                          className="rounded-lg p-1.5 text-blue-600 transition-colors hover:bg-blue-50 dark:hover:bg-blue-900/30"
+                          title={t('cfg.condition_management.add_sim_type')}
                         >
-                          <PlusIcon className="w-4 h-4" />
+                          <PlusIcon className="h-4 w-4" />
                         </button>
                       </div>
                     </td>
@@ -233,24 +239,30 @@ export const ConditionManagement: React.FC = () => {
                         <div className="text-xs text-slate-500">{row.simType.simTypeCode}</div>
                       </div>
                     ) : (
-                      <span className="text-slate-400 italic">未配置仿真类型</span>
+                      <span className="text-slate-400 italic">
+                        {t('cfg.condition_management.no_sim_type')}
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     {row.simType && (
                       <button
                         onClick={() => handleSetDefault(row.foldType.id, row.simType!.simTypeId)}
-                        className={`p-1.5 rounded-lg transition-colors ${
+                        className={`rounded-lg p-1.5 transition-colors ${
                           row.simType.isDefault === 1
                             ? 'text-yellow-500'
-                            : 'text-slate-400 hover:text-yellow-500 hover:bg-slate-100 dark:hover:bg-slate-600 eyecare:hover:bg-muted'
+                            : 'text-slate-400 hover:bg-slate-100 hover:text-yellow-500 dark:hover:bg-slate-600 eyecare:hover:bg-muted'
                         }`}
-                        title={row.simType.isDefault === 1 ? '已是默认' : '设为默认'}
+                        title={
+                          row.simType.isDefault === 1
+                            ? t('cfg.condition_management.already_default')
+                            : t('cfg.condition_management.set_default')
+                        }
                       >
                         {row.simType.isDefault === 1 ? (
-                          <StarIconSolid className="w-5 h-5" />
+                          <StarIconSolid className="h-5 w-5" />
                         ) : (
-                          <StarIcon className="w-5 h-5" />
+                          <StarIcon className="h-5 w-5" />
                         )}
                       </button>
                     )}
@@ -259,10 +271,10 @@ export const ConditionManagement: React.FC = () => {
                     {row.simType && (
                       <button
                         onClick={() => handleRemove(row.foldType.id, row.simType!.simTypeId)}
-                        className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                        title="移除"
+                        className="rounded-lg p-1.5 text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/30"
+                        title={t('cfg.condition_management.remove')}
                       >
-                        <TrashIcon className="w-4 h-4" />
+                        <TrashIcon className="h-4 w-4" />
                       </button>
                     )}
                   </td>
@@ -273,13 +285,14 @@ export const ConditionManagement: React.FC = () => {
         )}
       </div>
 
-      {/* 添加仿真类型模态框 */}
       {showAddModal && editingFoldTypeId !== null && (
         <AddSimTypeModal
           foldTypeId={editingFoldTypeId}
-          foldTypeName={foldTypes.find(ft => ft.id === editingFoldTypeId)?.name || ''}
+          foldTypeName={foldTypes.find(foldType => foldType.id === editingFoldTypeId)?.name || ''}
           simTypes={allSimTypes}
-          existingIds={new Set((relationsMap.get(editingFoldTypeId) || []).map(r => r.simTypeId))}
+          existingIds={
+            new Set((relationsMap.get(editingFoldTypeId) || []).map(rel => rel.simTypeId))
+          }
           onAdd={handleAddSimType}
           onClose={() => {
             setShowAddModal(false);
@@ -287,11 +300,11 @@ export const ConditionManagement: React.FC = () => {
           }}
         />
       )}
+      <ConfirmDialogComponent />
     </Card>
   );
 };
 
-// 添加仿真类型模态框组件
 interface AddSimTypeModalProps {
   foldTypeId: number;
   foldTypeName: string;
@@ -309,10 +322,11 @@ const AddSimTypeModal: React.FC<AddSimTypeModalProps> = ({
   onAdd,
   onClose,
 }) => {
+  const { t } = useI18n();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [isDefault, setIsDefault] = useState(0);
 
-  const availableSimTypes = simTypes.filter(st => !existingIds.has(st.id));
+  const availableSimTypes = simTypes.filter(simType => !existingIds.has(simType.id));
 
   const handleSubmit = () => {
     if (selectedId) {
@@ -321,33 +335,35 @@ const AddSimTypeModal: React.FC<AddSimTypeModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-xl shadow-2xl w-full max-w-md mx-4">
-        <div className="p-4 border-b dark:border-slate-700">
-          <h3 className="text-lg font-bold">添加工况配置</h3>
-          <p className="text-sm text-slate-500 mt-1">
-            为{' '}
-            <span className="font-medium text-slate-700 dark:text-slate-300 eyecare:text-foreground">
-              {foldTypeName}
-            </span>{' '}
-            添加仿真类型
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="mx-4 w-full max-w-md rounded-xl bg-white shadow-2xl dark:bg-slate-800 eyecare:bg-card">
+        <div className="border-b p-4 dark:border-slate-700">
+          <h3 className="text-lg font-bold">{t('cfg.condition_management.add_config')}</h3>
+          <p className="mt-1 text-sm text-slate-500">
+            {t('cfg.condition_management.add_for_fold_type', { name: foldTypeName })}
           </p>
         </div>
-        <div className="p-4 space-y-4">
+        <div className="space-y-4 p-4">
           <div>
-            <label className="block text-sm font-medium mb-2">选择仿真类型</label>
+            <label className="mb-2 block text-sm font-medium">
+              {t('cfg.condition_management.select_sim_type')}
+            </label>
             {availableSimTypes.length === 0 ? (
-              <p className="text-sm text-slate-500">所有仿真类型已配置</p>
+              <p className="text-sm text-slate-500">
+                {t('cfg.condition_management.all_configured')}
+              </p>
             ) : (
               <select
                 value={selectedId ?? ''}
-                onChange={e => setSelectedId(e.target.value ? Number(e.target.value) : null)}
-                className="w-full p-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
+                onChange={event =>
+                  setSelectedId(event.target.value ? Number(event.target.value) : null)
+                }
+                className="w-full rounded-lg border p-2 dark:border-slate-600 dark:bg-slate-700 eyecare:border-border eyecare:bg-card"
               >
-                <option value="">请选择...</option>
-                {availableSimTypes.map(st => (
-                  <option key={st.id} value={st.id}>
-                    {st.name} ({st.code})
+                <option value="">{t('cfg.condition_management.select_sim_type')}</option>
+                {availableSimTypes.map(simType => (
+                  <option key={simType.id} value={simType.id}>
+                    {simType.name} ({simType.code})
                   </option>
                 ))}
               </select>
@@ -358,27 +374,27 @@ const AddSimTypeModal: React.FC<AddSimTypeModalProps> = ({
               type="checkbox"
               id="isDefault"
               checked={isDefault === 1}
-              onChange={e => setIsDefault(e.target.checked ? 1 : 0)}
+              onChange={event => setIsDefault(event.target.checked ? 1 : 0)}
               className="rounded"
             />
             <label htmlFor="isDefault" className="text-sm">
-              设为默认仿真类型
+              {t('cfg.condition_management.default_sim_type')}
             </label>
           </div>
         </div>
-        <div className="flex justify-end gap-3 p-4 border-t dark:border-slate-700">
+        <div className="flex justify-end gap-3 border-t p-4 dark:border-slate-700">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            className="rounded-lg px-4 py-2 text-slate-700 transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 eyecare:text-foreground"
           >
-            取消
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={!selectedId}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            添加
+            {t('common.add')}
           </button>
         </div>
       </div>

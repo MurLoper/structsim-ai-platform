@@ -3,6 +3,7 @@ import { MagnifyingGlassIcon, PlusIcon } from '@heroicons/react/24/outline';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Badge, Button, Input } from '@/components/ui';
 import { VirtualTable } from '@/components/tables/VirtualTable';
+import { useI18n } from '@/hooks/useI18n';
 import type { User } from '@/types';
 import type { PermissionLookup, RoleLookup } from '../types';
 import { getStatusVariant, isAdminUser } from '../utils/accessUserIdentity';
@@ -38,6 +39,8 @@ export const AccessUsersTab: React.FC<AccessUsersTabProps> = ({
   getUserIdentity,
   getUserDisplayName,
 }) => {
+  const { t } = useI18n();
+
   const filteredUsers = useMemo(() => {
     const normalizedKeyword = keyword.trim().toLowerCase();
     if (!normalizedKeyword) {
@@ -55,7 +58,7 @@ export const AccessUsersTab: React.FC<AccessUsersTabProps> = ({
   const columns = useMemo<ColumnDef<User>[]>(
     () => [
       {
-        header: '用户',
+        header: t('access.user.title'),
         accessorKey: 'domainAccount',
         cell: ({ row }) => {
           const record = row.original;
@@ -76,14 +79,16 @@ export const AccessUsersTab: React.FC<AccessUsersTabProps> = ({
         },
       },
       {
-        header: '角色',
+        header: t('access.role.config'),
         id: 'roles',
         size: 180,
         cell: ({ row }) => {
           const record = row.original;
           const roleLabels = record.roleNames?.length
             ? record.roleNames
-            : (record.roleIds || []).map(id => roleNameById.get(id) || `角色 ${id}`);
+            : (record.roleIds || []).map(
+                id => roleNameById.get(id) || t('access.role.fallback', { id })
+              );
           return (
             <div className="flex flex-wrap gap-2">
               {roleLabels.map(role => (
@@ -91,13 +96,15 @@ export const AccessUsersTab: React.FC<AccessUsersTabProps> = ({
                   {role}
                 </Badge>
               ))}
-              {!roleLabels.length && <span className="text-xs text-muted-foreground">未分配</span>}
+              {!roleLabels.length && (
+                <span className="text-xs text-muted-foreground">{t('access.role.unassigned')}</span>
+              )}
             </div>
           );
         },
       },
       {
-        header: '权限',
+        header: t('access.permission.name'),
         id: 'permissions',
         cell: ({ row }) => {
           const record = row.original;
@@ -105,10 +112,10 @@ export const AccessUsersTab: React.FC<AccessUsersTabProps> = ({
             return (
               <div className="flex flex-wrap gap-2">
                 <Badge size="sm" variant="info">
-                  管理员
+                  {t('access.permission.admin')}
                 </Badge>
                 <Badge size="sm" variant="warning">
-                  全部权限
+                  {t('access.permission.all')}
                 </Badge>
               </div>
             );
@@ -134,14 +141,16 @@ export const AccessUsersTab: React.FC<AccessUsersTabProps> = ({
                 </Badge>
               )}
               {permissionNames.length === 0 && (
-                <span className="text-xs text-muted-foreground">未分配</span>
+                <span className="text-xs text-muted-foreground">
+                  {t('access.permission.unassigned')}
+                </span>
               )}
             </div>
           );
         },
       },
       {
-        header: '状态',
+        header: t('common.status'),
         id: 'status',
         size: 120,
         cell: ({ row }) => {
@@ -149,14 +158,14 @@ export const AccessUsersTab: React.FC<AccessUsersTabProps> = ({
           return (
             <Badge variant={getStatusVariant(record.valid ?? record.status)}>
               {record.valid === 0 || record.status === 'disabled' || record.status === 'inactive'
-                ? '禁用'
-                : '启用'}
+                ? t('access.status.disabled')
+                : t('access.status.enabled')}
             </Badge>
           );
         },
       },
       {
-        header: '操作',
+        header: t('common.actions'),
         id: 'actions',
         size: 140,
         cell: ({ row }) => {
@@ -170,10 +179,10 @@ export const AccessUsersTab: React.FC<AccessUsersTabProps> = ({
                 onClick={() => onOpenUserRoleModal(record)}
                 disabled={adminUser}
               >
-                授权
+                {t('access.actions.authorize')}
               </Button>
               <Button variant="outline" size="sm" onClick={() => onOpenPasswordModal(record)}>
-                密码
+                {t('access.actions.password')}
               </Button>
             </div>
           );
@@ -187,6 +196,7 @@ export const AccessUsersTab: React.FC<AccessUsersTabProps> = ({
       onOpenUserRoleModal,
       permissionNameByCode,
       roleNameById,
+      t,
     ]
   );
 
@@ -195,23 +205,23 @@ export const AccessUsersTab: React.FC<AccessUsersTabProps> = ({
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="w-full max-w-md">
           <Input
-            placeholder="搜索用户、邮箱或角色"
+            placeholder={t('access.user.search_placeholder')}
             value={keyword}
             onChange={event => onKeywordChange(event.target.value)}
-            leftIcon={<MagnifyingGlassIcon className="w-4 h-4" />}
+            leftIcon={<MagnifyingGlassIcon className="h-4 w-4" />}
           />
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={onCreateUser}>
-            新增用户
+            {t('access.user.create')}
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={onCreateRole}
-            icon={<PlusIcon className="w-4 h-4" />}
+            icon={<PlusIcon className="h-4 w-4" />}
           >
-            新增角色
+            {t('access.role.config')}
           </Button>
         </div>
       </div>
@@ -221,7 +231,7 @@ export const AccessUsersTab: React.FC<AccessUsersTabProps> = ({
         data={filteredUsers}
         getRowId={record => String(record.id)}
         loading={loading}
-        emptyText="暂无用户数据"
+        emptyText={t('access.user.empty')}
         containerHeight={420}
         rowHeight={56}
         enableSorting={false}

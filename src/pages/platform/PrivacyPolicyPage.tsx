@@ -10,6 +10,7 @@ import {
   trackPrivacyAccept,
   trackPrivacyView,
 } from '@/features/platform/tracking/domains/platformTracking';
+import { useI18n } from '@/hooks';
 
 type PrivacyLocationState = {
   from?: {
@@ -28,6 +29,7 @@ const getBackPath = (state?: PrivacyLocationState) => {
 const PrivacyPolicyPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useI18n();
   const { showToast } = useToast();
   const { data: policy, isLoading } = usePrivacyPolicy();
   const acceptMutation = useAcceptPrivacyPolicy();
@@ -54,17 +56,17 @@ const PrivacyPolicyPage = () => {
     }
 
     if (policy.required && !checked) {
-      showToast('warning', '请先勾选同意隐私协议');
+      showToast('warning', t('platform.privacy.accept_required'));
       return;
     }
 
     try {
       await acceptMutation.mutateAsync(policy.version);
       trackPrivacyAccept(policy.version);
-      showToast('success', '隐私协议已确认');
+      showToast('success', t('platform.privacy.accept_success'));
       navigate(backPath, { replace: true });
     } catch (error) {
-      const message = error instanceof Error ? error.message : '隐私协议确认失败';
+      const message = error instanceof Error ? error.message : t('platform.privacy.accept_failed');
       showToast('error', message);
     }
   };
@@ -73,14 +75,12 @@ const PrivacyPolicyPage = () => {
     <div className="mx-auto flex max-w-5xl flex-col gap-6 py-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-semibold text-foreground">隐私协议</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            阅读并确认当前版本的隐私协议后，才可继续进入系统。
-          </p>
+          <h1 className="text-3xl font-semibold text-foreground">{t('platform.privacy.title')}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">{t('platform.privacy.subtitle')}</p>
         </div>
         <Button variant="ghost" onClick={() => navigate(backPath)}>
           <ArrowLeft className="h-4 w-4" />
-          返回
+          {t('common.back')}
         </Button>
       </div>
 
@@ -92,10 +92,10 @@ const PrivacyPolicyPage = () => {
             </div>
             <div>
               <h2 className="text-xl font-semibold text-foreground">
-                {policy?.title || '隐私协议'}
+                {policy?.title || t('platform.privacy.title')}
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                当前版本：{policy?.version || '--'}
+                {t('platform.privacy.current_version', { version: policy?.version || '--' })}
               </p>
             </div>
           </div>
@@ -103,31 +103,35 @@ const PrivacyPolicyPage = () => {
 
         <div className="space-y-6 px-6 py-6">
           <div className="rounded-2xl bg-muted/50 p-4 text-sm leading-6 text-muted-foreground">
-            {policy?.summary || '正在加载隐私协议摘要...'}
+            {policy?.summary || t('platform.privacy.summary_loading')}
           </div>
 
           <div className="min-h-[360px] whitespace-pre-wrap rounded-2xl border border-border bg-background px-5 py-4 text-sm leading-7 text-foreground">
-            {isLoading ? '隐私协议内容加载中...' : policy?.content || '暂无隐私协议内容'}
+            {isLoading
+              ? t('platform.privacy.content_loading')
+              : policy?.content || t('platform.privacy.content_empty')}
           </div>
 
           <div className="flex flex-col gap-4 border-t border-border pt-4">
             <Checkbox
               checked={checked}
               onChange={event => setChecked(event.target.checked)}
-              label="我已阅读并同意当前版本的隐私协议"
+              label={t('platform.privacy.accept_label')}
             />
             {policy?.accepted && (
-              <p className="text-sm text-muted-foreground">你已同意当前版本的隐私协议。</p>
+              <p className="text-sm text-muted-foreground">{t('platform.privacy.accepted_tip')}</p>
             )}
             <div className="flex flex-wrap items-center gap-3">
               <Button
                 onClick={handleAccept}
                 disabled={acceptMutation.isPending || (policy?.required && !checked)}
               >
-                {acceptMutation.isPending ? '提交中...' : '同意并进入系统'}
+                {acceptMutation.isPending
+                  ? t('platform.privacy.accepting')
+                  : t('platform.privacy.accept_submit')}
               </Button>
               <Button variant="outline" onClick={() => navigate(backPath)}>
-                稍后查看
+                {t('platform.privacy.view_later')}
               </Button>
             </div>
           </div>

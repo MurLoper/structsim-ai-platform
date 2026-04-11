@@ -1,7 +1,7 @@
-import React from 'react';
 import type { PermissionItem, Role } from '@/types';
 import { Button, Checkbox, Input, Modal, Select, Textarea } from '@/components/ui';
 import { PermissionTree } from '@/components/access';
+import { useI18n } from '@/hooks';
 
 export type UserFormState = {
   id?: string;
@@ -53,24 +53,22 @@ type ModalActionProps = {
   onCancel: () => void;
   onConfirm: () => void;
   saving: boolean;
-  confirmText?: string;
 };
 
-const PermissionsModalActions: React.FC<ModalActionProps> = ({
-  onCancel,
-  onConfirm,
-  saving,
-  confirmText = '保存',
-}) => (
-  <div className={modalActionsClass}>
-    <Button variant="outline" onClick={onCancel}>
-      取消
-    </Button>
-    <Button onClick={onConfirm} loading={saving}>
-      {confirmText}
-    </Button>
-  </div>
-);
+const PermissionsModalActions = ({ onCancel, onConfirm, saving }: ModalActionProps) => {
+  const { t } = useI18n();
+
+  return (
+    <div className={modalActionsClass}>
+      <Button variant="outline" onClick={onCancel}>
+        {t('common.cancel')}
+      </Button>
+      <Button onClick={onConfirm} loading={saving}>
+        {t('common.save')}
+      </Button>
+    </div>
+  );
+};
 
 type RoleAssignmentCardProps = {
   role: Role;
@@ -78,15 +76,21 @@ type RoleAssignmentCardProps = {
   onChange: (checked: boolean) => void;
 };
 
-const RoleAssignmentCard: React.FC<RoleAssignmentCardProps> = ({ role, checked, onChange }) => (
-  <label key={role.id} className={optionCardClass}>
-    <div>
-      <div className="text-sm font-medium text-foreground">{role.name}</div>
-      <div className="text-xs text-muted-foreground">{role.code || '未配置编码'}</div>
-    </div>
-    <Checkbox checked={checked} onChange={event => onChange(event.target.checked)} />
-  </label>
-);
+const RoleAssignmentCard = ({ role, checked, onChange }: RoleAssignmentCardProps) => {
+  const { t } = useI18n();
+
+  return (
+    <label key={role.id} className={optionCardClass}>
+      <div>
+        <div className="text-sm font-medium text-foreground">{role.name}</div>
+        <div className="text-xs text-muted-foreground">
+          {role.code || t('cfg.permissions.unconfigured_code')}
+        </div>
+      </div>
+      <Checkbox checked={checked} onChange={event => onChange(event.target.checked)} />
+    </label>
+  );
+};
 
 type UserFormModalProps = {
   isOpen: boolean;
@@ -98,7 +102,7 @@ type UserFormModalProps = {
   onChange: (updater: (prev: UserFormState) => UserFormState) => void;
 };
 
-export const UserFormModal: React.FC<UserFormModalProps> = ({
+export const UserFormModal = ({
   isOpen,
   form,
   roles,
@@ -106,86 +110,97 @@ export const UserFormModal: React.FC<UserFormModalProps> = ({
   onClose,
   onSave,
   onChange,
-}) => (
-  <Modal isOpen={isOpen} onClose={onClose} title={form.id ? '编辑用户' : '新建用户'} size="xl">
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Input
-          label="域账号"
-          value={form.domainAccount}
-          onChange={event => onChange(prev => ({ ...prev, domainAccount: event.target.value }))}
-          placeholder="例如 zhangsan"
-        />
-        <Input
-          label="邮箱"
-          value={form.email}
-          onChange={event => onChange(prev => ({ ...prev, email: event.target.value }))}
-          placeholder="例如 zhangsan@example.com"
-        />
-        <Input
-          label="显示名"
-          value={form.userName}
-          onChange={event => onChange(prev => ({ ...prev, userName: event.target.value }))}
-          placeholder="前端展示名称"
-        />
-        <Input
-          label="真实姓名"
-          value={form.realName}
-          onChange={event => onChange(prev => ({ ...prev, realName: event.target.value }))}
-          placeholder="例如 张三"
-        />
-        <Input
-          label="外部用户 ID"
-          value={form.lcUserId}
-          onChange={event => onChange(prev => ({ ...prev, lcUserId: event.target.value }))}
-          placeholder="后续可映射自动化系统用户"
-        />
-        <Input
-          label="部门"
-          value={form.department}
-          onChange={event => onChange(prev => ({ ...prev, department: event.target.value }))}
-          placeholder="例如 CAE 平台组"
-        />
-        <Input
-          label="日轮次上限"
-          type="number"
-          value={form.dailyRoundLimit}
-          onChange={event => onChange(prev => ({ ...prev, dailyRoundLimit: event.target.value }))}
-          placeholder="留空则继承权限组默认值"
-        />
-      </div>
+}: UserFormModalProps) => {
+  const { t } = useI18n();
 
-      <div className="space-y-3">
-        <div className="text-sm font-medium text-foreground">分配权限组</div>
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {roles.map(role => (
-            <RoleAssignmentCard
-              key={role.id}
-              role={role}
-              checked={form.roleIds.includes(role.id)}
-              onChange={checked =>
-                onChange(prev => ({
-                  ...prev,
-                  roleIds: checked
-                    ? [...prev.roleIds, role.id]
-                    : prev.roleIds.filter(id => id !== role.id),
-                }))
-              }
-            />
-          ))}
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={form.id ? t('cfg.permissions.user.edit') : t('cfg.permissions.user.create')}
+      size="xl"
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Input
+            label={t('cfg.permissions.user.domain_account')}
+            value={form.domainAccount}
+            onChange={event => onChange(prev => ({ ...prev, domainAccount: event.target.value }))}
+            placeholder={t('cfg.permissions.user.placeholder.domain_account')}
+          />
+          <Input
+            label={t('cfg.permissions.user.email')}
+            value={form.email}
+            onChange={event => onChange(prev => ({ ...prev, email: event.target.value }))}
+            placeholder={t('cfg.permissions.user.placeholder.email')}
+          />
+          <Input
+            label={t('cfg.permissions.user.display_name')}
+            value={form.userName}
+            onChange={event => onChange(prev => ({ ...prev, userName: event.target.value }))}
+            placeholder={t('cfg.permissions.user.placeholder.display_name')}
+          />
+          <Input
+            label={t('cfg.permissions.user.real_name')}
+            value={form.realName}
+            onChange={event => onChange(prev => ({ ...prev, realName: event.target.value }))}
+            placeholder={t('cfg.permissions.user.placeholder.real_name')}
+          />
+          <Input
+            label={t('cfg.permissions.user.external_id')}
+            value={form.lcUserId}
+            onChange={event => onChange(prev => ({ ...prev, lcUserId: event.target.value }))}
+            placeholder={t('cfg.permissions.user.placeholder.external_id')}
+          />
+          <Input
+            label={t('cfg.permissions.user.department')}
+            value={form.department}
+            onChange={event => onChange(prev => ({ ...prev, department: event.target.value }))}
+            placeholder={t('cfg.permissions.user.placeholder.department')}
+          />
+          <Input
+            label={t('cfg.permissions.user.daily_round_limit')}
+            type="number"
+            value={form.dailyRoundLimit}
+            onChange={event => onChange(prev => ({ ...prev, dailyRoundLimit: event.target.value }))}
+            placeholder={t('cfg.permissions.user.placeholder.daily_round_limit')}
+          />
         </div>
+
+        <div className="space-y-3">
+          <div className="text-sm font-medium text-foreground">
+            {t('cfg.permissions.user.assign_roles')}
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            {roles.map(role => (
+              <RoleAssignmentCard
+                key={role.id}
+                role={role}
+                checked={form.roleIds.includes(role.id)}
+                onChange={checked =>
+                  onChange(prev => ({
+                    ...prev,
+                    roleIds: checked
+                      ? [...prev.roleIds, role.id]
+                      : prev.roleIds.filter(id => id !== role.id),
+                  }))
+                }
+              />
+            ))}
+          </div>
+        </div>
+
+        <Checkbox
+          label={t('cfg.permissions.user.enabled')}
+          checked={form.valid}
+          onChange={event => onChange(prev => ({ ...prev, valid: event.target.checked }))}
+        />
+
+        <PermissionsModalActions onCancel={onClose} onConfirm={onSave} saving={saving} />
       </div>
-
-      <Checkbox
-        label="启用该用户"
-        checked={form.valid}
-        onChange={event => onChange(prev => ({ ...prev, valid: event.target.checked }))}
-      />
-
-      <PermissionsModalActions onCancel={onClose} onConfirm={onSave} saving={saving} />
-    </div>
-  </Modal>
-);
+    </Modal>
+  );
+};
 
 type RoleFormModalProps = {
   isOpen: boolean;
@@ -197,7 +212,7 @@ type RoleFormModalProps = {
   onChange: (updater: (prev: RoleFormState) => RoleFormState) => void;
 };
 
-export const RoleFormModal: React.FC<RoleFormModalProps> = ({
+export const RoleFormModal = ({
   isOpen,
   form,
   permissions,
@@ -205,84 +220,97 @@ export const RoleFormModal: React.FC<RoleFormModalProps> = ({
   onClose,
   onSave,
   onChange,
-}) => (
-  <Modal isOpen={isOpen} onClose={onClose} title={form.id ? '编辑权限组' : '新建权限组'} size="xl">
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Input
-          label="权限组名称"
-          value={form.name}
-          onChange={event => onChange(prev => ({ ...prev, name: event.target.value }))}
-          placeholder="例如 审批管理员"
+}: RoleFormModalProps) => {
+  const { t } = useI18n();
+
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={form.id ? t('cfg.permissions.role.edit') : t('cfg.permissions.role.create')}
+      size="xl"
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Input
+            label={t('cfg.permissions.role.name')}
+            value={form.name}
+            onChange={event => onChange(prev => ({ ...prev, name: event.target.value }))}
+            placeholder={t('cfg.permissions.role.placeholder.name')}
+          />
+          <Input
+            label={t('common.code')}
+            value={form.code}
+            onChange={event => onChange(prev => ({ ...prev, code: event.target.value }))}
+            placeholder={t('cfg.permissions.role.placeholder.code')}
+          />
+          <Input
+            label={t('cfg.permissions.role.cpu_limit')}
+            type="number"
+            value={form.maxCpuCores}
+            onChange={event => onChange(prev => ({ ...prev, maxCpuCores: event.target.value }))}
+          />
+          <Input
+            label={t('cfg.permissions.role.batch_limit')}
+            type="number"
+            value={form.maxBatchSize}
+            onChange={event => onChange(prev => ({ ...prev, maxBatchSize: event.target.value }))}
+          />
+          <Input
+            label={t('cfg.permissions.role.daily_limit_default')}
+            type="number"
+            value={form.dailyRoundLimitDefault}
+            onChange={event =>
+              onChange(prev => ({ ...prev, dailyRoundLimitDefault: event.target.value }))
+            }
+          />
+          <Input
+            label={t('cfg.permissions.role.node_list')}
+            value={form.nodeList}
+            onChange={event => onChange(prev => ({ ...prev, nodeList: event.target.value }))}
+            placeholder={t('cfg.permissions.role.placeholder.node_list')}
+          />
+          <Input
+            label={t('common.sort')}
+            type="number"
+            value={form.sort}
+            onChange={event => onChange(prev => ({ ...prev, sort: event.target.value }))}
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-foreground">
+            {t('cfg.permissions.role.description')}
+          </label>
+          <Textarea
+            value={form.description}
+            onChange={event => onChange(prev => ({ ...prev, description: event.target.value }))}
+            placeholder={t('cfg.permissions.role.placeholder.description')}
+          />
+        </div>
+
+        <div className="space-y-3">
+          <div className="text-sm font-medium text-foreground">
+            {t('cfg.permissions.role.configure_permissions')}
+          </div>
+          <PermissionTree
+            permissions={permissions}
+            selectedIds={form.permissionIds}
+            onChange={ids => onChange(prev => ({ ...prev, permissionIds: ids }))}
+          />
+        </div>
+
+        <Checkbox
+          label={t('cfg.permissions.role.enabled')}
+          checked={form.valid}
+          onChange={event => onChange(prev => ({ ...prev, valid: event.target.checked }))}
         />
-        <Input
-          label="编码"
-          value={form.code}
-          onChange={event => onChange(prev => ({ ...prev, code: event.target.value }))}
-          placeholder="例如 APPROVAL_ADMIN"
-        />
-        <Input
-          label="CPU 上限"
-          type="number"
-          value={form.maxCpuCores}
-          onChange={event => onChange(prev => ({ ...prev, maxCpuCores: event.target.value }))}
-        />
-        <Input
-          label="批量提单上限"
-          type="number"
-          value={form.maxBatchSize}
-          onChange={event => onChange(prev => ({ ...prev, maxBatchSize: event.target.value }))}
-        />
-        <Input
-          label="默认日轮次上限"
-          type="number"
-          value={form.dailyRoundLimitDefault}
-          onChange={event =>
-            onChange(prev => ({ ...prev, dailyRoundLimitDefault: event.target.value }))
-          }
-        />
-        <Input
-          label="节点列表"
-          value={form.nodeList}
-          onChange={event => onChange(prev => ({ ...prev, nodeList: event.target.value }))}
-          placeholder="例如 1,2,5"
-        />
-        <Input
-          label="排序"
-          type="number"
-          value={form.sort}
-          onChange={event => onChange(prev => ({ ...prev, sort: event.target.value }))}
-        />
+
+        <PermissionsModalActions onCancel={onClose} onConfirm={onSave} saving={saving} />
       </div>
-
-      <div>
-        <label className="mb-1 block text-sm font-medium text-foreground">说明</label>
-        <Textarea
-          value={form.description}
-          onChange={event => onChange(prev => ({ ...prev, description: event.target.value }))}
-          placeholder="说明这个权限组主要负责什么业务"
-        />
-      </div>
-
-      <div className="space-y-3">
-        <div className="text-sm font-medium text-foreground">配置权限</div>
-        <PermissionTree
-          permissions={permissions}
-          selectedIds={form.permissionIds}
-          onChange={ids => onChange(prev => ({ ...prev, permissionIds: ids }))}
-        />
-      </div>
-
-      <Checkbox
-        label="启用该权限组"
-        checked={form.valid}
-        onChange={event => onChange(prev => ({ ...prev, valid: event.target.checked }))}
-      />
-
-      <PermissionsModalActions onCancel={onClose} onConfirm={onSave} saving={saving} />
-    </div>
-  </Modal>
-);
+    </Modal>
+  );
+};
 
 type MenuFormModalProps = {
   isOpen: boolean;
@@ -295,7 +323,7 @@ type MenuFormModalProps = {
   onChange: (updater: (prev: MenuFormState) => MenuFormState) => void;
 };
 
-export const MenuFormModal: React.FC<MenuFormModalProps> = ({
+export const MenuFormModal = ({
   isOpen,
   form,
   menuParentOptions,
@@ -304,80 +332,89 @@ export const MenuFormModal: React.FC<MenuFormModalProps> = ({
   onClose,
   onSave,
   onChange,
-}) => (
-  <Modal isOpen={isOpen} onClose={onClose} title={form.id ? '编辑菜单' : '新建菜单'} size="xl">
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <Select
-          label="父级菜单"
-          options={menuParentOptions}
-          value={form.parentId}
-          onChange={event => onChange(prev => ({ ...prev, parentId: event.target.value }))}
-        />
-        <Select
-          label="菜单类型"
-          options={menuTypeOptions}
-          value={form.menuType}
-          onChange={event => onChange(prev => ({ ...prev, menuType: event.target.value }))}
-        />
-        <Input
-          label="菜单名称"
-          value={form.name}
-          onChange={event => onChange(prev => ({ ...prev, name: event.target.value }))}
-          placeholder="例如 申请单管理"
-        />
-        <Input
-          label="国际化 Key"
-          value={form.titleI18nKey}
-          onChange={event => onChange(prev => ({ ...prev, titleI18nKey: event.target.value }))}
-          placeholder="例如 menu.order.list"
-        />
-        <Input
-          label="图标"
-          value={form.icon}
-          onChange={event => onChange(prev => ({ ...prev, icon: event.target.value }))}
-          placeholder="例如 FolderOpen"
-        />
-        <Input
-          label="权限码"
-          value={form.permissionCode}
-          onChange={event => onChange(prev => ({ ...prev, permissionCode: event.target.value }))}
-          placeholder="例如 order:create"
-        />
-        <Input
-          label="路由 Path"
-          value={form.path}
-          onChange={event => onChange(prev => ({ ...prev, path: event.target.value }))}
-          placeholder="例如 /orders/create"
-        />
-        <Input
-          label="组件路径"
-          value={form.component}
-          onChange={event => onChange(prev => ({ ...prev, component: event.target.value }))}
-          placeholder="例如 orders/CreateOrderPage"
-        />
-        <Input
-          label="排序"
-          type="number"
-          value={form.sort}
-          onChange={event => onChange(prev => ({ ...prev, sort: event.target.value }))}
-        />
-      </div>
+}: MenuFormModalProps) => {
+  const { t } = useI18n();
 
-      <div className="flex flex-wrap gap-6">
-        <Checkbox
-          label="隐藏菜单"
-          checked={form.hidden}
-          onChange={event => onChange(prev => ({ ...prev, hidden: event.target.checked }))}
-        />
-        <Checkbox
-          label="启用菜单"
-          checked={form.valid}
-          onChange={event => onChange(prev => ({ ...prev, valid: event.target.checked }))}
-        />
-      </div>
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={form.id ? t('cfg.permissions.menu.edit') : t('cfg.permissions.menu.create')}
+      size="xl"
+    >
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Select
+            label={t('cfg.permissions.menu.parent')}
+            options={menuParentOptions}
+            value={form.parentId}
+            onChange={event => onChange(prev => ({ ...prev, parentId: event.target.value }))}
+          />
+          <Select
+            label={t('cfg.permissions.menu.type')}
+            options={menuTypeOptions}
+            value={form.menuType}
+            onChange={event => onChange(prev => ({ ...prev, menuType: event.target.value }))}
+          />
+          <Input
+            label={t('cfg.permissions.menu.name')}
+            value={form.name}
+            onChange={event => onChange(prev => ({ ...prev, name: event.target.value }))}
+            placeholder={t('cfg.permissions.menu.placeholder.name')}
+          />
+          <Input
+            label={t('cfg.permissions.menu.i18n_key')}
+            value={form.titleI18nKey}
+            onChange={event => onChange(prev => ({ ...prev, titleI18nKey: event.target.value }))}
+            placeholder={t('cfg.permissions.menu.placeholder.i18n_key')}
+          />
+          <Input
+            label={t('cfg.permissions.menu.icon')}
+            value={form.icon}
+            onChange={event => onChange(prev => ({ ...prev, icon: event.target.value }))}
+            placeholder={t('cfg.permissions.menu.placeholder.icon')}
+          />
+          <Input
+            label={t('cfg.permissions.menu.permission_code')}
+            value={form.permissionCode}
+            onChange={event => onChange(prev => ({ ...prev, permissionCode: event.target.value }))}
+            placeholder={t('cfg.permissions.menu.placeholder.permission_code')}
+          />
+          <Input
+            label={t('cfg.permissions.menu.path')}
+            value={form.path}
+            onChange={event => onChange(prev => ({ ...prev, path: event.target.value }))}
+            placeholder={t('cfg.permissions.menu.placeholder.path')}
+          />
+          <Input
+            label={t('cfg.permissions.menu.component')}
+            value={form.component}
+            onChange={event => onChange(prev => ({ ...prev, component: event.target.value }))}
+            placeholder={t('cfg.permissions.menu.placeholder.component')}
+          />
+          <Input
+            label={t('common.sort')}
+            type="number"
+            value={form.sort}
+            onChange={event => onChange(prev => ({ ...prev, sort: event.target.value }))}
+          />
+        </div>
 
-      <PermissionsModalActions onCancel={onClose} onConfirm={onSave} saving={saving} />
-    </div>
-  </Modal>
-);
+        <div className="flex flex-wrap gap-6">
+          <Checkbox
+            label={t('cfg.permissions.menu.hidden')}
+            checked={form.hidden}
+            onChange={event => onChange(prev => ({ ...prev, hidden: event.target.checked }))}
+          />
+          <Checkbox
+            label={t('cfg.permissions.menu.enabled')}
+            checked={form.valid}
+            onChange={event => onChange(prev => ({ ...prev, valid: event.target.checked }))}
+          />
+        </div>
+
+        <PermissionsModalActions onCancel={onClose} onConfirm={onSave} saving={saving} />
+      </div>
+    </Modal>
+  );
+};

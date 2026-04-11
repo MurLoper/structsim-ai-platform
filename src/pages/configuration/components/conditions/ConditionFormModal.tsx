@@ -2,6 +2,7 @@ import React from 'react';
 import { X } from 'lucide-react';
 import type { ConditionConfig } from '@/types';
 import type { ParamGroup, OutputGroup } from '@/types/configGroups';
+import { useI18n } from '@/hooks/useI18n';
 import {
   managementFieldClass,
   managementModalOverlayClass,
@@ -72,44 +73,48 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
   onClose,
   onSave,
 }) => {
+  const { t } = useI18n();
+
   if (!showModal) {
     return null;
   }
 
   return (
     <div className={managementModalOverlayClass}>
-      <div className={`${managementModalPanelClass} w-full max-w-2xl max-h-[90vh] overflow-hidden`}>
+      <div className={`${managementModalPanelClass} max-h-[90vh] w-full max-w-2xl overflow-hidden`}>
         <div className="flex items-center justify-between border-b border-border p-4">
           <h3 className="text-lg font-semibold text-foreground">
-            {editingConfig ? '编辑工况配置' : '新增工况配置'}
+            {editingConfig ? t('cfg.condition_config.edit') : t('cfg.condition_config.create')}
           </h3>
           <button onClick={onClose} className="rounded p-1 hover:bg-muted">
-            <X className="w-5 h-5" />
+            <X className="h-5 w-5" />
           </button>
         </div>
 
-        <div className="p-4 space-y-4 overflow-y-auto max-h-[60vh]">
+        <div className="max-h-[60vh] space-y-4 overflow-y-auto p-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">
-                工况名称 <span className="text-red-500">*</span>
+                {t('cfg.condition_config.name')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={event => setFormData(prev => ({ ...prev, name: event.target.value }))}
                 className={managementFieldClass}
-                placeholder="如：展开态-静力分析"
+                placeholder={t('cfg.condition_config.name_placeholder')}
               />
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">工况编码</label>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                {t('cfg.condition_config.code')}
+              </label>
               <input
                 type="text"
                 value={formData.code}
                 onChange={event => setFormData(prev => ({ ...prev, code: event.target.value }))}
                 className={managementFieldClass}
-                placeholder="如：DEPLOY_STATIC"
+                placeholder={t('cfg.condition_config.code_placeholder')}
               />
             </div>
           </div>
@@ -117,7 +122,7 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">
-                目标姿态 <span className="text-red-500">*</span>
+                {t('cfg.condition_config.fold_type')} <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.foldTypeId?.toString() || ''}
@@ -138,7 +143,7 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
                 className={managementFieldClass}
                 disabled={!!editingConfig}
               >
-                <option value="">请选择姿态</option>
+                <option value="">{t('cfg.condition_config.select_fold_type')}</option>
                 {foldTypes.map(foldType => (
                   <option key={foldType.id} value={foldType.id.toString()}>
                     {foldType.name}
@@ -148,7 +153,7 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-foreground">
-                仿真类型 <span className="text-red-500">*</span>
+                {t('cfg.condition_config.sim_type')} <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.simTypeId?.toString() || ''}
@@ -170,7 +175,7 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
                 className={managementFieldClass}
                 disabled={!!editingConfig}
               >
-                <option value="">请选择仿真类型</option>
+                <option value="">{t('cfg.condition_config.select_sim_type')}</option>
                 {simTypes.map(simType => (
                   <option key={simType.id} value={simType.id.toString()}>
                     {simType.name}
@@ -181,18 +186,20 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
           </div>
 
           {isDuplicateCombo && (
-            <div className="px-3 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-sm text-amber-700 dark:text-amber-400">
-              该姿态与仿真类型的组合已存在，保存时会被拒绝。
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-400">
+              {t('cfg.condition_config.duplicate_combo')}
             </div>
           )}
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">可用参数组</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t('cfg.condition_config.available_param_groups')}
+            </label>
             <div className="max-h-32 overflow-y-auto rounded-lg border border-border p-3">
               {paramGroups.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {paramGroups.map(paramGroup => (
-                    <label key={paramGroup.id} className="flex items-center gap-1.5 cursor-pointer">
+                    <label key={paramGroup.id} className="flex cursor-pointer items-center gap-1.5">
                       <input
                         type="checkbox"
                         checked={formData.paramGroupIds.includes(paramGroup.id)}
@@ -220,20 +227,24 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
                   ))}
                 </div>
               ) : (
-                <span className="text-sm text-muted-foreground">暂无参数组</span>
+                <span className="text-sm text-muted-foreground">
+                  {t('cfg.condition_config.empty_param_groups')}
+                </span>
               )}
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-sm font-medium text-foreground">可用输出组</label>
+            <label className="mb-1 block text-sm font-medium text-foreground">
+              {t('cfg.condition_config.available_output_groups')}
+            </label>
             <div className="max-h-32 overflow-y-auto rounded-lg border border-border p-3">
               {outputGroups.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {outputGroups.map(outputGroup => (
                     <label
                       key={outputGroup.id}
-                      className="flex items-center gap-1.5 cursor-pointer"
+                      className="flex cursor-pointer items-center gap-1.5"
                     >
                       <input
                         type="checkbox"
@@ -262,60 +273,58 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
                   ))}
                 </div>
               ) : (
-                <span className="text-sm text-muted-foreground">暂无输出组</span>
+                <span className="text-sm text-muted-foreground">
+                  {t('cfg.condition_config.empty_output_groups')}
+                </span>
               )}
             </div>
           </div>
 
           <div className="grid grid-cols-3 gap-4">
+            {[
+              {
+                key: 'defaultParamGroupId' as const,
+                labelKey: 'cfg.condition_config.default_param_group',
+                ids: formData.paramGroupIds,
+                source: paramGroups,
+              },
+              {
+                key: 'defaultOutputGroupId' as const,
+                labelKey: 'cfg.condition_config.default_output_group',
+                ids: formData.outputGroupIds,
+                source: outputGroups,
+              },
+            ].map(field => (
+              <div key={field.key}>
+                <label className="mb-1 block text-sm font-medium text-foreground">
+                  {t(field.labelKey)}
+                </label>
+                <select
+                  value={formData[field.key] || ''}
+                  onChange={event =>
+                    setFormData(prev => ({
+                      ...prev,
+                      [field.key]: Number(event.target.value) || null,
+                    }))
+                  }
+                  className={`${managementFieldClass} text-sm`}
+                >
+                  <option value="">{t('cfg.condition_config.not_set')}</option>
+                  {field.ids.map(id => {
+                    const item = field.source.find(candidate => candidate.id === id);
+                    return item ? (
+                      <option key={id} value={id}>
+                        {item.name}
+                      </option>
+                    ) : null;
+                  })}
+                </select>
+              </div>
+            ))}
             <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">默认参数组</label>
-              <select
-                value={formData.defaultParamGroupId || ''}
-                onChange={event =>
-                  setFormData(prev => ({
-                    ...prev,
-                    defaultParamGroupId: Number(event.target.value) || null,
-                  }))
-                }
-                className={`${managementFieldClass} text-sm`}
-              >
-                <option value="">不设置</option>
-                {formData.paramGroupIds.map(id => {
-                  const paramGroup = paramGroups.find(item => item.id === id);
-                  return paramGroup ? (
-                    <option key={id} value={id}>
-                      {paramGroup.name}
-                    </option>
-                  ) : null;
-                })}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">默认输出组</label>
-              <select
-                value={formData.defaultOutputGroupId || ''}
-                onChange={event =>
-                  setFormData(prev => ({
-                    ...prev,
-                    defaultOutputGroupId: Number(event.target.value) || null,
-                  }))
-                }
-                className={`${managementFieldClass} text-sm`}
-              >
-                <option value="">不设置</option>
-                {formData.outputGroupIds.map(id => {
-                  const outputGroup = outputGroups.find(item => item.id === id);
-                  return outputGroup ? (
-                    <option key={id} value={id}>
-                      {outputGroup.name}
-                    </option>
-                  ) : null;
-                })}
-              </select>
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">默认求解器</label>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                {t('cfg.condition_config.default_solver')}
+              </label>
               <select
                 value={formData.defaultSolverId || ''}
                 onChange={event =>
@@ -326,7 +335,7 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
                 }
                 className={`${managementFieldClass} text-sm`}
               >
-                <option value="">不设置</option>
+                <option value="">{t('cfg.condition_config.not_set')}</option>
                 {solvers.map(solver => (
                   <option key={solver.id} value={solver.id}>
                     {solver.name}
@@ -338,7 +347,9 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">排序</label>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                {t('common.sort')}
+              </label>
               <input
                 type="number"
                 value={formData.sort}
@@ -349,16 +360,20 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
                 min={0}
                 step={10}
               />
-              <p className="mt-0.5 text-xs text-muted-foreground">值越小越靠前</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {t('cfg.condition_config.sort_tip')}
+              </p>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium text-foreground">备注</label>
+              <label className="mb-1 block text-sm font-medium text-foreground">
+                {t('cfg.remark')}
+              </label>
               <input
                 type="text"
                 value={formData.remark}
                 onChange={event => setFormData(prev => ({ ...prev, remark: event.target.value }))}
                 className={`${managementFieldClass} text-sm`}
-                placeholder="可选备注信息"
+                placeholder={t('cfg.remark_placeholder')}
               />
             </div>
           </div>
@@ -366,14 +381,14 @@ export const ConditionFormModal: React.FC<ConditionFormModalProps> = ({
 
         <div className="flex justify-end gap-2 border-t border-border p-4">
           <button onClick={onClose} className={managementSecondaryButtonClass}>
-            取消
+            {t('common.cancel')}
           </button>
           <button
             onClick={onSave}
             disabled={pending}
             className={managementPrimaryButtonDisabledClass}
           >
-            {pending ? '保存中...' : '保存'}
+            {pending ? t('common.saving') : t('common.save')}
           </button>
         </div>
       </div>

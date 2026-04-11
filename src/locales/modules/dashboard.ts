@@ -1,4 +1,3 @@
-// Dashboard translations
 export const dashboardEn = {
   'dash.title': 'Dashboard',
   'dash.subtitle': 'Overview of simulation requests and system status.',
@@ -26,7 +25,7 @@ export const dashboardZh = {
   'dash.stats.running': '运行中',
   'dash.stats.completed': '已完成',
   'dash.stats.failed': '失败',
-  'dash.chart.trend': '订单趋势（近7天）',
+  'dash.chart.trend': '订单趋势（近 7 天）',
   'dash.chart.distribution': '状态分布',
   'dash.quick.title': '快捷操作',
   'dash.quick.orders': '查看申请单',

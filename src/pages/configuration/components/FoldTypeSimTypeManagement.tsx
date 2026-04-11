@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Card } from '@/components/ui';
+import { Card, useConfirmDialog, useToast } from '@/components/ui';
 import { Plus, Trash2, Star } from 'lucide-react';
 import { baseConfigApi } from '@/api/config/base';
 import { queryKeys } from '@/lib/queryClient';
 import { useFormState } from '@/hooks/useFormState';
+import { useI18n } from '@/hooks';
 import type { FoldType, SimType, FoldTypeSimTypeRel } from '@/types/config';
 
 interface FoldTypeSimTypeRelWithDetail extends FoldTypeSimTypeRel {
@@ -13,6 +14,9 @@ interface FoldTypeSimTypeRelWithDetail extends FoldTypeSimTypeRel {
 }
 
 export const FoldTypeSimTypeManagement: React.FC = () => {
+  const { t } = useI18n();
+  const { showToast } = useToast();
+  const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
   const queryClient = useQueryClient();
   const [foldTypes, setFoldTypes] = useState<FoldType[]>([]);
   const [selectedFoldType, setSelectedFoldType] = useState<FoldType | null>(null);
@@ -21,36 +25,33 @@ export const FoldTypeSimTypeManagement: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // 加载姿态类型列表
   const loadFoldTypes = async () => {
     try {
       setLoading(true);
       const response = await baseConfigApi.getFoldTypes();
       setFoldTypes(response.data || []);
     } catch (error) {
-      console.error('加载姿态类型失败:', error);
+      console.error('Failed to load fold types:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // 加载所有仿真类型
   const loadAllSimTypes = async () => {
     try {
       const response = await baseConfigApi.getSimTypes();
       setAllSimTypes(response.data || []);
     } catch (error) {
-      console.error('加载仿真类型失败:', error);
+      console.error('Failed to load simulation types:', error);
     }
   };
 
-  // 加载姿态的仿真类型关联
   const loadFoldTypeSimTypes = async (foldTypeId: number) => {
     try {
       const response = await baseConfigApi.getFoldTypeSimTypeRelsByFoldType(foldTypeId);
       setSimTypeRels((response.data || []) as FoldTypeSimTypeRelWithDetail[]);
     } catch (error) {
-      console.error('加载姿态仿真类型关联失败:', error);
+      console.error('Failed to load fold type simulation relations:', error);
     }
   };
 
@@ -65,7 +66,6 @@ export const FoldTypeSimTypeManagement: React.FC = () => {
     }
   }, [selectedFoldType]);
 
-  // 添加仿真类型关联
   const handleAddSimType = async (simTypeId: number, isDefault: number) => {
     if (!selectedFoldType) return;
     try {
@@ -74,12 +74,11 @@ export const FoldTypeSimTypeManagement: React.FC = () => {
       loadFoldTypeSimTypes(selectedFoldType.id);
       setShowAddModal(false);
     } catch (error) {
-      console.error('添加仿真类型关联失败:', error);
-      alert('添加失败');
+      console.error('Failed to add simulation type relation:', error);
+      showToast('error', t('cfg.relations.add_failed'));
     }
   };
 
-  // 设置默认仿真类型
   const handleSetDefault = async (simTypeId: number) => {
     if (!selectedFoldType) return;
     try {
@@ -87,50 +86,58 @@ export const FoldTypeSimTypeManagement: React.FC = () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.foldTypeSimTypeRels.all });
       loadFoldTypeSimTypes(selectedFoldType.id);
     } catch (error) {
-      console.error('设置默认仿真类型失败:', error);
-      alert('设置失败');
+      console.error('Failed to set default simulation type:', error);
+      showToast('error', t('cfg.relations.set_default_failed'));
     }
   };
 
-  // 移除仿真类型关联
-  const handleRemove = async (simTypeId: number) => {
-    if (!selectedFoldType || !confirm('确定要移除此关联吗？')) return;
-    try {
-      await baseConfigApi.removeSimTypeFromFoldType(selectedFoldType.id, simTypeId);
-      await queryClient.invalidateQueries({ queryKey: queryKeys.foldTypeSimTypeRels.all });
-      loadFoldTypeSimTypes(selectedFoldType.id);
-    } catch (error) {
-      console.error('移除仿真类型关联失败:', error);
-      alert('移除失败');
-    }
+  const handleRemove = (simTypeId: number) => {
+    if (!selectedFoldType) return;
+    showConfirm(
+      t('common.confirm'),
+      t('cfg.relations.remove_confirm'),
+      async () => {
+        try {
+          await baseConfigApi.removeSimTypeFromFoldType(selectedFoldType.id, simTypeId);
+          await queryClient.invalidateQueries({ queryKey: queryKeys.foldTypeSimTypeRels.all });
+          loadFoldTypeSimTypes(selectedFoldType.id);
+        } catch (error) {
+          console.error('Failed to remove simulation type relation:', error);
+          showToast('error', t('cfg.relations.remove_failed'));
+        }
+      },
+      'danger'
+    );
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* 左侧：姿态类型列表 */}
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <Card>
-        <div className="p-4 border-b dark:border-slate-700">
-          <h3 className="text-lg font-semibold">姿态类型列表</h3>
+        <div className="border-b p-4 dark:border-slate-700">
+          <h3 className="text-lg font-semibold">{t('cfg.fold_relation.fold_types')}</h3>
         </div>
-        <div className="p-4 space-y-2 max-h-[600px] overflow-y-auto">
+        <div className="max-h-[600px] space-y-2 overflow-y-auto p-4">
           {loading ? (
-            <div className="text-center py-8 text-slate-500">加载中...</div>
+            <div className="py-8 text-center text-slate-500">{t('common.loading')}</div>
           ) : foldTypes.length === 0 ? (
-            <div className="text-center py-8 text-slate-500">暂无姿态类型</div>
+            <div className="py-8 text-center text-slate-500">
+              {t('cfg.fold_relation.empty_fold_types')}
+            </div>
           ) : (
             foldTypes.map(foldType => (
               <button
                 key={foldType.id}
                 onClick={() => setSelectedFoldType(foldType)}
-                className={`w-full text-left p-3 rounded-lg transition-colors ${
+                className={`w-full rounded-lg p-3 text-left transition-colors ${
                   selectedFoldType?.id === foldType.id
-                    ? 'bg-blue-50 dark:bg-blue-900/30 border-2 border-blue-500'
-                    : 'bg-slate-50 dark:bg-slate-700/50 hover:bg-slate-100 dark:hover:bg-slate-700'
+                    ? 'border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/30'
+                    : 'bg-slate-50 hover:bg-slate-100 dark:bg-slate-700/50 dark:hover:bg-slate-700'
                 }`}
               >
                 <div className="font-medium">{foldType.name}</div>
-                <div className="text-xs text-slate-500 mt-1">
-                  {foldType.code || '无编码'} | 角度: {foldType.angle}°
+                <div className="mt-1 text-xs text-slate-500">
+                  {foldType.code || t('cfg.condition_management.no_code')} |{' '}
+                  {t('cfg.condition_management.angle_label', { angle: foldType.angle })}
                 </div>
               </button>
             ))
@@ -138,7 +145,6 @@ export const FoldTypeSimTypeManagement: React.FC = () => {
         </div>
       </Card>
 
-      {/* 右侧：仿真类型关联 */}
       <div className="lg:col-span-2">
         <FoldTypeSimTypeRelList
           selectedFoldType={selectedFoldType}
@@ -149,20 +155,19 @@ export const FoldTypeSimTypeManagement: React.FC = () => {
         />
       </div>
 
-      {/* 添加仿真类型模态框 */}
       {showAddModal && selectedFoldType && (
         <AddSimTypeModal
           simTypes={allSimTypes}
-          existingIds={new Set(simTypeRels.map(r => r.simTypeId))}
+          existingIds={new Set(simTypeRels.map(rel => rel.simTypeId))}
           onAdd={handleAddSimType}
           onClose={() => setShowAddModal(false)}
         />
       )}
+      <ConfirmDialogComponent />
     </div>
   );
 };
 
-// 仿真类型关联列表组件
 interface FoldTypeSimTypeRelListProps {
   selectedFoldType: FoldType | null;
   simTypeRels: FoldTypeSimTypeRelWithDetail[];
@@ -178,11 +183,13 @@ const FoldTypeSimTypeRelList: React.FC<FoldTypeSimTypeRelListProps> = ({
   onSetDefault,
   onRemove,
 }) => {
+  const { t } = useI18n();
+
   if (!selectedFoldType) {
     return (
       <Card>
         <div className="p-12 text-center text-slate-500">
-          <p>请从左侧选择一个姿态类型</p>
+          <p>{t('cfg.fold_relation.select_fold_type')}</p>
         </div>
       </Card>
     );
@@ -190,61 +197,68 @@ const FoldTypeSimTypeRelList: React.FC<FoldTypeSimTypeRelListProps> = ({
 
   return (
     <Card>
-      <div className="p-4 border-b dark:border-slate-700 flex justify-between items-center">
-        <h3 className="text-lg font-semibold">{selectedFoldType.name} - 仿真类型关联</h3>
+      <div className="flex items-center justify-between border-b p-4 dark:border-slate-700">
+        <h3 className="text-lg font-semibold">
+          {t('cfg.fold_relation.title_for', { name: selectedFoldType.name })}
+        </h3>
         <button
           onClick={onAddClick}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700"
         >
-          <Plus className="w-4 h-4" />
-          添加关联
+          <Plus className="h-4 w-4" />
+          {t('cfg.fold_relation.add_relation')}
         </button>
       </div>
       <div className="p-4">
         {simTypeRels.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">暂无关联的仿真类型</div>
+          <div className="py-12 text-center text-slate-500">
+            {t('cfg.fold_relation.empty_relations')}
+          </div>
         ) : (
           <div className="space-y-2">
             {simTypeRels.map(rel => (
               <div
                 key={rel.id}
-                className="p-4 bg-slate-50 dark:bg-slate-700 rounded-lg flex justify-between items-center"
+                className="flex items-center justify-between rounded-lg bg-slate-50 p-4 dark:bg-slate-700"
               >
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className="font-medium">{rel.simTypeName}</span>
                     {rel.isDefault === 1 && (
-                      <span className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full">
-                        默认
+                      <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-xs text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
+                        {t('cfg.fold_relation.default_badge')}
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-slate-500 mt-1">
-                    编码: {rel.simTypeCode || '无'} | 排序: {rel.sort}
+                  <div className="mt-1 text-xs text-slate-500">
+                    {t('cfg.fold_relation.code_sort', {
+                      code: rel.simTypeCode || '-',
+                      sort: rel.sort,
+                    })}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => onSetDefault(rel.simTypeId)}
-                    className={`p-2 rounded-lg transition-colors ${
+                    className={`rounded-lg p-2 transition-colors ${
                       rel.isDefault === 1
                         ? 'text-yellow-500'
-                        : 'text-slate-400 hover:text-yellow-500 hover:bg-slate-100 dark:hover:bg-slate-600 eyecare:hover:bg-muted'
+                        : 'text-slate-400 hover:bg-slate-100 hover:text-yellow-500 dark:hover:bg-slate-600 eyecare:hover:bg-muted'
                     }`}
-                    title={rel.isDefault === 1 ? '已是默认' : '设为默认'}
+                    title={
+                      rel.isDefault === 1
+                        ? t('cfg.condition_management.already_default')
+                        : t('cfg.condition_management.set_default')
+                    }
                   >
-                    {rel.isDefault === 1 ? (
-                      <Star className="w-5 h-5 fill-current" />
-                    ) : (
-                      <Star className="w-5 h-5" />
-                    )}
+                    <Star className={`h-5 w-5 ${rel.isDefault === 1 ? 'fill-current' : ''}`} />
                   </button>
                   <button
                     onClick={() => onRemove(rel.simTypeId)}
-                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                    title="移除关联"
+                    className="rounded-lg p-2 text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-900/30"
+                    title={t('cfg.fold_relation.remove_relation')}
                   >
-                    <Trash2 className="w-5 h-5" />
+                    <Trash2 className="h-5 w-5" />
                   </button>
                 </div>
               </div>
@@ -256,7 +270,6 @@ const FoldTypeSimTypeRelList: React.FC<FoldTypeSimTypeRelListProps> = ({
   );
 };
 
-// 添加仿真类型模态框组件
 interface AddSimTypeModalProps {
   simTypes: SimType[];
   existingIds: Set<number>;
@@ -270,6 +283,7 @@ const AddSimTypeModal: React.FC<AddSimTypeModalProps> = ({
   onAdd,
   onClose,
 }) => {
+  const { t } = useI18n();
   const initialData = useMemo(
     () => ({
       selectedId: null as number | null,
@@ -279,8 +293,7 @@ const AddSimTypeModal: React.FC<AddSimTypeModalProps> = ({
   );
 
   const { formData, updateField } = useFormState(initialData);
-
-  const availableSimTypes = simTypes.filter(st => !existingIds.has(st.id));
+  const availableSimTypes = simTypes.filter(simType => !existingIds.has(simType.id));
   const selectedId = formData.selectedId ?? null;
 
   const handleSubmit = () => {
@@ -290,28 +303,30 @@ const AddSimTypeModal: React.FC<AddSimTypeModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-      <div className="bg-white dark:bg-slate-800 eyecare:bg-card rounded-xl shadow-2xl w-full max-w-md mx-4">
-        <div className="p-4 border-b dark:border-slate-700">
-          <h3 className="text-lg font-bold">添加仿真类型关联</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="mx-4 w-full max-w-md rounded-xl bg-white shadow-2xl dark:bg-slate-800 eyecare:bg-card">
+        <div className="border-b p-4 dark:border-slate-700">
+          <h3 className="text-lg font-bold">{t('cfg.fold_relation.add_relation')}</h3>
         </div>
-        <div className="p-4 space-y-4">
+        <div className="space-y-4 p-4">
           <div>
-            <label className="block text-sm font-medium mb-2">选择仿真类型</label>
+            <label className="mb-2 block text-sm font-medium">
+              {t('cfg.condition_management.select_sim_type')}
+            </label>
             <select
               value={selectedId ?? ''}
-              onChange={e =>
+              onChange={event =>
                 updateField(
                   'selectedId',
-                  e.target.value ? Number(e.target.value) : (null as number | null)
+                  event.target.value ? Number(event.target.value) : (null as number | null)
                 )
               }
-              className="w-full p-2 border rounded-lg dark:bg-slate-700 eyecare:bg-card dark:border-slate-600 eyecare:border-border"
+              className="w-full rounded-lg border p-2 dark:border-slate-600 dark:bg-slate-700 eyecare:border-border eyecare:bg-card"
             >
-              <option value="">请选择...</option>
-              {availableSimTypes.map(st => (
-                <option key={st.id} value={st.id}>
-                  {st.name} ({st.code})
+              <option value="">{t('cfg.condition_management.select_sim_type')}</option>
+              {availableSimTypes.map(simType => (
+                <option key={simType.id} value={simType.id}>
+                  {simType.name} ({simType.code})
                 </option>
               ))}
             </select>
@@ -321,27 +336,27 @@ const AddSimTypeModal: React.FC<AddSimTypeModalProps> = ({
               type="checkbox"
               id="isDefault"
               checked={(formData.isDefault ?? 0) === 1}
-              onChange={e => updateField('isDefault', e.target.checked ? 1 : 0)}
+              onChange={event => updateField('isDefault', event.target.checked ? 1 : 0)}
               className="rounded"
             />
             <label htmlFor="isDefault" className="text-sm">
-              设为默认仿真类型
+              {t('cfg.condition_management.default_sim_type')}
             </label>
           </div>
         </div>
-        <div className="flex justify-end gap-3 p-4 border-t dark:border-slate-700">
+        <div className="flex justify-end gap-3 border-t p-4 dark:border-slate-700">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-slate-700 dark:text-slate-300 eyecare:text-foreground hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            className="rounded-lg px-4 py-2 text-slate-700 transition-colors hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700 eyecare:text-foreground"
           >
-            取消
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleSubmit}
             disabled={!selectedId}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="rounded-lg bg-blue-600 px-4 py-2 text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            添加
+            {t('common.add')}
           </button>
         </div>
       </div>

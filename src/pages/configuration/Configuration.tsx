@@ -1,8 +1,7 @@
 import React from 'react';
-import { useUIStore } from '@/stores';
-import { RESOURCES } from '@/locales';
 import { Card, CardHeader } from '@/components/ui';
 import { Folder, SlidersHorizontal, RefreshCw, FlaskConical, BarChart3, Box } from 'lucide-react';
+import { useI18n } from '@/hooks/useI18n';
 import { useConfigurationState } from './hooks';
 import {
   EditModal,
@@ -36,8 +35,7 @@ const getColorTagClass = (colorTag?: string) =>
   COLOR_TAG_CLASSES[colorTag ?? 'gray'] || COLOR_TAG_CLASSES.gray;
 
 const Configuration: React.FC = () => {
-  const { language } = useUIStore();
-  const t = (key: string) => RESOURCES[language][key] || key;
+  const { t } = useI18n();
   const state = useConfigurationState();
 
   return (
@@ -55,7 +53,7 @@ const Configuration: React.FC = () => {
           {state.activeTab === 'simTypes' && (
             <Card>
               <ConfigCardHeader
-                title="仿真类型管理"
+                title={t('cfg.sim_types.title')}
                 icon={<Box className="h-5 w-5" />}
                 onAdd={() => state.openModal('simType')}
               />
@@ -77,25 +75,25 @@ const Configuration: React.FC = () => {
           {state.activeTab === 'params' && (
             <Card>
               <ConfigCardHeader
-                title="参数定义管理"
+                title={t('cfg.params.title')}
                 icon={<SlidersHorizontal className="h-5 w-5" />}
                 onAdd={() => state.openModal('paramDef')}
               />
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-100 dark:bg-slate-700">
                   <tr>
-                    <th className="p-3">名称</th>
-                    <th className="p-3">Key</th>
-                    <th className="p-3">单位</th>
-                    <th className="p-3">范围</th>
-                    <th className="w-24 p-3">操作</th>
+                    <th className="p-3">{t('common.name')}</th>
+                    <th className="p-3">{t('common.key')}</th>
+                    <th className="p-3">{t('common.unit')}</th>
+                    <th className="p-3">{t('common.range')}</th>
+                    <th className="w-24 p-3">{t('common.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {state.paramDefs.map(paramDef => (
                     <tr key={paramDef.id} className="border-b dark:border-slate-700">
                       <td className="p-3 font-medium">{paramDef.name}</td>
-                      <td className="p-3 text-xs font-mono text-slate-500">{paramDef.key}</td>
+                      <td className="p-3 font-mono text-xs text-slate-500">{paramDef.key}</td>
                       <td className="p-3 text-slate-500">{paramDef.unit || '-'}</td>
                       <td className="p-3 text-slate-500">
                         {paramDef.minVal} - {paramDef.maxVal}
@@ -118,7 +116,7 @@ const Configuration: React.FC = () => {
           {state.activeTab === 'solvers' && (
             <Card>
               <ConfigCardHeader
-                title="求解器管理"
+                title={t('cfg.solvers.title')}
                 icon={<SlidersHorizontal className="h-5 w-5" />}
                 onAdd={() => state.openModal('solver')}
               />
@@ -127,7 +125,12 @@ const Configuration: React.FC = () => {
                   <ListItem
                     key={solver.id}
                     title={solver.name}
-                    subtitle={`v${solver.version} | CPU: ${solver.cpuCoreMin}-${solver.cpuCoreMax} | 默认: ${solver.cpuCoreDefault}核`}
+                    subtitle={t('cfg.solver.subtitle', {
+                      version: solver.version,
+                      min: solver.cpuCoreMin,
+                      max: solver.cpuCoreMax,
+                      defaultValue: solver.cpuCoreDefault,
+                    })}
                     onEdit={() => state.openModal('solver', solver)}
                     onDelete={() => state.handleDelete('solver', solver.id, solver.name)}
                   />
@@ -139,7 +142,7 @@ const Configuration: React.FC = () => {
           {state.activeTab === 'conditions' && (
             <Card>
               <ConfigCardHeader
-                title="工况定义管理"
+                title={t('cfg.conditions.title')}
                 icon={<FlaskConical className="h-5 w-5" />}
                 onAdd={() => state.openModal('conditionDef')}
               />
@@ -162,25 +165,25 @@ const Configuration: React.FC = () => {
           {state.activeTab === 'outputs' && (
             <Card>
               <ConfigCardHeader
-                title="输出定义管理"
+                title={t('cfg.outputs.title')}
                 icon={<BarChart3 className="h-5 w-5" />}
                 onAdd={() => state.openModal('outputDef')}
               />
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-100 dark:bg-slate-700">
                   <tr>
-                    <th className="p-3">名称</th>
-                    <th className="p-3">编码</th>
-                    <th className="p-3">单位</th>
-                    <th className="p-3">数据类型</th>
-                    <th className="w-24 p-3">操作</th>
+                    <th className="p-3">{t('common.name')}</th>
+                    <th className="p-3">{t('common.code')}</th>
+                    <th className="p-3">{t('common.unit')}</th>
+                    <th className="p-3">{t('cfg.outputs.data_type')}</th>
+                    <th className="w-24 p-3">{t('common.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {state.outputDefs.map(outputDef => (
                     <tr key={outputDef.id} className="border-b dark:border-slate-700">
                       <td className="p-3 font-medium">{outputDef.name}</td>
-                      <td className="p-3 text-xs font-mono text-slate-500">{outputDef.code}</td>
+                      <td className="p-3 font-mono text-xs text-slate-500">{outputDef.code}</td>
                       <td className="p-3 text-slate-500">{outputDef.unit || '-'}</td>
                       <td className="p-3 text-slate-500">{outputDef.dataType || 'float'}</td>
                       <td className="p-3">
@@ -201,7 +204,7 @@ const Configuration: React.FC = () => {
           {state.activeTab === 'foldTypes' && (
             <Card>
               <ConfigCardHeader
-                title="姿态类型管理"
+                title={t('cfg.fold_types.title')}
                 icon={<Box className="h-5 w-5" />}
                 onAdd={() => state.openModal('foldType')}
               />
@@ -210,7 +213,10 @@ const Configuration: React.FC = () => {
                   <ListItem
                     key={foldType.id}
                     title={foldType.name}
-                    subtitle={`${foldType.code || '-'} | 角度: ${foldType.angle}°`}
+                    subtitle={t('cfg.fold.subtitle', {
+                      code: foldType.code || '-',
+                      angle: foldType.angle,
+                    })}
                     onEdit={() => state.openModal('foldType', foldType)}
                     onDelete={() => state.handleDelete('foldType', foldType.id, foldType.name)}
                   />
@@ -227,7 +233,7 @@ const Configuration: React.FC = () => {
           {state.activeTab === 'projects' && (
             <Card>
               <ConfigCardHeader
-                title="项目管理"
+                title={t('cfg.projects.title')}
                 icon={<Folder className="h-5 w-5" />}
                 onAdd={() => state.openModal('project')}
               />
@@ -250,11 +256,12 @@ const Configuration: React.FC = () => {
                                 : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
                             }`}
                           >
-                            {project.valid ? '启用' : '禁用'}
+                            {project.valid ? t('cfg.project.enabled') : t('cfg.project.disabled')}
                           </span>
                         </div>
                         <div className="mt-1 text-sm text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground">
-                          编码: {project.code || '无'} | 排序: {project.sort}
+                          {t('cfg.project.code_label', { code: project.code || '-' })} |{' '}
+                          {t('cfg.project.sort_label', { sort: project.sort })}
                         </div>
                         {project.remark && (
                           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 eyecare:text-muted-foreground">
@@ -278,7 +285,10 @@ const Configuration: React.FC = () => {
 
           {state.activeTab === 'workflow' && (
             <Card>
-              <CardHeader title="工作流配置" icon={<RefreshCw className="h-5 w-5" />} />
+              <CardHeader
+                title={t('cfg.workflow.title')}
+                icon={<RefreshCw className="h-5 w-5" />}
+              />
               <div className="space-y-3">
                 {state.workflows.map(workflow => (
                   <div
@@ -287,7 +297,10 @@ const Configuration: React.FC = () => {
                   >
                     <div className="font-medium">{workflow.name}</div>
                     <div className="mt-1 text-xs text-slate-500">
-                      类型: {workflow.type} | 节点数: {workflow.nodes?.length || 0}
+                      {t('cfg.workflow.summary', {
+                        type: workflow.type,
+                        count: workflow.nodes?.length || 0,
+                      })}
                     </div>
                   </div>
                 ))}
@@ -298,7 +311,7 @@ const Configuration: React.FC = () => {
           <EditModal
             isOpen={state.modalOpen}
             onClose={state.closeModal}
-            title={state.editingItem ? '编辑' : '新建'}
+            title={state.editingItem ? t('common.edit') : t('common.create')}
             onSave={state.handleSave}
             loading={state.loading}
           >

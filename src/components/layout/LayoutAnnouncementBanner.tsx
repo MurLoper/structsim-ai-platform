@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, CircleAlert, CircleCheck, Info, X } from 'lucide-react';
 import { Card } from '@/components/ui';
 import { usePlatformBootstrap } from '@/features/platform/queries/usePlatformBootstrap';
+import { useI18n } from '@/hooks';
 import {
   trackAnnouncementClick,
   trackAnnouncementDismiss,
@@ -52,6 +53,7 @@ const levelMeta = {
 } as const;
 
 export function LayoutAnnouncementBanner() {
+  const { t } = useI18n();
   const { data: bootstrap } = usePlatformBootstrap();
   const [dismissedIds, setDismissedIds] = useState<number[]>(() => readDismissedIds());
   const viewedAnnouncementIdsRef = useRef<Set<number>>(new Set());
@@ -116,7 +118,7 @@ export function LayoutAnnouncementBanner() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1 rounded-full bg-white/70 px-2.5 py-1 text-xs font-medium dark:bg-black/10">
                     <Bell className="h-3.5 w-3.5" />
-                    平台公告
+                    {t('platform.content.announcement.banner_label')}
                   </span>
                   <h3 className="text-sm font-semibold">{announcement.title}</h3>
                 </div>
@@ -138,7 +140,7 @@ export function LayoutAnnouncementBanner() {
                   type="button"
                   onClick={() => handleDismiss(announcement.id)}
                   className="rounded-lg p-1.5 text-current/60 transition-colors hover:bg-black/5 hover:text-current dark:hover:bg-white/10"
-                  aria-label="关闭公告"
+                  aria-label={t('platform.content.announcement.dismiss')}
                 >
                   <X className="h-4 w-4" />
                 </button>

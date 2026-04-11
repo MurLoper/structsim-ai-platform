@@ -1,19 +1,15 @@
-import React, { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { BarChart3, Download, Plus, Upload } from 'lucide-react';
 import { Card, SearchBar, useConfirmDialog, useToast } from '@/components/ui';
 import { baseConfigApi } from '@/api';
 import { usePaginatedOutputDefs } from '@/features/config/queries';
+import { useI18n } from '@/hooks';
 import type { OutputDef } from '@/types';
 import { ActionButtons, EditModal, FormInput, FormSelect } from '../components';
 import { OutputDefsUploadModal } from './outputDefs/OutputDefsUploadModal';
 
-const OUTPUT_DATA_TYPE_OPTIONS = [
-  { value: 'float', label: '浮点数' },
-  { value: 'int', label: '整数' },
-  { value: 'string', label: '字符串' },
-];
-
-export const OutputDefsTab: React.FC = () => {
+export const OutputDefsTab = () => {
+  const { t } = useI18n();
   const [page, setPage] = useState(1);
   const [pageSize] = useState(20);
   const [keyword, setKeyword] = useState('');
@@ -36,6 +32,14 @@ export const OutputDefsTab: React.FC = () => {
     keyword,
   });
 
+  const outputDataTypeOptions = useMemo(
+    () => [
+      { value: 'float', label: t('cfg.data_type.float') },
+      { value: 'int', label: t('cfg.data_type.int') },
+      { value: 'string', label: t('cfg.data_type.string') },
+    ],
+    [t]
+  );
   const outputDefs = outputDefsPage?.items ?? [];
   const total = outputDefsPage?.total ?? 0;
   const totalPages = Math.ceil(total / pageSize);
@@ -54,7 +58,7 @@ export const OutputDefsTab: React.FC = () => {
 
   const handleSave = async () => {
     if (!formData.code?.trim() || !formData.name?.trim()) {
-      showToast('error', '编码和名称不能为空');
+      showToast('error', t('cfg.defs.required_name_code'));
       return;
     }
 
@@ -62,15 +66,15 @@ export const OutputDefsTab: React.FC = () => {
     try {
       if (editingItem) {
         await baseConfigApi.updateOutputDef(editingItem.id, formData);
-        showToast('success', '更新成功');
+        showToast('success', t('common.update_success'));
       } else {
         await baseConfigApi.createOutputDef(formData);
-        showToast('success', '创建成功');
+        showToast('success', t('common.create_success'));
       }
       setShowEditModal(false);
       await refetch();
     } catch {
-      showToast('error', '保存失败');
+      showToast('error', t('common.save_failed'));
     } finally {
       setSaving(false);
     }
@@ -78,15 +82,15 @@ export const OutputDefsTab: React.FC = () => {
 
   const handleDelete = (item: OutputDef) => {
     showConfirm(
-      '删除输出',
-      `确定要删除“${item.name}”吗？`,
+      t('cfg.outputs.delete_title'),
+      t('cfg.outputs.delete_confirm', { name: item.name }),
       async () => {
         try {
           await baseConfigApi.deleteOutputDef(item.id);
-          showToast('success', '删除成功');
+          showToast('success', t('common.delete_success'));
           await refetch();
         } catch {
-          showToast('error', '删除失败');
+          showToast('error', t('common.delete_failed'));
         }
       },
       'danger'
@@ -94,13 +98,18 @@ export const OutputDefsTab: React.FC = () => {
   };
 
   const handleDownloadTemplate = () => {
-    const headers = ['输出编码(必填)', '输出名称(必填)', '单位', '数据类型(float/int/string)'];
-    const example = ['output_code_1', '输出名称示例', 'MPa', 'float'];
+    const headers = [
+      t('cfg.outputs.template.header.code'),
+      t('cfg.outputs.template.header.name'),
+      t('cfg.outputs.template.header.unit'),
+      t('cfg.outputs.template.header.data_type'),
+    ];
+    const example = ['output_code_1', t('cfg.outputs.template.example.name'), 'MPa', 'float'];
     const csv = [headers.join(','), example.join(',')].join('\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = '输出定义模板.csv';
+    link.download = t('cfg.outputs.template.file_name');
     link.click();
   };
 
@@ -111,8 +120,10 @@ export const OutputDefsTab: React.FC = () => {
           <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-primary" />
-              <h3 className="text-lg font-semibold text-foreground">输出定义管理</h3>
-              <span className="text-sm text-muted-foreground">共 {total} 条</span>
+              <h3 className="text-lg font-semibold text-foreground">{t('cfg.outputs.title')}</h3>
+              <span className="text-sm text-muted-foreground">
+                {t('cfg.defs.total', { count: total })}
+              </span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -121,21 +132,21 @@ export const OutputDefsTab: React.FC = () => {
                 className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
               >
                 <Download className="h-4 w-4" />
-                模板
+                {t('common.template')}
               </button>
               <button
                 onClick={() => setShowUploadModal(true)}
                 className="flex items-center gap-1 rounded-lg px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted"
               >
                 <Upload className="h-4 w-4" />
-                导入
+                {t('common.import')}
               </button>
               <button
                 onClick={() => openEditModal()}
                 className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 <Plus className="h-4 w-4" />
-                新建输出
+                {t('cfg.outputs.create')}
               </button>
             </div>
           </div>
@@ -145,27 +156,27 @@ export const OutputDefsTab: React.FC = () => {
               value={searchInput}
               onChange={setSearchInput}
               onSearch={handleSearch}
-              placeholder="搜索输出名称或编码..."
+              placeholder={t('cfg.outputs.search_placeholder')}
             />
           </div>
         </div>
 
         <div className="overflow-x-auto">
           {loading ? (
-            <div className="p-12 text-center text-muted-foreground">加载中...</div>
+            <div className="p-12 text-center text-muted-foreground">{t('common.loading')}</div>
           ) : outputDefs.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">
-              {keyword ? '未找到匹配的输出' : '暂无输出定义'}
+              {keyword ? t('cfg.outputs.no_match') : t('cfg.outputs.empty')}
             </div>
           ) : (
             <table className="w-full text-left text-sm">
               <thead className="bg-muted">
                 <tr>
-                  <th className="p-3 text-foreground">名称</th>
-                  <th className="p-3 text-foreground">编码</th>
-                  <th className="p-3 text-foreground">单位</th>
-                  <th className="p-3 text-foreground">数据类型</th>
-                  <th className="w-24 p-3 text-foreground">操作</th>
+                  <th className="p-3 text-foreground">{t('common.name')}</th>
+                  <th className="p-3 text-foreground">{t('common.code')}</th>
+                  <th className="p-3 text-foreground">{t('common.unit')}</th>
+                  <th className="p-3 text-foreground">{t('cfg.outputs.data_type')}</th>
+                  <th className="w-24 p-3 text-foreground">{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -191,7 +202,7 @@ export const OutputDefsTab: React.FC = () => {
         {totalPages > 1 && (
           <div className="flex items-center justify-between border-t border-border p-4">
             <span className="text-sm text-muted-foreground">
-              第 {page} / {totalPages} 页
+              {t('common.page_indicator', { page, totalPages })}
             </span>
             <div className="flex gap-2">
               <button
@@ -199,14 +210,14 @@ export const OutputDefsTab: React.FC = () => {
                 disabled={page === 1}
                 className="rounded border border-border px-3 py-1 disabled:opacity-50"
               >
-                上一页
+                {t('common.prev')}
               </button>
               <button
                 onClick={() => setPage(current => Math.min(totalPages, current + 1))}
                 disabled={page === totalPages}
                 className="rounded border border-border px-3 py-1 disabled:opacity-50"
               >
-                下一页
+                {t('common.next')}
               </button>
             </div>
           </div>
@@ -216,36 +227,36 @@ export const OutputDefsTab: React.FC = () => {
       <EditModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
-        title={editingItem ? '编辑输出' : '新建输出'}
+        title={editingItem ? t('cfg.outputs.edit') : t('cfg.outputs.create')}
         onSave={handleSave}
         loading={saving}
       >
         <FormInput
-          label="名称"
+          label={t('common.name')}
           value={formData.name || ''}
           onChange={value => setFormData(current => ({ ...current, name: value }))}
-          placeholder="请输入输出名称"
+          placeholder={t('cfg.outputs.name_placeholder')}
         />
         <FormInput
-          label="编码"
+          label={t('common.code')}
           value={formData.code || ''}
           onChange={value => setFormData(current => ({ ...current, code: value }))}
-          placeholder="请输入输出编码（英文）"
+          placeholder={t('cfg.outputs.code_placeholder')}
         />
         <FormSelect
-          label="数据类型"
+          label={t('cfg.outputs.data_type')}
           value={formData.dataType || 'float'}
           onChange={value => setFormData(current => ({ ...current, dataType: value }))}
-          options={OUTPUT_DATA_TYPE_OPTIONS}
+          options={outputDataTypeOptions}
         />
         <FormInput
-          label="单位"
+          label={t('common.unit')}
           value={formData.unit || ''}
           onChange={value => setFormData(current => ({ ...current, unit: value }))}
-          placeholder="如：mm, MPa, Hz"
+          placeholder="e.g. mm, MPa, Hz"
         />
         <FormInput
-          label="排序"
+          label={t('common.sort')}
           value={formData.sort ?? 100}
           onChange={value => setFormData(current => ({ ...current, sort: Number(value) }))}
           type="number"

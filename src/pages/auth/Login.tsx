@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router-dom';
+import { useI18n } from '@/hooks';
 import { useAuthStore } from '@/stores';
 
 const Login: React.FC = () => {
   const { login, fetchLoginMode, loginMode } = useAuthStore();
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [domainAccount, setDomainAccount] = useState('');
   const [password, setPassword] = useState('');
@@ -18,7 +20,7 @@ const Login: React.FC = () => {
     fetchLoginMode()
       .catch(() => {
         if (mounted) {
-          setError('登录模式获取失败，请稍后重试。');
+          setError(t('auth.login.mode_load_failed'));
         }
       })
       .finally(() => {
@@ -30,7 +32,7 @@ const Login: React.FC = () => {
     return () => {
       mounted = false;
     };
-  }, [fetchLoginMode]);
+  }, [fetchLoginMode, t]);
 
   useEffect(() => {
     if (!modeLoading && loginMode.ssoEnabled && loginMode.ssoRedirectUrl) {
@@ -43,11 +45,11 @@ const Login: React.FC = () => {
     setError('');
 
     if (!domainAccount.trim()) {
-      setError('请输入域账号。');
+      setError(t('auth.login.domain_required'));
       return;
     }
     if (!password.trim()) {
-      setError('请输入密码。');
+      setError(t('auth.login.password_required'));
       return;
     }
 
@@ -56,7 +58,7 @@ const Login: React.FC = () => {
       await login(domainAccount.trim(), password);
       navigate('/');
     } catch (error) {
-      setError(error instanceof Error ? error.message : '登录失败，请重试。');
+      setError(error instanceof Error ? error.message : t('auth.login.failed'));
     } finally {
       setLoading(false);
     }
@@ -69,39 +71,45 @@ const Login: React.FC = () => {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-xl bg-gradient-to-tr from-brand-500 to-indigo-600 text-3xl font-bold text-white">
             S
           </div>
-          <h1 className="text-2xl font-bold text-foreground">结构仿真 AI 平台</h1>
-          <p className="mt-2 text-muted-foreground">登录您的账号以继续访问工作台。</p>
+          <h1 className="text-2xl font-bold text-foreground">{t('app.title')}</h1>
+          <p className="mt-2 text-muted-foreground">{t('auth.login.subtitle')}</p>
         </div>
 
         {modeLoading ? (
-          <div className="py-8 text-center text-muted-foreground">正在加载登录模式...</div>
+          <div className="py-8 text-center text-muted-foreground">
+            {t('auth.login.mode_loading')}
+          </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             {loginMode.testAccountBypassEnabled && (
               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700 dark:border-amber-900/40 dark:bg-amber-900/20 dark:text-amber-300">
-                当前环境已启用测试账号直登。仅对白名单中的现有账号生效，登录时会跳过密码校验。
+                {t('auth.login.test_bypass_tip')}
               </div>
             )}
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">域账号</label>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                {t('auth.login.domain_account')}
+              </label>
               <input
                 type="text"
                 value={domainAccount}
                 onChange={event => setDomainAccount(event.target.value)}
-                placeholder="例如 z00012345 或 lwx0045644"
+                placeholder={t('auth.login.domain_placeholder')}
                 className="w-full rounded-lg border border-input bg-background px-4 py-2.5 text-foreground focus:border-ring focus:ring-2 focus:ring-ring"
               />
             </div>
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">密码</label>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                {t('auth.login.password')}
+              </label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={event => setPassword(event.target.value)}
-                  placeholder="请输入密码"
+                  placeholder={t('auth.login.password_placeholder')}
                   className="w-full rounded-lg border border-input bg-background px-4 py-2.5 pr-10 text-foreground focus:border-ring focus:ring-2 focus:ring-ring"
                 />
                 <button
@@ -129,7 +137,7 @@ const Login: React.FC = () => {
               disabled={loading}
               className="w-full rounded-lg bg-brand-600 py-2.5 font-medium text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? '登录中...' : '登录'}
+              {loading ? t('auth.login.submitting') : t('auth.login.submit')}
             </button>
           </form>
         )}

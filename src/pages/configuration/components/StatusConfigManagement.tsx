@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { useStatusDefs, useUpdateStatusDef } from '@/features/config/queries/useCompositeConfigs';
-import { useUIStore } from '@/stores';
-import { RESOURCES } from '@/locales';
-import { Button, Card } from '@/components/ui';
+import { Button, Card, useConfirmDialog } from '@/components/ui';
+import { useI18n } from '@/hooks';
 import { DataTable } from '@/components/tables/DataTable';
 import type { StatusDef } from '@/types/config';
 import { createStatusColumns } from './status/createStatusColumns';
@@ -17,8 +16,8 @@ export const StatusConfigManagement: React.FC = () => {
   const [editForm, setEditForm] = useState({ name: '', colorTag: '', icon: '' });
   const [showMoreIcons, setShowMoreIcons] = useState(false);
   const [iconSearch, setIconSearch] = useState('');
-  const { language } = useUIStore();
-  const t = useCallback((key: string) => RESOURCES[language][key] || key, [language]);
+  const { t } = useI18n();
+  const { showConfirm, ConfirmDialogComponent } = useConfirmDialog();
 
   useEffect(() => {
     if (!selectedStatus) {
@@ -60,11 +59,9 @@ export const StatusConfigManagement: React.FC = () => {
 
   const handleDelete = useCallback(
     (_statusId: number) => {
-      if (confirm(t('cfg.status.delete_confirm'))) {
-        // TODO: 待后端支持删除接口后接入
-      }
+      showConfirm(t('common.confirm'), t('cfg.status.delete_confirm'), () => {}, 'danger');
     },
-    [t]
+    [showConfirm, t]
   );
 
   const columns = useMemo(
@@ -131,6 +128,7 @@ export const StatusConfigManagement: React.FC = () => {
       )}
 
       <StatusHelpCard t={t} />
+      <ConfirmDialogComponent />
     </div>
   );
 };
