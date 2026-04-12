@@ -35,23 +35,23 @@ export const ResultsHeaderSection: React.FC<ResultsHeaderSectionProps> = ({
   onTabChange,
   onOpenEdit,
 }) => (
-  <section className="overflow-hidden rounded-xl border border-slate-200 bg-[linear-gradient(180deg,rgba(248,250,252,0.98)_0%,rgba(239,246,255,0.95)_100%)] px-4 py-2.5 shadow-sm">
+  <section className="overflow-hidden rounded-xl border border-border bg-card/95 px-4 py-2.5 shadow-sm">
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
         <div className="flex flex-wrap items-center gap-3">
           {showBackLink && (
             <Link
               to="/orders"
-              className="inline-flex items-center justify-center rounded-md text-slate-500 transition-colors hover:text-slate-900"
+              className="inline-flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
               title={backLabel}
             >
               <ArrowLeftIcon className="h-5 w-5" />
             </Link>
           )}
 
-          <div className="flex items-center gap-1.5 text-base font-semibold text-slate-900">
-            <span className="font-normal text-slate-500">结果总览</span>
-            <span className="font-normal text-slate-300">/</span>
+          <div className="flex items-center gap-1.5 text-base font-semibold text-foreground">
+            <span className="font-normal text-muted-foreground">结果总览</span>
+            <span className="font-normal text-border">/</span>
             {onOpenEdit ? (
               <button
                 onClick={onOpenEdit}
@@ -64,7 +64,7 @@ export const ResultsHeaderSection: React.FC<ResultsHeaderSectionProps> = ({
             )}
           </div>
 
-          <div className="hidden h-4 w-px bg-slate-300 sm:block" />
+          <div className="hidden h-4 w-px bg-border sm:block" />
 
           <div className="flex items-center gap-1.5">
             <Badge
@@ -94,10 +94,12 @@ export const ResultsHeaderSection: React.FC<ResultsHeaderSectionProps> = ({
         <div className="flex items-center gap-4 sm:gap-5">
           {summaryCards.map(card => (
             <div key={card.label} className="flex items-center gap-1.5">
-              <span className="hidden scale-90 text-slate-400 sm:inline-flex">{card.icon}</span>
+              <span className="hidden scale-90 text-muted-foreground sm:inline-flex">
+                {card.icon}
+              </span>
               <div className="flex items-baseline gap-1">
-                <span className="text-xs text-slate-500">{card.label}</span>
-                <span className="text-sm font-semibold tabular-nums text-slate-900">
+                <span className="text-xs text-muted-foreground">{card.label}</span>
+                <span className="text-sm font-semibold tabular-nums text-foreground">
                   {card.value}
                 </span>
               </div>
@@ -105,9 +107,9 @@ export const ResultsHeaderSection: React.FC<ResultsHeaderSectionProps> = ({
           ))}
           {focusedLabel ? (
             <>
-              <div className="hidden h-4 w-px bg-slate-300 sm:block" />
+              <div className="hidden h-4 w-px bg-border sm:block" />
               <div
-                className="hidden max-w-[200px] truncate text-xs text-slate-600 sm:block"
+                className="hidden max-w-[200px] truncate text-xs text-muted-foreground sm:block"
                 title={focusedLabel}
               >
                 当前工况：{focusedLabel}
@@ -123,7 +125,7 @@ export const ResultsHeaderSection: React.FC<ResultsHeaderSectionProps> = ({
           activeKey={activeTab}
           onChange={onTabChange}
           variant="pills"
-          className="inline-flex w-auto rounded-lg border border-slate-200 bg-white shadow-sm"
+          className="inline-flex w-auto rounded-lg border border-border bg-background shadow-sm"
         />
       </div>
     </div>
