@@ -4,10 +4,12 @@ import { Badge, Button, Card, Modal } from '@/components/ui';
 import { VirtualTable } from '@/components/tables/VirtualTable';
 import type { ResultOutputAttachment } from '@/api/results';
 import type { ConditionRoundsGroup } from '../../hooks/resultsAnalysisTypes';
+import { CaseResultAnalysisPanel } from './CaseResultAnalysisPanel';
 import type { ResultsCaseCard, ResultsConditionCard } from './types';
 
 type MatrixValue = string | number | null;
 type MatrixAttachment = ResultOutputAttachment & { label: string; value: MatrixValue };
+type CaseResultViewMode = 'matrix' | 'analysis';
 
 interface MatrixRow {
   roundIndex: number;
@@ -76,6 +78,7 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
   onSelectCase,
 }) => {
   const [previewAttachment, setPreviewAttachment] = useState<MatrixAttachment | null>(null);
+  const [viewMode, setViewMode] = useState<CaseResultViewMode>('matrix');
 
   const conditionLabelMap = useMemo(
     () => new Map(conditionCards.map(item => [item.id, item.label])),
@@ -288,9 +291,31 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
                   <span>进度 {activeCaseStats.progress}%</span>
                 </div>
               )}
+              <div className="flex rounded-xl border border-border bg-background p-1">
+                <Button
+                  type="button"
+                  variant={viewMode === 'matrix' ? 'primary' : 'ghost'}
+                  size="sm"
+                  className={viewMode === 'matrix' ? 'shadow-none' : ''}
+                  onClick={() => setViewMode('matrix')}
+                >
+                  明细矩阵
+                </Button>
+                <Button
+                  type="button"
+                  variant={viewMode === 'analysis' ? 'primary' : 'ghost'}
+                  size="sm"
+                  className={viewMode === 'analysis' ? 'shadow-none' : ''}
+                  onClick={() => setViewMode('analysis')}
+                >
+                  数据分析
+                </Button>
+              </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              当前方案下所有工况在同一张矩阵中展开；未出结果的位置保留为空位，点击结果值可查看对应图片和动画。
+              {viewMode === 'matrix'
+                ? '当前方案下所有工况在同一张矩阵中展开；未出结果的位置保留为空位，点击结果值可查看对应图片和动画。'
+                : '当前方案下所有工况共用同一套已加载结果数据，切换指标即可绘制结果趋势和状态分布。'}
             </p>
           </div>
 
@@ -309,17 +334,25 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
           </div>
         </div>
 
-        <VirtualTable
-          data={rows}
-          columns={columns}
-          rowHeight={42}
-          containerHeight={620}
-          loading={loading}
-          striped
-          enableSorting
-          emptyText="当前方案暂无结果明细"
-          getRowId={row => String(row.roundIndex)}
-        />
+        {viewMode === 'matrix' ? (
+          <VirtualTable
+            data={rows}
+            columns={columns}
+            rowHeight={42}
+            containerHeight={620}
+            loading={loading}
+            striped
+            enableSorting
+            emptyText="当前方案暂无结果明细"
+            getRowId={row => String(row.roundIndex)}
+          />
+        ) : (
+          <CaseResultAnalysisPanel
+            conditionCards={conditionCards}
+            roundGroups={roundGroups}
+            loading={loading}
+          />
+        )}
       </Card>
 
       <Modal
