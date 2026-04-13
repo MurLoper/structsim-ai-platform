@@ -1,33 +1,13 @@
 import type { EChartsOption } from 'echarts';
+import { use as registerEchartsModules } from 'echarts/core';
+import { Bar3DChart, Scatter3DChart, SurfaceChart } from 'echarts-gl/charts';
+import { Grid3DComponent } from 'echarts-gl/components';
 import type { FlatRoundRow, ThreeDViewMode } from './conditionAnalysisTypes';
 import { getNumericValue } from './conditionAnalysisFields';
 
-type EchartsGlWindow = Window &
-  typeof globalThis & {
-    __structsimEchartsGlPromise__?: Promise<unknown>;
-    __structsimEchartsGlLoaded__?: boolean;
-  };
+registerEchartsModules([Scatter3DChart, Bar3DChart, SurfaceChart, Grid3DComponent]);
 
-export const ensureEchartsGl = async () => {
-  const scopedWindow = window as EchartsGlWindow;
-  if (scopedWindow.__structsimEchartsGlLoaded__) {
-    return;
-  }
-
-  if (!scopedWindow.__structsimEchartsGlPromise__) {
-    scopedWindow.__structsimEchartsGlPromise__ = import('echarts-gl')
-      .then(module => {
-        scopedWindow.__structsimEchartsGlLoaded__ = true;
-        return module;
-      })
-      .catch(error => {
-        scopedWindow.__structsimEchartsGlPromise__ = undefined;
-        throw error;
-      });
-  }
-
-  await scopedWindow.__structsimEchartsGlPromise__;
-};
+export const ensureEchartsGl = async () => {};
 
 export const buildGridBins = (
   rows: FlatRoundRow[],

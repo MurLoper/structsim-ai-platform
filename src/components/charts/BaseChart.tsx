@@ -185,11 +185,21 @@ export function BaseChart({
   }, [onChartReady, renderer]);
 
   useEffect(() => {
-    chartRef.current?.clear();
-    chartRef.current?.setOption(mergedOption, {
-      notMerge: true,
-      lazyUpdate: false,
-    });
+    const chart = chartRef.current;
+    if (!chart) {
+      return;
+    }
+
+    try {
+      chart.clear();
+      chart.setOption(mergedOption, {
+        notMerge: true,
+        lazyUpdate: false,
+      });
+    } catch (error) {
+      console.error('[BaseChart] Failed to render chart option.', error);
+      chart.clear();
+    }
   }, [mergedOption]);
 
   useEffect(() => {
