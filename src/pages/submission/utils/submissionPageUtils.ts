@@ -57,6 +57,7 @@ interface RestoreOrderSnapshotOptions {
   markConditionIdsAsInitialized: (ids: number[]) => void;
   setSimTypeConfigs: Dispatch<SetStateAction<Record<number, SimTypeConfig>>>;
   setGlobalSolver: Dispatch<SetStateAction<GlobalSolverConfig>>;
+  setGlobalParams: Dispatch<SetStateAction<{ applyToAll: boolean; rotateDropFlag: boolean }>>;
   setInpSets: Dispatch<SetStateAction<InpSetInfo[]>>;
   defaultGlobalSolver: GlobalSolverConfig;
 }
@@ -70,6 +71,7 @@ export const restoreOrderSnapshot = ({
   markConditionIdsAsInitialized,
   setSimTypeConfigs,
   setGlobalSolver,
+  setGlobalParams,
   setInpSets,
   defaultGlobalSolver,
 }: RestoreOrderSnapshotOptions) => {
@@ -231,5 +233,11 @@ export const restoreOrderSnapshot = ({
   }
   setSimTypeConfigs(configs);
   setGlobalSolver((inputJson.globalSolver as GlobalSolverConfig) || defaultGlobalSolver);
+  setGlobalParams(
+    (inputJson.globalParams as { applyToAll: boolean; rotateDropFlag: boolean }) || {
+      applyToAll: false,
+      rotateDropFlag: false,
+    }
+  );
   setInpSets(Array.isArray(inputJson.inpSets) ? (inputJson.inpSets as InpSetInfo[]) : []);
 };

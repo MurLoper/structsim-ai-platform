@@ -25,6 +25,7 @@ export interface SubmissionDraft {
   simTypeConfigs: Record<number, SimTypeConfig>;
   // 全局求解器配置
   globalSolver: GlobalSolverConfig;
+  globalParams?: { applyToAll: boolean; rotateDropFlag: boolean };
   // INP文件解析的set集
   inpSets: InpSetInfo[];
   // 草稿保存时间

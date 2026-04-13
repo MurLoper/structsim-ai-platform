@@ -1,6 +1,7 @@
 import type {
   ModuleDetail,
   OrderConditionRoundColumn,
+  OrderCaseResult,
   OrderConditionRoundsResponse,
   OrderConditionSummary,
   RoundItem,
@@ -17,6 +18,8 @@ export interface ResultRecord {
 
 export interface ConditionRoundsGroup {
   conditionId: number;
+  caseId?: number | null;
+  caseIndex?: number | null;
   rounds: RoundItem[];
   orderCondition: OrderConditionSummary;
   resultSource: string;
@@ -27,6 +30,8 @@ export interface ConditionRoundsGroup {
   total: number;
   totalPages: number;
 }
+
+export type ResultCaseGroup = OrderCaseResult;
 
 export interface FullConditionRoundsGroup extends ConditionRoundsGroup {
   sampled: boolean;

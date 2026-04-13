@@ -139,6 +139,9 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
           simTypeId: item.simTypeId,
           simTypeName: simType?.name,
           params: config?.params,
+          rotateDropFlag: Boolean(
+            (config?.params as { rotateDropFlag?: boolean } | undefined)?.rotateDropFlag
+          ),
           output: config?.output,
           solver: config?.solver,
           careDeviceIds: config?.careDeviceIds || [],
@@ -150,6 +153,7 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
 
   const submitMeta = useSubmissionSubmitMeta({
     conditions: currentSubmitConditions,
+    globalParams: state.globalParams,
     user,
   });
 
@@ -221,6 +225,7 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
       state.setSelectedSimTypes(defaults.selectedSimTypes);
       state.setSimTypeConfigs({});
       state.setGlobalSolver(DEFAULT_GLOBAL_SOLVER);
+      state.setGlobalParams({ applyToAll: false, rotateDropFlag: false });
       setInpSets([]);
     },
     [defaultFormValues, form, state]
@@ -253,6 +258,7 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
         markConditionIdsAsInitialized: state.markConditionIdsAsInitialized,
         setSimTypeConfigs: state.setSimTypeConfigs,
         setGlobalSolver: state.setGlobalSolver,
+        setGlobalParams: state.setGlobalParams,
         setInpSets,
         defaultGlobalSolver: DEFAULT_GLOBAL_SOLVER,
       }),
@@ -279,12 +285,14 @@ const Submission: React.FC<SubmissionProps> = ({ orderId: propOrderId, onClose }
       selectedSimTypes: state.selectedSimTypes,
       simTypeConfigs: state.simTypeConfigs,
       globalSolver: state.globalSolver,
+      globalParams: state.globalParams,
       inpSets,
     },
     markConditionIdsAsInitialized: state.markConditionIdsAsInitialized,
     setSelectedSimTypes: state.setSelectedSimTypes,
     setSimTypeConfigs: state.setSimTypeConfigs,
     setGlobalSolver: state.setGlobalSolver,
+    setGlobalParams: state.setGlobalParams,
     setInpSets,
     showDraftRestored: () => showToast('info', t('sub.draft_restored')),
     resetToLatestDefaults,

@@ -39,6 +39,10 @@ export interface SsoCallbackRequest {
   uid: string;
 }
 
+export interface OptAccessTokenRequest {
+  optAccessToken: string;
+}
+
 export const authApi = {
   /**
    * User login by domain account
@@ -60,6 +64,12 @@ export const authApi = {
    */
   ssoCallbackLogin: (data: SsoCallbackRequest) =>
     api.post<LoginResponse>('/auth/sso/callback', data),
+
+  /**
+   * Embedded platform token exchange
+   */
+  optAccessTokenLogin: (data: OptAccessTokenRequest) =>
+    api.post<LoginResponse>('/auth/opt-access-token', data),
 
   /**
    * User logout

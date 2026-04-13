@@ -9,6 +9,7 @@ interface DraftPayload {
   selectedSimTypes: SelectedSimType[];
   simTypeConfigs: Record<number, SimTypeConfig>;
   globalSolver: GlobalSolverConfig;
+  globalParams?: { applyToAll: boolean; rotateDropFlag: boolean };
   inpSets: InpSetInfo[];
 }
 
@@ -24,6 +25,7 @@ interface UseSubmissionDraftLifecycleOptions {
   setSelectedSimTypes: (value: SelectedSimType[]) => void;
   setSimTypeConfigs: (value: Record<number, SimTypeConfig>) => void;
   setGlobalSolver: (value: GlobalSolverConfig) => void;
+  setGlobalParams: (value: { applyToAll: boolean; rotateDropFlag: boolean }) => void;
   setInpSets: (value: InpSetInfo[]) => void;
   showDraftRestored: () => void;
   resetToLatestDefaults: () => Promise<void>;
@@ -41,6 +43,7 @@ export const useSubmissionDraftLifecycle = ({
   setSelectedSimTypes,
   setSimTypeConfigs,
   setGlobalSolver,
+  setGlobalParams,
   setInpSets,
   showDraftRestored,
   resetToLatestDefaults,
@@ -64,6 +67,7 @@ export const useSubmissionDraftLifecycle = ({
       setSelectedSimTypes(draft.selectedSimTypes);
       setSimTypeConfigs(draft.simTypeConfigs);
       setGlobalSolver(draft.globalSolver);
+      setGlobalParams(draft.globalParams || { applyToAll: false, rotateDropFlag: false });
       setInpSets(draft.inpSets);
       showDraftRestored();
       setTimeout(() => {
@@ -84,6 +88,7 @@ export const useSubmissionDraftLifecycle = ({
     orderId,
     resetToLatestDefaults,
     setGlobalSolver,
+    setGlobalParams,
     setInpSets,
     setSelectedSimTypes,
     setSimTypeConfigs,

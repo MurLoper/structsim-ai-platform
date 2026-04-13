@@ -16,6 +16,7 @@ export const authEn = {
   'auth.sso.loading': 'Completing SSO login...',
   'auth.sso.missing_uid': 'SSO callback is missing the uid parameter. Please sign in again.',
   'auth.sso.failed': 'SSO login failed.',
+  'auth.embed.failed': 'Embedded login failed.',
   'auth.no_permission.title': 'No Permission',
   'auth.no_permission.description':
     'Your current account does not have permission to access this page. If you believe this is a configuration error, contact an administrator.',
@@ -40,6 +41,7 @@ export const authZh = {
   'auth.sso.loading': '正在完成 SSO 登录...',
   'auth.sso.missing_uid': 'SSO 回调缺少 uid 参数，请重新登录。',
   'auth.sso.failed': 'SSO 登录失败。',
+  'auth.embed.failed': '嵌入登录失败。',
   'auth.no_permission.title': '无访问权限',
   'auth.no_permission.description':
     '您当前没有访问此页面的权限。如果您认为这是配置错误，请联系管理员处理。',

@@ -2,10 +2,12 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { MenuItem, Permission, User } from '@/types';
 import { authApi } from '@/api';
+import { RESOURCES, formatMessage } from '@/locales';
 import {
   clearCachedLoginPublicKey,
   encryptPasswordForLogin,
 } from '@/features/auth/security/loginPasswordCipher';
+import { useUIStore } from './uiStore';
 
 const AUTH_TOKEN_KEY = 'auth_token';
 const AUTH_STORAGE_KEY = 'auth-storage';
@@ -18,6 +20,11 @@ const clearPersistedAuth = () => {
 const getStoredAuthToken = () => localStorage.getItem(AUTH_TOKEN_KEY);
 
 let pendingSessionHydration: Promise<boolean> | null = null;
+
+const getAuthMessage = (key: string) => {
+  const language = useUIStore.getState().language;
+  return formatMessage(RESOURCES[language][key] || key);
+};
 
 const shouldRetryLoginWithFreshPublicKey = (message: string, code?: number | string | null) => {
   const normalizedMessage = String(message || '').toLowerCase();
@@ -98,6 +105,7 @@ interface AuthState {
   hydrateSession: () => Promise<boolean>;
   login: (domainAccount: string, password: string) => Promise<void>;
   loginBySsoUid: (uid: string) => Promise<void>;
+  loginByOptAccessToken: (optAccessToken: string) => Promise<void>;
   verifyToken: () => Promise<boolean>;
   checkHeartbeat: () => Promise<boolean>;
   refreshToken: () => Promise<boolean>;
@@ -244,14 +252,15 @@ export const useAuthStore = create<AuthState>()(
 
           const payload = response?.data;
           if (!payload?.token) {
-            throw new Error('登录失败');
+            throw new Error(getAuthMessage('auth.login.failed'));
           }
 
           get().setToken(payload.token);
           set({ user: null, menus: [], isAuthenticated: false, sessionHydrated: false });
         } catch (error: unknown) {
           const err = error as { response?: { data?: { message?: string } }; message?: string };
-          const message = err.response?.data?.message || err.message || '登录失败';
+          const message =
+            err.response?.data?.message || err.message || getAuthMessage('auth.login.failed');
           throw new Error(message);
         } finally {
           set({ isLoading: false });
@@ -264,14 +273,36 @@ export const useAuthStore = create<AuthState>()(
           const response = await authApi.ssoCallbackLogin({ uid });
           const payload = response?.data;
           if (!payload?.token) {
-            throw new Error('SSO 登录失败');
+            throw new Error(getAuthMessage('auth.sso.failed'));
           }
 
           get().setToken(payload.token);
           set({ user: null, menus: [], isAuthenticated: false, sessionHydrated: false });
         } catch (error: unknown) {
           const err = error as { response?: { data?: { message?: string } }; message?: string };
-          const message = err.response?.data?.message || err.message || 'SSO 登录失败';
+          const message =
+            err.response?.data?.message || err.message || getAuthMessage('auth.sso.failed');
+          throw new Error(message);
+        } finally {
+          set({ isLoading: false });
+        }
+      },
+
+      loginByOptAccessToken: async (optAccessToken: string) => {
+        set({ isLoading: true });
+        try {
+          const response = await authApi.optAccessTokenLogin({ optAccessToken });
+          const payload = response?.data;
+          if (!payload?.token) {
+            throw new Error(getAuthMessage('auth.embed.failed'));
+          }
+
+          get().setToken(payload.token);
+          set({ user: null, menus: [], isAuthenticated: false, sessionHydrated: false });
+        } catch (error: unknown) {
+          const err = error as { response?: { data?: { message?: string } }; message?: string };
+          const message =
+            err.response?.data?.message || err.message || getAuthMessage('auth.embed.failed');
           throw new Error(message);
         } finally {
           set({ isLoading: false });

@@ -15,6 +15,8 @@ export interface ResultsSummaryCard {
 
 export interface ResultsConditionCard {
   id: number;
+  caseId?: number | null;
+  caseIndex?: number | null;
   label: string;
   shortLabel: string;
   totalRounds: number;

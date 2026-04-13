@@ -1,6 +1,11 @@
 import { ParamStrategy, SimulationType } from '@/types';
 
 export const submissionZh = {
+  'sub.params.apply_to_all': '参数全局应用',
+  'sub.params.apply_to_all_desc': '勾选后本次申请单按 1 个 issue + 1 个 job + 多个工况分发。',
+  'sub.params.rotate_drop_flag': '转角度跌落',
+  'sub.params.rotate_drop_flag_global_desc': '当前标记会应用到所有工况的 subject 配置。',
+  'sub.params.rotate_drop_flag_condition_desc': '当前标记只应用到当前工况的 subject 配置。',
   'sub.title': '新建仿真申请',
   'sub.subtitle': '通过画布配置您的仿真流程。',
   'sub.submit': '提交申请单',

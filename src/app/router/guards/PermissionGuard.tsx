@@ -3,6 +3,15 @@ import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '@/stores';
 import { type Permission } from '@/types';
 
+const getCookieValue = (name: string) => {
+  const prefix = `${name}=`;
+  const cookie = document.cookie
+    .split(';')
+    .map(item => item.trim())
+    .find(item => item.startsWith(prefix));
+  return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : '';
+};
+
 export interface AuthGuardProps {
   children: ReactNode;
 }
@@ -25,6 +34,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
     setToken,
     verifyToken,
     clearAuthState,
+    loginByOptAccessToken,
   } = useAuthStore();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -43,6 +53,17 @@ export function AuthGuard({ children }: AuthGuardProps) {
       return;
     }
 
+    if (!storedToken && location.pathname.startsWith('/embed')) {
+      const optAccessToken = getCookieValue('opt_access_token');
+      if (optAccessToken && !isLoading && !isVerifying) {
+        setIsVerifying(true);
+        loginByOptAccessToken(optAccessToken)
+          .then(() => verifyToken())
+          .finally(() => setIsVerifying(false));
+        return;
+      }
+    }
+
     if (user && !storedToken && !isLoading && !isVerifying) {
       clearAuthState();
       return;
@@ -56,6 +77,8 @@ export function AuthGuard({ children }: AuthGuardProps) {
     clearAuthState,
     isLoading,
     isVerifying,
+    location.pathname,
+    loginByOptAccessToken,
     searchParams,
     sessionHydrated,
     setSearchParams,

@@ -9,3 +9,4 @@ export { submissionRoutes } from './submission.routes';
 export { accessRoutes } from './access.routes';
 export { authRoutes } from './auth.routes';
 export { platformRoutes } from './platform.routes';
+export { embedRoutes } from './embed.routes';

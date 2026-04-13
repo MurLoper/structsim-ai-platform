@@ -63,6 +63,9 @@ export const useSubmissionSubmitHandler = ({
           simTypeId: item.simTypeId,
           simTypeName: simType?.name,
           params: config?.params,
+          rotateDropFlag: Boolean(
+            (config?.params as { rotateDropFlag?: boolean } | undefined)?.rotateDropFlag
+          ),
           output: config?.output,
           solver: config?.solver,
           careDeviceIds: config?.careDeviceIds || [],
@@ -127,6 +130,7 @@ export const useSubmissionSubmitHandler = ({
               remark: values.remark,
             },
             conditions,
+            globalParams: state.globalParams,
             globalSolver: state.globalSolver,
             inpSets,
           },

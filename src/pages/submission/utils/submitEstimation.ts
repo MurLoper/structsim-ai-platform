@@ -53,8 +53,19 @@ export const estimateRoundsFromOptParams = (
 };
 
 export const estimateRoundsFromConditions = (
-  conditions: Array<Record<string, unknown>>
+  conditions: Array<Record<string, unknown>>,
+  globalParams?: Record<string, unknown>
 ): number => {
+  if (globalParams?.applyToAll) {
+    const firstCondition = conditions.find(cond => {
+      const params = cond.params as Record<string, unknown> | undefined;
+      const optParams = params?.optParams as Record<string, unknown> | undefined;
+      return Boolean(optParams);
+    });
+    const params = firstCondition?.params as Record<string, unknown> | undefined;
+    return estimateRoundsFromOptParams(params?.optParams as Record<string, unknown> | undefined);
+  }
+
   return conditions.reduce((total, cond) => {
     const params = cond.params as Record<string, unknown> | undefined;
     const optParams = params?.optParams as Record<string, unknown> | undefined;

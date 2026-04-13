@@ -58,6 +58,10 @@ export const useSubmissionState = (
     resourceId: null,
     applyToAll: true,
   });
+  const [globalParams, setGlobalParams] = useState({
+    applyToAll: false,
+    rotateDropFlag: false,
+  });
 
   const buildCurrentFoldTypeTree = useCallback(
     (nextConditionConfigs: ConditionConfig[] = conditionConfigs): FoldTypeWithSimTypes[] =>
@@ -167,6 +171,8 @@ export const useSubmissionState = (
     setSimTypeConfigs: selectionState.setSimTypeConfigs,
     globalSolver,
     setGlobalSolver,
+    globalParams,
+    setGlobalParams,
     isDrawerOpen: drawerState.isDrawerOpen,
     setIsDrawerOpen: drawerState.setIsDrawerOpen,
     drawerMode: drawerState.drawerMode,

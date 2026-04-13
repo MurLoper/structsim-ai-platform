@@ -165,6 +165,13 @@ export const submissionEn = {
   'sub.params.start_idx': 'Start',
   'sub.params.end_idx': 'End',
   'sub.params.doe_error_no_params': 'Please add at least one parameter',
+  'sub.params.apply_to_all': 'Apply parameters globally',
+  'sub.params.apply_to_all_desc': 'Submit as 1 issue, 1 job, and multiple conditions.',
+  'sub.params.rotate_drop_flag': 'Rotate drop',
+  'sub.params.rotate_drop_flag_global_desc':
+    'This flag applies to subject configs of all conditions.',
+  'sub.params.rotate_drop_flag_condition_desc':
+    'This flag applies only to the current condition subject config.',
   'sub.params.doe_error_empty_name': 'Parameter {index} has no name',
   'sub.params.doe_error_duplicate_name': 'Duplicate parameter name: {name}',
   'sub.params.doe_error_empty_values': 'Parameter "{name}" has no values',

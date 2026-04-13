@@ -89,7 +89,11 @@ export const SubmissionDrawerContent: React.FC<SubmissionDrawerContentProps> = (
           paramDefs={state.safeParamDefs}
           paramGroups={state.safeParamGroups}
           conditionConfig={activeConditionConfig}
+          globalParams={state.globalParams}
           onUpdate={updates => state.updateSimTypeConfig(state.activeConditionId!, updates)}
+          onGlobalParamsChange={updates =>
+            state.setGlobalParams({ ...state.globalParams, ...updates })
+          }
           onFetchGroupParams={state.fetchParamGroupParams}
           t={t}
         />

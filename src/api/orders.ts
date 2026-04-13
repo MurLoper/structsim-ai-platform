@@ -53,8 +53,8 @@ export const ordersApi = {
   createOrder: (payload: OrderCreatePayload) => api.post<OrderDetail>('/orders', payload),
   updateOrder: (orderId: number, payload: Partial<OrderCreatePayload>) =>
     api.put<OrderDetail>(`/orders/${orderId}`, payload),
-  resubmitOrderCondition: (orderConditionId: number) =>
-    api.post<ResubmitOrderConditionResponse>(`/orders/conditions/${orderConditionId}/resubmit`),
+  resubmitCaseCondition: (caseConditionId: number) =>
+    api.post<ResubmitOrderConditionResponse>(`/orders/case-conditions/${caseConditionId}/resubmit`),
 
   /** 验证源文件（路径/ID）并解析 INP set 集 */
   verifyFile: (path: string, type: number) =>

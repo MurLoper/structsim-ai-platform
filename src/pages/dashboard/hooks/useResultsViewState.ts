@@ -6,13 +6,9 @@ import { buildConditionLabel } from './resultsConditionMappers';
 
 interface UseResultsViewStateOptions {
   orderConditions: OrderConditionSummary[];
-  orderDetailConditionIds: number[];
 }
 
-export const useResultsViewState = ({
-  orderConditions,
-  orderDetailConditionIds,
-}: UseResultsViewStateOptions) => {
+export const useResultsViewState = ({ orderConditions }: UseResultsViewStateOptions) => {
   const [selectedConditionIds, setSelectedConditionIds] = useState<number[]>([]);
   const [focusedConditionId, setFocusedConditionId] = useState<number | null>(null);
   const [conditionRoundPaging, setConditionRoundPaging] = useState<
@@ -21,12 +17,11 @@ export const useResultsViewState = ({
 
   useEffect(() => {
     if (selectedConditionIds.length > 0) return;
-    const defaultConditionIds =
-      orderConditions.length > 0 ? orderConditions.map(item => item.id) : orderDetailConditionIds;
+    const defaultConditionIds = orderConditions.map(item => item.id);
     if (defaultConditionIds.length > 0) {
       setSelectedConditionIds(defaultConditionIds);
     }
-  }, [orderConditions, orderDetailConditionIds, selectedConditionIds.length]);
+  }, [orderConditions, selectedConditionIds.length]);
 
   useEffect(() => {
     if (!orderConditions.length) return;

@@ -65,8 +65,13 @@ export interface OrderConditionSummary {
   id: number;
   orderId: number;
   orderNo?: string;
+  caseId?: number | null;
+  caseIndex?: number | null;
   optIssueId?: number | null;
   optJobId?: number | null;
+  optConditionConfigId?: number | null;
+  parameterScope?: 'global' | 'per_condition' | string | null;
+  rotateDropFlag?: boolean;
   conditionId: number;
   foldTypeId?: number;
   foldTypeName?: string;
@@ -99,7 +104,7 @@ export interface OrderConditionRoundColumn {
 
 export interface OrderConditionRoundRawItem {
   id: string | number;
-  orderConditionId: number;
+  caseConditionId?: number;
   optIssueId?: number | null;
   optJobId?: number | null;
   roundIndex: number;
@@ -132,6 +137,31 @@ export interface OrderConditionRoundsResponse {
   totalPages?: number;
 }
 
+export interface OrderCaseResultCondition extends OrderConditionSummary {
+  rounds: OrderConditionRoundsResponse;
+}
+
+export interface OrderCaseResult {
+  id: number;
+  orderId: number;
+  orderNo?: string;
+  caseIndex: number;
+  caseName?: string | null;
+  optIssueId?: number | null;
+  optJobId?: number | null;
+  parameterScope?: 'global' | 'per_condition' | string | null;
+  status: number;
+  process: number;
+  statistics?: OrderConditionRoundsResponse['statistics'];
+  conditions: OrderCaseResultCondition[];
+}
+
+export interface OrderCaseResultsResponse {
+  orderId: number;
+  cases: OrderCaseResult[];
+  conditions: OrderConditionSummary[];
+}
+
 export const resultsApi = {
   /** 旧链路：获取订单的所有仿真类型结果 */
   getOrderSimTypeResults: (orderId: number) =>
@@ -147,22 +177,6 @@ export const resultsApi = {
     }),
 
   /** 新链路：获取订单下所有工况方案摘要 */
-  getOrderConditions: (orderId: number, params?: { includeExternal?: boolean }) =>
-    api.get<OrderConditionSummary[]>(`/results/order/${orderId}/conditions`, { params }),
-
-  getOrderConditionExternalSummaries: (orderId: number) =>
-    api.get<OrderConditionSummary[]>(`/results/order/${orderId}/conditions/external-summary`),
-
-  /** 新链路：获取单个工况方案摘要 */
-  getOrderCondition: (orderConditionId: number) =>
-    api.get<OrderConditionSummary>(`/results/order-condition/${orderConditionId}`),
-
-  /**
-   * 新链路：获取单个工况方案轮次。
-   * 当前开发环境走正式接口 + 后端 mock 数据，后续真实接入后保持接口不变。
-   */
-  getOrderConditionRounds: (orderConditionId: number, params?: RoundsQueryParams) =>
-    api.get<OrderConditionRoundsResponse>(`/results/order-condition/${orderConditionId}/rounds`, {
-      params,
-    }),
+  getOrderCaseResults: (orderId: number) =>
+    api.get<OrderCaseResultsResponse>(`/results/order/${orderId}/cases`),
 };

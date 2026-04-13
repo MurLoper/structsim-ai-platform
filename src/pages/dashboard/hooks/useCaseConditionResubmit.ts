@@ -2,27 +2,25 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ordersApi } from '@/api';
 import { queryKeys } from '@/lib/queryClient';
 
-interface UseOrderConditionResubmitOptions {
+interface UseCaseConditionResubmitOptions {
   orderId: number | null;
   onSuccess?: () => void;
   onError?: (error: unknown) => void;
 }
 
-export const useOrderConditionResubmit = ({
+export const useCaseConditionResubmit = ({
   orderId,
   onSuccess,
   onError,
-}: UseOrderConditionResubmitOptions) => {
+}: UseCaseConditionResubmitOptions) => {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: (orderConditionId: number) => ordersApi.resubmitOrderCondition(orderConditionId),
+    mutationFn: (caseConditionId: number) => ordersApi.resubmitCaseCondition(caseConditionId),
     onSuccess: () => {
       if (orderId) {
         void queryClient.invalidateQueries({ queryKey: queryKeys.orders.detail(orderId) });
-        void queryClient.invalidateQueries({ queryKey: ['results', 'orderConditions', orderId] });
-        void queryClient.invalidateQueries({ queryKey: ['results', 'conditionRounds'] });
-        void queryClient.invalidateQueries({ queryKey: ['results', 'focusedConditionAnalysis'] });
+        void queryClient.invalidateQueries({ queryKey: ['results', 'orderCaseResults', orderId] });
       }
       onSuccess?.();
     },

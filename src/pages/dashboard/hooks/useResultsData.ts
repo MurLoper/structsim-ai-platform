@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useOutputDefs, useParamDefs } from '@/features/config/queries';
-import { ordersApi, resultsApi } from '@/api';
+import { ordersApi } from '@/api';
 import { queryKeys } from '@/lib/queryClient';
-import type { OrderConditionSummary } from '@/api/results';
 import {
   buildConditionResults,
   buildFocusedConditionResults,
@@ -17,14 +16,15 @@ import {
   filterResultRecords,
   sampleChartResults,
 } from './resultsMetricSelectors';
-import type { ResultRecord } from './resultsAnalysisTypes';
+import type {
+  ConditionRoundsGroup,
+  FullConditionRoundsGroup,
+  ResultRecord,
+} from './resultsAnalysisTypes';
 import { useResultsRoundQueries } from './useResultsRoundQueries';
 import { useResultsViewState } from './useResultsViewState';
 
-export const useResultsData = (
-  orderId: number | null,
-  activeTab: 'overview' | 'detail' | 'analysis' = 'overview'
-) => {
+export const useResultsData = (orderId: number | null) => {
   const resolvedOrderId = orderId && Number.isFinite(orderId) ? orderId : null;
 
   const {
@@ -57,81 +57,42 @@ export const useResultsData = (
     enabled: !!resolvedOrderId,
   });
 
-  const {
-    data: orderConditions = [],
-    isLoading: orderConditionsLoading,
-    error: orderConditionsError,
-    refetch: refetchOrderConditions,
-  } = useQuery({
-    queryKey: ['results', 'orderConditions', resolvedOrderId],
-    queryFn: async () => {
-      if (!resolvedOrderId) return [] as OrderConditionSummary[];
-      const response = await resultsApi.getOrderConditions(resolvedOrderId);
-      return response.data || [];
-    },
-    enabled: !!resolvedOrderId,
-    staleTime: 30 * 1000,
-  });
-
-  const { data: externalConditionSummaries = [], refetch: refetchExternalConditionSummaries } =
-    useQuery({
-      queryKey: ['results', 'orderConditionExternalSummaries', resolvedOrderId],
-      queryFn: async () => {
-        if (!resolvedOrderId) return [] as OrderConditionSummary[];
-        const response = await resultsApi.getOrderConditionExternalSummaries(resolvedOrderId);
-        return response.data || [];
-      },
-      enabled: !!resolvedOrderId && orderConditions.length > 0,
-      staleTime: 30 * 1000,
-    });
+  const roundQueries = useResultsRoundQueries({ resolvedOrderId });
 
   const resolvedOrderConditions = useMemo(() => {
-    if (!externalConditionSummaries.length) return orderConditions;
-    const externalMap = new Map(externalConditionSummaries.map(item => [item.id, item]));
-    return orderConditions.map(condition => {
-      const external = externalMap.get(condition.id);
-      if (!external) return condition;
-      return {
-        ...condition,
-        ...external,
-        conditionSnapshot: external.conditionSnapshot ?? condition.conditionSnapshot,
-      };
+    const map = new Map<number, ConditionRoundsGroup['orderCondition']>();
+    roundQueries.conditionRoundGroups.forEach(group => {
+      map.set(group.orderCondition.id, group.orderCondition);
     });
-  }, [externalConditionSummaries, orderConditions]);
+    return Array.from(map.values());
+  }, [roundQueries.conditionRoundGroups]);
 
   const displayOrderId = orderDetail?.orderNo || (resolvedOrderId ? `#${resolvedOrderId}` : '-');
   const orderStatus = typeof orderDetail?.status === 'number' ? orderDetail.status : null;
   const orderProgress = typeof orderDetail?.progress === 'number' ? orderDetail.progress : null;
 
-  const orderDetailConditionIds = useMemo(
-    () =>
-      Array.isArray(orderDetail?.conditions)
-        ? orderDetail.conditions.map((item: { id: number }) => item.id)
-        : [],
-    [orderDetail]
-  );
-
   const viewState = useResultsViewState({
     orderConditions: resolvedOrderConditions,
-    orderDetailConditionIds,
   });
 
-  const roundQueries = useResultsRoundQueries({
-    resolvedOrderId,
-    activeTab,
-    focusedConditionId: viewState.focusedConditionId,
-    focusedCondition: viewState.focusedCondition,
-    conditionRoundPaging: viewState.conditionRoundPaging,
-  });
+  const focusedConditionAnalysis = useMemo<FullConditionRoundsGroup | null>(() => {
+    const focusedGroup =
+      roundQueries.conditionRoundGroups.find(
+        group => group.conditionId === viewState.focusedConditionId
+      ) ||
+      roundQueries.conditionRoundGroups[0] ||
+      null;
+    if (!focusedGroup) return null;
+    return {
+      ...focusedGroup,
+      sampled: false,
+    };
+  }, [roundQueries.conditionRoundGroups, viewState.focusedConditionId]);
 
   const metricLabelMap = useMemo(
     () =>
-      buildMetricLabelMap(
-        roundQueries.conditionRoundGroups,
-        roundQueries.focusedConditionAnalysis,
-        outputDefs
-      ),
-    [outputDefs, roundQueries.conditionRoundGroups, roundQueries.focusedConditionAnalysis]
+      buildMetricLabelMap(roundQueries.conditionRoundGroups, focusedConditionAnalysis, outputDefs),
+    [outputDefs, roundQueries.conditionRoundGroups, focusedConditionAnalysis]
   );
 
   const metricOptions = useMemo(
@@ -218,31 +179,18 @@ export const useResultsData = (
   );
 
   const focusedConditionResults = useMemo<ResultRecord[]>(
-    () => buildFocusedConditionResults(metric, roundQueries.focusedConditionAnalysis),
-    [metric, roundQueries.focusedConditionAnalysis]
+    () => buildFocusedConditionResults(metric, focusedConditionAnalysis),
+    [metric, focusedConditionAnalysis]
   );
 
-  const resultsError =
-    outputDefsError ||
-    paramDefsError ||
-    orderError ||
-    orderConditionsError ||
-    roundQueries.roundsError ||
-    roundQueries.focusedConditionAnalysisError;
+  const resultsError = outputDefsError || paramDefsError || orderError || roundQueries.roundsError;
 
   const retryResults = () => {
     void refetchOutputDefs();
     void refetchParamDefs();
     if (resolvedOrderId) {
       void refetchOrder();
-      void refetchOrderConditions();
-      void refetchExternalConditionSummaries();
-      if (roundQueries.shouldFetchDetailRounds) {
-        void roundQueries.refetchRounds();
-      }
-      if (viewState.focusedConditionId && roundQueries.shouldFetchAnalysisRounds) {
-        void roundQueries.refetchFocusedConditionAnalysis();
-      }
+      void roundQueries.refetchRounds();
     }
   };
 
@@ -255,7 +203,7 @@ export const useResultsData = (
     focusedConditionId: viewState.focusedConditionId,
     setFocusedConditionId: viewState.setFocusedConditionId,
     focusedCondition: viewState.focusedCondition,
-    focusedConditionAnalysis: roundQueries.focusedConditionAnalysis,
+    focusedConditionAnalysis,
     focusedConditionResults,
     metricOptions,
     metricLabelMap,
@@ -277,6 +225,7 @@ export const useResultsData = (
     avgByCondition,
     conditionResults,
     conditionRoundGroups: roundQueries.conditionRoundGroups,
+    resultCases: roundQueries.resultCases,
     conditionRoundPaging: viewState.conditionRoundPaging,
     updateConditionRoundsPage: viewState.updateConditionRoundsPage,
     updateConditionRoundsPageSize: viewState.updateConditionRoundsPageSize,
@@ -285,12 +234,7 @@ export const useResultsData = (
     outputDefs,
     workflowNodes: roundQueries.workflowNodes,
     isResultsLoading:
-      outputDefsLoading ||
-      paramDefsLoading ||
-      orderLoading ||
-      orderConditionsLoading ||
-      roundQueries.roundsLoading ||
-      roundQueries.focusedConditionAnalysisLoading,
+      outputDefsLoading || paramDefsLoading || orderLoading || roundQueries.roundsLoading,
     resultsError,
     retryResults,
     handleReset,

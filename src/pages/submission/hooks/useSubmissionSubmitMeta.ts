@@ -16,6 +16,10 @@ export interface SubmissionConditionLike {
 
 interface UseSubmissionSubmitMetaOptions {
   conditions: SubmissionConditionLike[];
+  globalParams?: {
+    applyToAll?: boolean;
+    rotateDropFlag?: boolean;
+  };
   user?: {
     maxBatchSize?: number;
     dailyRoundLimit?: number;
@@ -23,10 +27,15 @@ interface UseSubmissionSubmitMetaOptions {
   } | null;
 }
 
-export const useSubmissionSubmitMeta = ({ conditions, user }: UseSubmissionSubmitMetaOptions) => {
+export const useSubmissionSubmitMeta = ({
+  conditions,
+  globalParams,
+  user,
+}: UseSubmissionSubmitMetaOptions) => {
   return useMemo(() => {
     const currentSubmitRounds = estimateRoundsFromConditions(
-      conditions as Array<Record<string, unknown>>
+      conditions as Array<Record<string, unknown>>,
+      globalParams as Record<string, unknown> | undefined
     );
     const maxBatchSize = user?.maxBatchSize ?? 200;
     const dailyRoundLimit = user?.dailyRoundLimit ?? 500;
@@ -40,5 +49,5 @@ export const useSubmissionSubmitMeta = ({ conditions, user }: UseSubmissionSubmi
       willExceedBatchLimit: currentSubmitRounds > maxBatchSize,
       willExceedDailyLimit: todayUsedRounds + currentSubmitRounds > dailyRoundLimit,
     };
-  }, [conditions, user]);
+  }, [conditions, globalParams, user]);
 };

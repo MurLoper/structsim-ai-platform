@@ -3,3 +3,4 @@
  */
 
 export { ProtectedLayout, PublicLayout } from './ProtectedLayout';
+export { EmbedProtectedLayout } from './EmbedProtectedLayout';

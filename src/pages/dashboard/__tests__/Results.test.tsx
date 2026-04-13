@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { ToastProvider } from '@/components/ui';
 import Results from '../Results';
 
 vi.mock('../hooks/useResultsData', () => ({
@@ -44,6 +46,7 @@ const mockUseResultsData = async (overrides = {}) => {
     avgByCondition: [],
     conditionResults: [],
     conditionRoundGroups: [],
+    resultCases: [],
     overviewStats: {
       conditionCount: 0,
       totalRounds: 0,
@@ -66,6 +69,27 @@ const mockUseResultsData = async (overrides = {}) => {
   });
 };
 
+const renderWithProviders = (initialEntry: string) => {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <ToastProvider>
+        <MemoryRouter initialEntries={[initialEntry]}>
+          <Routes>
+            <Route path="/results/:id" element={<Results />} />
+          </Routes>
+        </MemoryRouter>
+      </ToastProvider>
+    </QueryClientProvider>
+  );
+};
+
 describe('Results page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -74,13 +98,7 @@ describe('Results page', () => {
   it('should show invalid order message when id is not number', async () => {
     await mockUseResultsData();
 
-    render(
-      <MemoryRouter initialEntries={['/results/abc']}>
-        <Routes>
-          <Route path="/results/:id" element={<Results />} />
-        </Routes>
-      </MemoryRouter>
-    );
+    renderWithProviders('/results/abc');
 
     expect(screen.getByText('申请单不存在')).toBeInTheDocument();
     expect(screen.getByText('订单 ID 无效，请返回申请单列表重新进入。')).toBeInTheDocument();
@@ -90,13 +108,7 @@ describe('Results page', () => {
     const retryResults = vi.fn();
     await mockUseResultsData({ resultsError: new Error('network'), retryResults });
 
-    render(
-      <MemoryRouter initialEntries={['/results/1']}>
-        <Routes>
-          <Route path="/results/:id" element={<Results />} />
-        </Routes>
-      </MemoryRouter>
-    );
+    renderWithProviders('/results/1');
 
     expect(screen.getByText('结果加载失败')).toBeInTheDocument();
     const retryButton = screen.getByRole('button', { name: '重试' });

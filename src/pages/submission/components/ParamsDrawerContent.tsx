@@ -8,6 +8,7 @@ import { ParamsBatchConfigSection } from './params/ParamsBatchConfigSection';
 import { ParamsDoeFileSection } from './params/ParamsDoeFileSection';
 import { ParamsDomainSection } from './params/ParamsDomainSection';
 import { ParamsGroupSection } from './params/ParamsGroupSection';
+import { ParamsAutomationOptionsSection } from './params/ParamsAutomationOptionsSection';
 import { useDoeFileState } from '../hooks/useDoeFileState';
 import { useParamsGroupApply } from '../hooks/useParamsGroupApply';
 
@@ -17,7 +18,9 @@ interface ParamsDrawerContentProps {
   paramDefs: ParamDef[];
   paramGroups: ParamGroup[];
   conditionConfig?: ConditionConfig;
+  globalParams: { applyToAll: boolean; rotateDropFlag: boolean };
   onUpdate: (updates: Partial<SimTypeConfig>) => void;
+  onGlobalParamsChange: (updates: { applyToAll?: boolean; rotateDropFlag?: boolean }) => void;
   onFetchGroupParams?: (groupId: number) => Promise<ParamInGroup[]>;
   t?: (key: string) => string;
 }
@@ -39,7 +42,9 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
   paramDefs,
   paramGroups,
   conditionConfig,
+  globalParams,
   onUpdate,
+  onGlobalParamsChange,
   onFetchGroupParams,
   t = (key: string) => key,
 }) => {
@@ -253,6 +258,19 @@ export const ParamsDrawerContent: React.FC<ParamsDrawerContentProps> = ({
 
   return (
     <div className="space-y-5 pb-6">
+      <ParamsAutomationOptionsSection
+        applyToAll={globalParams.applyToAll}
+        rotateDropFlag={globalParams.rotateDropFlag}
+        perConditionRotateDropFlag={Boolean(
+          (config.params as typeof config.params & { rotateDropFlag?: boolean }).rotateDropFlag
+        )}
+        onGlobalChange={updates => onGlobalParamsChange(updates)}
+        onConditionRotateDropChange={rotateDropFlag =>
+          onUpdate({ params: { ...config.params, rotateDropFlag } as typeof config.params })
+        }
+        t={t}
+      />
+
       <ParamsGroupSection
         filteredParamGroups={filteredParamGroups}
         selectedGroupId={selectedGroupId}
