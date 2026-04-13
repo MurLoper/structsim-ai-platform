@@ -165,7 +165,7 @@ export function VirtualTable<TData>({
       className={cn('overflow-auto bg-card', bordered && 'border rounded-lg', className)}
       style={{ height: containerHeight }}
     >
-      <table className="w-full border-collapse">
+      <table className="w-full min-w-max border-collapse">
         <thead className="sticky top-0 z-10 bg-muted/95 backdrop-blur-sm">
           {table.getHeaderGroups().map(headerGroup => (
             <tr key={headerGroup.id}>
@@ -176,14 +176,14 @@ export function VirtualTable<TData>({
                     key={header.id}
                     colSpan={header.colSpan}
                     className={cn(
-                      'px-4 py-3 text-left text-sm font-medium text-foreground',
+                      'px-4 py-3 text-center text-sm font-medium text-foreground whitespace-nowrap',
                       'border-b border-border',
                       canSort && 'cursor-pointer select-none hover:bg-muted'
                     )}
                     style={{ width: header.getSize() }}
                     onClick={canSort ? header.column.getToggleSortingHandler() : undefined}
                   >
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-center gap-1 whitespace-nowrap">
                       {header.isPlaceholder
                         ? null
                         : flexRender(header.column.columnDef.header, header.getContext())}
@@ -231,7 +231,7 @@ export function VirtualTable<TData>({
                   {row.getVisibleCells().map(cell => (
                     <td
                       key={cell.id}
-                      className="px-4 py-2 text-sm"
+                      className="px-4 py-2 text-center text-sm whitespace-nowrap align-middle"
                       style={{ width: cell.column.getSize() }}
                     >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

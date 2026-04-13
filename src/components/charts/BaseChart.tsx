@@ -69,19 +69,16 @@ export function BaseChart({
   const themeTokens = CHART_THEME_TOKENS[theme] || CHART_THEME_TOKENS.light;
 
   const mergedOption = useMemo<EChartsOption>(() => {
-    const baseOption: EChartsOption = {
+    const optionRecord = option as Record<string, unknown>;
+    const is3DOption = Boolean(
+      optionRecord.grid3D || optionRecord.xAxis3D || optionRecord.yAxis3D || optionRecord.zAxis3D
+    );
+    const commonOption: EChartsOption = {
       backgroundColor: themeTokens.backgroundColor,
       textStyle: {
         color: themeTokens.textColor,
       },
       color: CHART_COLOR_PALETTE,
-      grid: {
-        top: 40,
-        right: 20,
-        bottom: 40,
-        left: 50,
-        containLabel: true,
-      },
       tooltip: {
         trigger: 'axis',
         backgroundColor: themeTokens.tooltipBackground,
@@ -95,35 +92,47 @@ export function BaseChart({
           color: themeTokens.textColor,
         },
       },
-      xAxis: {
-        axisLine: {
-          lineStyle: { color: themeTokens.axisLineColor },
-        },
-        axisTick: {
-          lineStyle: { color: themeTokens.axisLineColor },
-        },
-        axisLabel: {
-          color: themeTokens.textColor,
-        },
-        splitLine: {
-          lineStyle: { color: themeTokens.splitLineColor },
-        },
-      },
-      yAxis: {
-        axisLine: {
-          lineStyle: { color: themeTokens.axisLineColor },
-        },
-        axisTick: {
-          lineStyle: { color: themeTokens.axisLineColor },
-        },
-        axisLabel: {
-          color: themeTokens.textColor,
-        },
-        splitLine: {
-          lineStyle: { color: themeTokens.splitLineColor },
-        },
-      },
     };
+    const baseOption: EChartsOption = is3DOption
+      ? commonOption
+      : {
+          ...commonOption,
+          grid: {
+            top: 40,
+            right: 20,
+            bottom: 40,
+            left: 50,
+            containLabel: true,
+          },
+          xAxis: {
+            axisLine: {
+              lineStyle: { color: themeTokens.axisLineColor },
+            },
+            axisTick: {
+              lineStyle: { color: themeTokens.axisLineColor },
+            },
+            axisLabel: {
+              color: themeTokens.textColor,
+            },
+            splitLine: {
+              lineStyle: { color: themeTokens.splitLineColor },
+            },
+          },
+          yAxis: {
+            axisLine: {
+              lineStyle: { color: themeTokens.axisLineColor },
+            },
+            axisTick: {
+              lineStyle: { color: themeTokens.axisLineColor },
+            },
+            axisLabel: {
+              color: themeTokens.textColor,
+            },
+            splitLine: {
+              lineStyle: { color: themeTokens.splitLineColor },
+            },
+          },
+        };
 
     if (largeData) {
       return {
@@ -176,9 +185,10 @@ export function BaseChart({
   }, [onChartReady, renderer]);
 
   useEffect(() => {
+    chartRef.current?.clear();
     chartRef.current?.setOption(mergedOption, {
       notMerge: true,
-      lazyUpdate: true,
+      lazyUpdate: false,
     });
   }, [mergedOption]);
 

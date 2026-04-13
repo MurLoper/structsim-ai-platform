@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Badge, Button, Card, Modal } from '@/components/ui';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { Badge, Button, Card, Modal, useToast } from '@/components/ui';
 import { VirtualTable } from '@/components/tables/VirtualTable';
 import type { ResultOutputAttachment } from '@/api/results';
 import type { ConditionRoundsGroup } from '../../hooks/resultsAnalysisTypes';
@@ -10,6 +11,7 @@ import type { ResultsCaseCard, ResultsConditionCard } from './types';
 type MatrixValue = string | number | null;
 type MatrixAttachment = ResultOutputAttachment & { label: string; value: MatrixValue };
 type CaseResultViewMode = 'matrix' | 'analysis';
+type PreviewItem = { type: 'image' | 'gif'; path: string };
 
 interface MatrixRow {
   roundIndex: number;
@@ -29,6 +31,23 @@ interface CaseResultMatrixTableProps {
 }
 
 const emptyCell = <span className="text-muted-foreground">-</span>;
+
+const copyText = async (text: string) => {
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.setAttribute('readonly', 'true');
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  textarea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textarea);
+};
 
 const normalizeCellValue = (value: unknown): MatrixValue => {
   if (typeof value === 'number' || typeof value === 'string') return value;
@@ -67,6 +86,14 @@ const getConditionLabel = (
   index: number
 ) => conditionLabelMap.get(group.conditionId) || `工况 ${index + 1}`;
 
+const buildPreviewItems = (attachment: MatrixAttachment | null): PreviewItem[] => {
+  if (!attachment) return [];
+  return [
+    ...(attachment.imagePaths || []).map(path => ({ type: 'image' as const, path })),
+    ...(attachment.aviPaths || []).map(path => ({ type: 'gif' as const, path })),
+  ];
+};
+
 export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
   caseLabel,
   caseCards,
@@ -77,7 +104,9 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
   loading = false,
   onSelectCase,
 }) => {
+  const { showToast } = useToast();
   const [previewAttachment, setPreviewAttachment] = useState<MatrixAttachment | null>(null);
+  const [previewIndex, setPreviewIndex] = useState(0);
   const [viewMode, setViewMode] = useState<CaseResultViewMode>('matrix');
 
   const conditionLabelMap = useMemo(
@@ -147,6 +176,72 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
     });
   }, [conditionLabelMap, roundGroups]);
 
+  const openAttachmentPreview = useCallback((attachment: MatrixAttachment) => {
+    setPreviewAttachment(attachment);
+    setPreviewIndex(0);
+  }, []);
+
+  const previewItems = useMemo(() => buildPreviewItems(previewAttachment), [previewAttachment]);
+  const activePreviewItem = previewItems[previewIndex] || null;
+
+  const goPreview = useCallback(
+    (direction: -1 | 1) => {
+      if (previewItems.length <= 1) return;
+      setPreviewIndex(current => {
+        const next = current + direction;
+        if (next < 0) return previewItems.length - 1;
+        if (next >= previewItems.length) return 0;
+        return next;
+      });
+    },
+    [previewItems.length]
+  );
+
+  useEffect(() => {
+    if (!previewAttachment) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowLeft') goPreview(-1);
+      if (event.key === 'ArrowRight') goPreview(1);
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [goPreview, previewAttachment]);
+
+  const handleCopyWorkDir = useCallback(
+    async (value: MatrixValue) => {
+      const text = String(value || '').trim();
+      if (!text) return;
+
+      try {
+        await copyText(text);
+        showToast('success', '工作目录已复制');
+      } catch {
+        showToast('error', '复制工作目录失败');
+      }
+    },
+    [showToast]
+  );
+
+  const renderWorkDir = useCallback(
+    (value: MatrixValue) => {
+      const text = String(value || '').trim();
+      if (!text) return emptyCell;
+      return (
+        <button
+          type="button"
+          title={`${text}\n单击复制工作目录`}
+          className="block max-w-[360px] truncate text-left font-mono text-xs text-brand-700 underline-offset-2 hover:underline"
+          onClick={() => void handleCopyWorkDir(text)}
+        >
+          {text}
+        </button>
+      );
+    },
+    [handleCopyWorkDir]
+  );
+
   const columns = useMemo<ColumnDef<MatrixRow, unknown>[]>(() => {
     const result: ColumnDef<MatrixRow, unknown>[] = [
       {
@@ -202,7 +297,7 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
                     type="button"
                     variant="ghost"
                     className="h-auto px-0 py-0 font-mono text-brand-700 hover:bg-transparent hover:text-brand-800"
-                    onClick={() => setPreviewAttachment(attachment)}
+                    onClick={() => openAttachmentPreview(attachment)}
                   >
                     {value}
                   </Button>
@@ -224,21 +319,21 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
           accessorFn: row => row.optDataId,
           header: '优化ID',
           cell: info => info.getValue<MatrixValue>() ?? emptyCell,
-          size: 120,
+          size: 140,
         },
         {
           id: 'taskId',
           accessorFn: row => row.taskId,
           header: '任务ID',
           cell: info => info.getValue<MatrixValue>() ?? emptyCell,
-          size: 120,
+          size: 140,
         },
         {
           id: 'workDir',
           accessorFn: row => row.workDir,
           header: '工作目录',
-          cell: info => info.getValue<MatrixValue>() ?? emptyCell,
-          size: 220,
+          cell: info => renderWorkDir(info.getValue<MatrixValue>()),
+          size: 320,
         },
         {
           id: 'runningModule',
@@ -265,15 +360,14 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
     });
 
     return result;
-  }, [conditionLabelMap, outputKeysByCondition, paramKeys, roundGroups]);
-
-  const previewItems = useMemo(() => {
-    if (!previewAttachment) return [];
-    return [
-      ...(previewAttachment.imagePaths || []).map(path => ({ type: 'image' as const, path })),
-      ...(previewAttachment.aviPaths || []).map(path => ({ type: 'video' as const, path })),
-    ];
-  }, [previewAttachment]);
+  }, [
+    conditionLabelMap,
+    openAttachmentPreview,
+    outputKeysByCondition,
+    paramKeys,
+    renderWorkDir,
+    roundGroups,
+  ]);
 
   return (
     <>
@@ -347,11 +441,7 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
             getRowId={row => String(row.roundIndex)}
           />
         ) : (
-          <CaseResultAnalysisPanel
-            conditionCards={conditionCards}
-            roundGroups={roundGroups}
-            loading={loading}
-          />
+          <CaseResultAnalysisPanel roundGroups={roundGroups} loading={loading} />
         )}
       </Card>
 
@@ -363,31 +453,79 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
             ? `${previewAttachment.label}: ${previewAttachment.value ?? '-'}`
             : undefined
         }
-        size="xl"
+        size="full"
       >
-        {previewItems.length ? (
-          <div className="flex gap-4 overflow-x-auto pb-2">
-            {previewItems.map((item, index) => (
-              <div
-                key={`${item.path}-${index}`}
-                className="min-w-[520px] rounded-xl border border-border bg-muted/30 p-3"
-              >
-                <div className="mb-2 text-xs text-muted-foreground">{item.path}</div>
-                {item.type === 'image' ? (
-                  <img
-                    src={item.path}
-                    alt={`结果预览 ${index + 1}`}
-                    className="max-h-[520px] w-full rounded-lg object-contain"
-                  />
-                ) : (
-                  <video src={item.path} controls className="max-h-[520px] w-full rounded-lg" />
-                )}
+        {activePreviewItem ? (
+          <div className="space-y-4">
+            <div className="relative overflow-hidden rounded-2xl border border-border bg-muted/20">
+              <div className="flex min-h-[70vh] items-center justify-center p-4">
+                <img
+                  src={activePreviewItem.path}
+                  alt={`结果预览 ${previewIndex + 1}`}
+                  className="max-h-[72vh] max-w-full rounded-xl object-contain"
+                />
               </div>
-            ))}
+
+              {previewItems.length > 1 && (
+                <>
+                  <button
+                    type="button"
+                    className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/90 text-foreground shadow-lg transition hover:bg-card"
+                    onClick={() => goPreview(-1)}
+                    aria-label="上一张"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    type="button"
+                    className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/90 text-foreground shadow-lg transition hover:bg-card"
+                    onClick={() => goPreview(1)}
+                    aria-label="下一张"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div
+                className="min-w-0 flex-1 truncate text-xs text-muted-foreground"
+                title={activePreviewItem.path}
+              >
+                {activePreviewItem.path}
+              </div>
+              <div className="text-xs tabular-nums text-muted-foreground">
+                {previewIndex + 1} / {previewItems.length}
+              </div>
+            </div>
+
+            {previewItems.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {previewItems.map((item, index) => (
+                  <button
+                    key={`${item.path}-${index}`}
+                    type="button"
+                    className={`min-w-[120px] rounded-xl border px-3 py-2 text-left text-xs transition ${
+                      index === previewIndex
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-border bg-muted/30 text-muted-foreground hover:bg-muted'
+                    }`}
+                    onClick={() => setPreviewIndex(index)}
+                    title={item.path}
+                  >
+                    <div className="font-medium">
+                      {item.type === 'image' ? '图片' : '动图'} {index + 1}
+                    </div>
+                    <div className="mt-1 truncate">{item.path}</div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           <div className="rounded-xl border border-dashed border-border bg-muted/30 p-8 text-center text-sm text-muted-foreground">
-            当前结果没有可预览的图片或动画路径。
+            当前结果没有可预览的图片或动图路径。
           </div>
         )}
       </Modal>
