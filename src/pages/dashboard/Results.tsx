@@ -2,8 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import type { OrderCaseResult, OrderConditionSummary } from '@/api/results';
 import { Activity, Boxes, FileStack, Gauge, Orbit } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { RESOURCES } from '@/locales';
-import { useUIStore } from '@/stores';
+import { useI18n } from '@/hooks/useI18n';
+import type { TranslationParams } from '@/locales';
 import { ResultsDetailSection } from './components/results/ResultsDetailSection';
 import { ResultsErrorSection } from './components/results/ResultsErrorSection';
 import { ResultsHeaderSection } from './components/results/ResultsHeaderSection';
@@ -17,46 +17,60 @@ import {
 } from '@/features/platform/tracking/domains/resultsTracking';
 
 type ResultsTabKey = 'overview' | 'detail';
+type Translator = (key: string, params?: TranslationParams) => string;
 
-const ORDER_STATUS_META: Record<
-  number,
-  { label: string; variant: 'default' | 'success' | 'warning' | 'error' }
-> = {
-  0: { label: '未开始', variant: 'default' },
-  1: { label: '运行中', variant: 'warning' },
-  2: { label: '已完成', variant: 'success' },
-  3: { label: '失败', variant: 'error' },
-  4: { label: '草稿', variant: 'default' },
-  5: { label: '已取消', variant: 'error' },
-};
+const getOrderStatusMeta = (
+  t: Translator
+): Record<number, { label: string; variant: 'default' | 'success' | 'warning' | 'error' }> => ({
+  0: { label: t('res.status.not_started'), variant: 'default' },
+  1: { label: t('res.status.running'), variant: 'warning' },
+  2: { label: t('res.status.completed'), variant: 'success' },
+  3: { label: t('res.status.failed'), variant: 'error' },
+  4: { label: t('res.status.draft'), variant: 'default' },
+  5: { label: t('res.status.cancelled'), variant: 'error' },
+});
 
-const parseConditionLabel = (value?: string | null) => {
+const parseConditionLabel = (value: string | null | undefined, t: Translator) => {
   const segments = String(value || '')
     .split('/')
     .map(item => item.trim())
     .filter(Boolean);
 
   return {
-    fold: segments[0] || '姿态',
-    sim: segments[1] || '仿真类型',
+    fold: segments[0] || t('cfg.sect.loadcases'),
+    sim: segments[1] || t('res.table.sim_type'),
   };
 };
 
 const getBaseConditionTitle = (
   condition?: Partial<OrderConditionSummary> | null,
-  fallbackLabel?: string | null
+  fallbackLabel?: string | null,
+  t?: Translator
 ) => {
-  const parsed = parseConditionLabel(fallbackLabel);
-  const fold = condition?.foldTypeName || parsed.fold || `姿态#${condition?.foldTypeId ?? '-'}`;
-  const sim = condition?.simTypeName || parsed.sim || `仿真类型#${condition?.simTypeId ?? '-'}`;
+  const fallbackTranslator = t || ((key: string) => key);
+  const parsed = parseConditionLabel(fallbackLabel, fallbackTranslator);
+  const fold =
+    condition?.foldTypeName ||
+    parsed.fold ||
+    `${fallbackTranslator('cfg.sect.loadcases')}#${condition?.foldTypeId ?? '-'}`;
+  const sim =
+    condition?.simTypeName ||
+    parsed.sim ||
+    `${fallbackTranslator('res.table.sim_type')}#${condition?.simTypeId ?? '-'}`;
   return `${fold} / ${sim}`;
 };
 
 const getConditionTitle = (
   index: number,
   condition?: Partial<OrderConditionSummary> | null,
-  fallbackLabel?: string | null
-) => `工况 ${index} / ${getBaseConditionTitle(condition, fallbackLabel)}`;
+  fallbackLabel?: string | null,
+  t?: Translator
+) =>
+  `${t?.('res.case.condition_fallback', { index }) || `Condition ${index}`} / ${getBaseConditionTitle(
+    condition,
+    fallbackLabel,
+    t
+  )}`;
 
 const getCaseLabel = (caseItem: OrderCaseResult) =>
   caseItem.caseName || `case-${caseItem.caseIndex || caseItem.id}`;
@@ -73,8 +87,7 @@ interface ResultsProps {
 const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onClose }) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { language } = useUIStore();
-  const t = useCallback((key: string) => RESOURCES[language]?.[key] || key, [language]);
+  const { t } = useI18n();
   const orderId = propOrderId !== undefined ? propOrderId : Number(id);
   const resolvedOrderId = Number.isFinite(orderId) ? orderId : null;
   const [activeTab, setActiveTab] = useState<ResultsTabKey>('overview');
@@ -120,28 +133,37 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
     );
   }, [conditionResults, orderProgress]);
 
-  const orderStatusMeta = ORDER_STATUS_META[derivedOrderStatus] || ORDER_STATUS_META[0];
+  const orderStatusMetaMap = useMemo(() => getOrderStatusMeta(t), [t]);
+  const orderStatusMeta = orderStatusMetaMap[derivedOrderStatus] || orderStatusMetaMap[0];
 
   const tabs = useMemo(
     () => [
-      { key: 'overview', label: '概览', icon: <Boxes className="h-4 w-4" /> },
-      { key: 'detail', label: '明细结果', icon: <FileStack className="h-4 w-4" /> },
+      { key: 'overview', label: t('res.tab.overview'), icon: <Boxes className="h-4 w-4" /> },
+      { key: 'detail', label: t('res.matrix.tab.detail'), icon: <FileStack className="h-4 w-4" /> },
     ],
-    []
+    [t]
   );
 
   const summaryCards = useMemo(
     () => [
-      { icon: <Boxes className="h-4 w-4" />, label: '工况数', value: overviewStats.conditionCount },
-      { icon: <Orbit className="h-4 w-4" />, label: '总轮次', value: overviewStats.totalRounds },
+      {
+        icon: <Boxes className="h-4 w-4" />,
+        label: t('res.summary.conditions'),
+        value: overviewStats.conditionCount,
+      },
+      {
+        icon: <Orbit className="h-4 w-4" />,
+        label: t('res.summary.total_rounds'),
+        value: overviewStats.totalRounds,
+      },
       {
         icon: <Gauge className="h-4 w-4" />,
-        label: '完成轮次',
+        label: t('res.summary.completed_rounds'),
         value: overviewStats.completedRounds,
       },
       {
         icon: <Activity className="h-4 w-4" />,
-        label: '失败轮次',
+        label: t('res.summary.failed_rounds'),
         value: overviewStats.failedRounds,
       },
     ],
@@ -150,6 +172,7 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
       overviewStats.conditionCount,
       overviewStats.failedRounds,
       overviewStats.totalRounds,
+      t,
     ]
   );
 
@@ -172,15 +195,17 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
       conditionResults.map((item, index) => {
         const detail = conditionDetailMap.get(item.id);
         const fallbackLabel =
-          item.simTypeName || conditionLabelMap.get(item.id) || `工况 ${item.id}`;
-        const statusMeta = ORDER_STATUS_META[item.status] || ORDER_STATUS_META[0];
+          item.simTypeName ||
+          conditionLabelMap.get(item.id) ||
+          t('res.case.condition_id_fallback', { id: item.id });
+        const statusMeta = orderStatusMetaMap[item.status] || orderStatusMetaMap[0];
 
         return {
           ...item,
           orderIndex: index + 1,
           detail,
-          shortLabel: getBaseConditionTitle(detail, fallbackLabel),
-          label: getConditionTitle(index + 1, detail, fallbackLabel),
+          shortLabel: getBaseConditionTitle(detail, fallbackLabel, t),
+          label: getConditionTitle(index + 1, detail, fallbackLabel, t),
           caseId: detail?.caseId,
           caseIndex: detail?.caseIndex,
           statusMeta,
@@ -188,7 +213,7 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
           canResubmit: item.canResubmit === true,
         };
       }),
-    [conditionDetailMap, conditionLabelMap, conditionResults]
+    [conditionDetailMap, conditionLabelMap, conditionResults, orderStatusMetaMap, t]
   );
 
   const caseCards = useMemo<ResultsCaseCard[]>(() => {
@@ -218,11 +243,11 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
           (totalRounds > 0 ? Math.round((completedRounds / totalRounds) * 100) : 0)
       );
       const conditionCount = Math.max(caseItem.conditions.length, cards.length, caseGroups.length);
-      const statusMeta = ORDER_STATUS_META[caseItem.status] || ORDER_STATUS_META[0];
+      const statusMeta = orderStatusMetaMap[caseItem.status] || orderStatusMetaMap[0];
       const conditionLabels = cards.length
         ? cards.map(card => card.shortLabel)
         : caseItem.conditions.map((condition, index) =>
-            getConditionTitle(index + 1, condition, condition.simTypeName)
+            getConditionTitle(index + 1, condition, condition.simTypeName, t)
           );
 
       return {
@@ -239,7 +264,7 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
         conditionLabels,
       };
     });
-  }, [conditionCards, conditionRoundGroups, resultCases]);
+  }, [conditionCards, conditionRoundGroups, orderStatusMetaMap, resultCases, t]);
 
   useEffect(() => {
     if (!resultCases.length) {

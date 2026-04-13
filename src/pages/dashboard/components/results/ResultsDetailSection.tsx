@@ -1,5 +1,6 @@
 import React from 'react';
 import type { OrderCaseResult } from '@/api/results';
+import { useI18n } from '@/hooks/useI18n';
 import type { ConditionRoundsGroup } from '../../hooks/resultsAnalysisTypes';
 import { CaseResultMatrixTable } from './CaseResultMatrixTable';
 import type { ResultsCaseCard, ResultsConditionCard } from './types';
@@ -26,8 +27,9 @@ export const ResultsDetailSection: React.FC<ResultsDetailSectionProps> = ({
   isResultsLoading,
   onSelectCase,
 }) => {
+  const { t } = useI18n();
   const activeCase = resultCases.find(item => item.id === activeCaseId) || resultCases[0] || null;
-  const activeCaseLabel = activeCase ? buildCaseLabel(activeCase) : '当前方案';
+  const activeCaseLabel = activeCase ? buildCaseLabel(activeCase) : t('res.case.fallback');
   const activeCaseStats = caseCards.find(item => item.id === activeCase?.id) || null;
 
   return (

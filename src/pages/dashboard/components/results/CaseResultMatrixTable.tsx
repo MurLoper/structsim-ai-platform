@@ -1,23 +1,26 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Badge, Button, Card, Modal, useToast } from '@/components/ui';
+import { Badge, Button, Card, useToast } from '@/components/ui';
 import { VirtualTable } from '@/components/tables/VirtualTable';
-import type { ResultOutputAttachment } from '@/api/results';
+import { useI18n } from '@/hooks/useI18n';
 import type { ConditionRoundsGroup } from '../../hooks/resultsAnalysisTypes';
 import { CaseResultAnalysisPanel } from './CaseResultAnalysisPanel';
+import { CaseResultPreviewModal } from './CaseResultPreviewModal';
+import { copyText } from './caseResultClipboard';
+import {
+  buildOutputKeysByCondition,
+  collectSortedKeys,
+  getFirstPresent,
+  normalizeCellValue,
+} from './caseResultMatrixMappers';
+import type {
+  CaseResultViewMode,
+  MatrixAttachment,
+  MatrixRow,
+  MatrixValue,
+  ResultsTranslator,
+} from './caseResultMatrixTypes';
 import type { ResultsCaseCard, ResultsConditionCard } from './types';
-
-type MatrixValue = string | number | null;
-type MatrixAttachment = ResultOutputAttachment & { label: string; value: MatrixValue };
-type CaseResultViewMode = 'matrix' | 'analysis';
-type PreviewItem = { type: 'image' | 'gif'; path: string };
-
-interface MatrixRow {
-  roundIndex: number;
-  __attachments: Record<string, MatrixAttachment>;
-  [key: string]: MatrixValue | Record<string, MatrixAttachment>;
-}
 
 interface CaseResultMatrixTableProps {
   caseLabel: string;
@@ -32,67 +35,14 @@ interface CaseResultMatrixTableProps {
 
 const emptyCell = <span className="text-muted-foreground">-</span>;
 
-const copyText = async (text: string) => {
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
-  }
-
-  const textarea = document.createElement('textarea');
-  textarea.value = text;
-  textarea.setAttribute('readonly', 'true');
-  textarea.style.position = 'fixed';
-  textarea.style.opacity = '0';
-  document.body.appendChild(textarea);
-  textarea.select();
-  document.execCommand('copy');
-  document.body.removeChild(textarea);
-};
-
-const normalizeCellValue = (value: unknown): MatrixValue => {
-  if (typeof value === 'number' || typeof value === 'string') return value;
-  if (value === null || value === undefined) return null;
-  return String(value);
-};
-
-const renderStatus = (value: MatrixValue) => {
-  if (value === 2 || value === '2') return <Badge variant="success">完成</Badge>;
-  if (value === 1 || value === '1') return <Badge variant="warning">运行中</Badge>;
-  if (value === 3 || value === '3') return <Badge variant="error">失败</Badge>;
-  return emptyCell;
-};
-
-const getFirstPresent = (...values: unknown[]): MatrixValue => {
-  const value = values.find(item => item !== undefined && item !== null && item !== '');
-  return normalizeCellValue(value);
-};
-
-const collectSortedKeys = (
-  roundGroups: ConditionRoundsGroup[],
-  selector: (group: ConditionRoundsGroup) => Array<Record<string, unknown> | null | undefined>
-) => {
-  const seen = new Set<string>();
-  roundGroups.forEach(group => {
-    selector(group).forEach(record => {
-      Object.keys(record || {}).forEach(key => seen.add(key));
-    });
-  });
-  return Array.from(seen);
-};
-
 const getConditionLabel = (
   conditionLabelMap: Map<number, string>,
   group: ConditionRoundsGroup,
-  index: number
-) => conditionLabelMap.get(group.conditionId) || `工况 ${index + 1}`;
-
-const buildPreviewItems = (attachment: MatrixAttachment | null): PreviewItem[] => {
-  if (!attachment) return [];
-  return [
-    ...(attachment.imagePaths || []).map(path => ({ type: 'image' as const, path })),
-    ...(attachment.aviPaths || []).map(path => ({ type: 'gif' as const, path })),
-  ];
-};
+  index: number,
+  t: ResultsTranslator
+) =>
+  conditionLabelMap.get(group.conditionId) ||
+  t('res.case.condition_fallback', { index: index + 1 });
 
 export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
   caseLabel,
@@ -104,6 +54,7 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
   loading = false,
   onSelectCase,
 }) => {
+  const { t } = useI18n();
   const { showToast } = useToast();
   const [previewAttachment, setPreviewAttachment] = useState<MatrixAttachment | null>(null);
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -119,17 +70,10 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
     [roundGroups]
   );
 
-  const outputKeysByCondition = useMemo(() => {
-    const keysByCondition = new Map<number, string[]>();
-    roundGroups.forEach(group => {
-      const seen = new Set<string>();
-      group.rounds.forEach(round => {
-        Object.keys(round.outputResults || {}).forEach(key => seen.add(key));
-      });
-      keysByCondition.set(group.conditionId, Array.from(seen));
-    });
-    return keysByCondition;
-  }, [roundGroups]);
+  const outputKeysByCondition = useMemo(
+    () => buildOutputKeysByCondition(roundGroups),
+    [roundGroups]
+  );
 
   const rows = useMemo<MatrixRow[]>(() => {
     const maxRound = Math.max(
@@ -165,7 +109,10 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
           if (attachment) {
             row.__attachments[cellKey] = {
               ...attachment,
-              label: `${conditionLabelMap.get(group.conditionId) || `工况 ${group.conditionId}`} / ${key}`,
+              label: `${
+                conditionLabelMap.get(group.conditionId) ||
+                t('res.case.condition_id_fallback', { id: group.conditionId })
+              } / ${key}`,
               value: cellValue,
             };
           }
@@ -174,40 +121,25 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
 
       return row;
     });
-  }, [conditionLabelMap, roundGroups]);
+  }, [conditionLabelMap, roundGroups, t]);
 
   const openAttachmentPreview = useCallback((attachment: MatrixAttachment) => {
     setPreviewAttachment(attachment);
     setPreviewIndex(0);
   }, []);
 
-  const previewItems = useMemo(() => buildPreviewItems(previewAttachment), [previewAttachment]);
-  const activePreviewItem = previewItems[previewIndex] || null;
-
-  const goPreview = useCallback(
-    (direction: -1 | 1) => {
-      if (previewItems.length <= 1) return;
-      setPreviewIndex(current => {
-        const next = current + direction;
-        if (next < 0) return previewItems.length - 1;
-        if (next >= previewItems.length) return 0;
-        return next;
-      });
+  const renderStatus = useCallback(
+    (value: MatrixValue) => {
+      if (value === 2 || value === '2')
+        return <Badge variant="success">{t('res.status.completed')}</Badge>;
+      if (value === 1 || value === '1')
+        return <Badge variant="warning">{t('res.status.running')}</Badge>;
+      if (value === 3 || value === '3')
+        return <Badge variant="error">{t('res.status.failed')}</Badge>;
+      return emptyCell;
     },
-    [previewItems.length]
+    [t]
   );
-
-  useEffect(() => {
-    if (!previewAttachment) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'ArrowLeft') goPreview(-1);
-      if (event.key === 'ArrowRight') goPreview(1);
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goPreview, previewAttachment]);
 
   const handleCopyWorkDir = useCallback(
     async (value: MatrixValue) => {
@@ -216,12 +148,12 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
 
       try {
         await copyText(text);
-        showToast('success', '工作目录已复制');
+        showToast('success', t('res.matrix.copy.success'));
       } catch {
-        showToast('error', '复制工作目录失败');
+        showToast('error', t('res.matrix.copy.failure'));
       }
     },
-    [showToast]
+    [showToast, t]
   );
 
   const renderWorkDir = useCallback(
@@ -231,7 +163,7 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
       return (
         <button
           type="button"
-          title={`${text}\n单击复制工作目录`}
+          title={t('res.matrix.copy.title', { path: text })}
           className="block max-w-[360px] truncate text-left font-mono text-xs text-brand-700 underline-offset-2 hover:underline"
           onClick={() => void handleCopyWorkDir(text)}
         >
@@ -239,7 +171,7 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
         </button>
       );
     },
-    [handleCopyWorkDir]
+    [handleCopyWorkDir, t]
   );
 
   const columns = useMemo<ColumnDef<MatrixRow, unknown>[]>(() => {
@@ -247,7 +179,7 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
       {
         id: 'roundIndex',
         accessorFn: row => row.roundIndex,
-        header: '轮次',
+        header: t('res.matrix.col.round'),
         cell: info => info.getValue<number>(),
         size: 72,
       },
@@ -256,7 +188,7 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
     if (paramKeys.length) {
       result.push({
         id: 'params',
-        header: '参数',
+        header: t('res.matrix.col.params'),
         columns: paramKeys.map(key => ({
           id: `param_${key}`,
           accessorFn: row => row[`param_${key}`],
@@ -268,7 +200,7 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
     }
 
     roundGroups.forEach((group, index) => {
-      const label = getConditionLabel(conditionLabelMap, group, index);
+      const label = getConditionLabel(conditionLabelMap, group, index, t);
       const outputKeys = outputKeysByCondition.get(group.conditionId) || [];
       result.push({
         id: `condition_${group.conditionId}`,
@@ -277,7 +209,7 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
           {
             id: `condition_${group.conditionId}_status`,
             accessorFn: row => row[`condition_${group.conditionId}_status`],
-            header: '状态',
+            header: t('res.matrix.col.status'),
             cell: info => renderStatus(info.getValue<MatrixValue>()),
             size: 110,
           },
@@ -312,47 +244,47 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
 
     result.push({
       id: 'task',
-      header: '任务信息',
+      header: t('res.matrix.col.task'),
       columns: [
         {
           id: 'optDataId',
           accessorFn: row => row.optDataId,
-          header: '优化ID',
+          header: t('res.matrix.col.opt_data_id'),
           cell: info => info.getValue<MatrixValue>() ?? emptyCell,
           size: 140,
         },
         {
           id: 'taskId',
           accessorFn: row => row.taskId,
-          header: '任务ID',
+          header: t('res.matrix.col.task_id'),
           cell: info => info.getValue<MatrixValue>() ?? emptyCell,
           size: 140,
         },
         {
           id: 'workDir',
           accessorFn: row => row.workDir,
-          header: '工作目录',
+          header: t('res.matrix.col.work_dir'),
           cell: info => renderWorkDir(info.getValue<MatrixValue>()),
           size: 320,
         },
         {
           id: 'runningModule',
           accessorFn: row => row.runningModule,
-          header: '当前模块',
+          header: t('res.matrix.col.running_module'),
           cell: info => info.getValue<MatrixValue>() ?? emptyCell,
           size: 120,
         },
         {
           id: 'progress',
           accessorFn: row => row.progress,
-          header: '计算进度',
+          header: t('res.matrix.col.progress'),
           cell: info => info.getValue<MatrixValue>() ?? emptyCell,
           size: 120,
         },
         {
           id: 'finalResult',
           accessorFn: row => row.finalResult,
-          header: '最终结果',
+          header: t('res.matrix.col.final_result'),
           cell: info => info.getValue<MatrixValue>() ?? emptyCell,
           size: 120,
         },
@@ -365,8 +297,10 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
     openAttachmentPreview,
     outputKeysByCondition,
     paramKeys,
+    renderStatus,
     renderWorkDir,
     roundGroups,
+    t,
   ]);
 
   return (
@@ -376,13 +310,21 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
           <div className="space-y-2">
             <div className="flex flex-wrap items-center gap-3">
               <h3 className="text-base font-semibold text-foreground">{caseLabel}</h3>
-              <Badge variant="default">{rows.length} 轮</Badge>
+              <Badge variant="default">{t('res.matrix.round_count', { count: rows.length })}</Badge>
               {activeCaseStats && (
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  <span>工况 {activeCaseStats.conditionCount}</span>
-                  <span>完成 {activeCaseStats.completedRounds}</span>
-                  <span>失败 {activeCaseStats.failedRounds}</span>
-                  <span>进度 {activeCaseStats.progress}%</span>
+                  <span>
+                    {t('res.matrix.stat.conditions', { count: activeCaseStats.conditionCount })}
+                  </span>
+                  <span>
+                    {t('res.matrix.stat.completed', { count: activeCaseStats.completedRounds })}
+                  </span>
+                  <span>
+                    {t('res.matrix.stat.failed', { count: activeCaseStats.failedRounds })}
+                  </span>
+                  <span>
+                    {t('res.matrix.stat.progress', { progress: activeCaseStats.progress })}
+                  </span>
                 </div>
               )}
               <div className="flex rounded-xl border border-border bg-background p-1">
@@ -393,7 +335,7 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
                   className={viewMode === 'matrix' ? 'shadow-none' : ''}
                   onClick={() => setViewMode('matrix')}
                 >
-                  明细矩阵
+                  {t('res.matrix.tab.detail')}
                 </Button>
                 <Button
                   type="button"
@@ -402,14 +344,12 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
                   className={viewMode === 'analysis' ? 'shadow-none' : ''}
                   onClick={() => setViewMode('analysis')}
                 >
-                  数据分析
+                  {t('res.matrix.tab.analysis')}
                 </Button>
               </div>
             </div>
             <p className="text-sm text-muted-foreground">
-              {viewMode === 'matrix'
-                ? '当前方案下所有工况在同一张矩阵中展开；未出结果的位置保留为空位，点击结果值可查看对应图片和动画。'
-                : '当前方案下所有工况共用同一套已加载结果数据，切换指标即可绘制结果趋势和状态分布。'}
+              {viewMode === 'matrix' ? t('res.matrix.desc.detail') : t('res.matrix.desc.analysis')}
             </p>
           </div>
 
@@ -437,7 +377,7 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
             loading={loading}
             striped
             enableSorting
-            emptyText="当前方案暂无结果明细"
+            emptyText={t('res.matrix.empty')}
             getRowId={row => String(row.roundIndex)}
           />
         ) : (
@@ -445,90 +385,13 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
         )}
       </Card>
 
-      <Modal
-        isOpen={Boolean(previewAttachment)}
+      <CaseResultPreviewModal
+        attachment={previewAttachment}
+        previewIndex={previewIndex}
+        setPreviewIndex={setPreviewIndex}
         onClose={() => setPreviewAttachment(null)}
-        title={
-          previewAttachment
-            ? `${previewAttachment.label}: ${previewAttachment.value ?? '-'}`
-            : undefined
-        }
-        size="full"
-      >
-        {activePreviewItem ? (
-          <div className="space-y-4">
-            <div className="relative overflow-hidden rounded-2xl border border-border bg-muted/20">
-              <div className="flex min-h-[70vh] items-center justify-center p-4">
-                <img
-                  src={activePreviewItem.path}
-                  alt={`结果预览 ${previewIndex + 1}`}
-                  className="max-h-[72vh] max-w-full rounded-xl object-contain"
-                />
-              </div>
-
-              {previewItems.length > 1 && (
-                <>
-                  <button
-                    type="button"
-                    className="absolute left-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/90 text-foreground shadow-lg transition hover:bg-card"
-                    onClick={() => goPreview(-1)}
-                    aria-label="上一张"
-                  >
-                    <ChevronLeft className="h-5 w-5" />
-                  </button>
-                  <button
-                    type="button"
-                    className="absolute right-4 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card/90 text-foreground shadow-lg transition hover:bg-card"
-                    onClick={() => goPreview(1)}
-                    aria-label="下一张"
-                  >
-                    <ChevronRight className="h-5 w-5" />
-                  </button>
-                </>
-              )}
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div
-                className="min-w-0 flex-1 truncate text-xs text-muted-foreground"
-                title={activePreviewItem.path}
-              >
-                {activePreviewItem.path}
-              </div>
-              <div className="text-xs tabular-nums text-muted-foreground">
-                {previewIndex + 1} / {previewItems.length}
-              </div>
-            </div>
-
-            {previewItems.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {previewItems.map((item, index) => (
-                  <button
-                    key={`${item.path}-${index}`}
-                    type="button"
-                    className={`min-w-[120px] rounded-xl border px-3 py-2 text-left text-xs transition ${
-                      index === previewIndex
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-border bg-muted/30 text-muted-foreground hover:bg-muted'
-                    }`}
-                    onClick={() => setPreviewIndex(index)}
-                    title={item.path}
-                  >
-                    <div className="font-medium">
-                      {item.type === 'image' ? '图片' : '动图'} {index + 1}
-                    </div>
-                    <div className="mt-1 truncate">{item.path}</div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="rounded-xl border border-dashed border-border bg-muted/30 p-8 text-center text-sm text-muted-foreground">
-            当前结果没有可预览的图片或动图路径。
-          </div>
-        )}
-      </Modal>
+        t={t}
+      />
     </>
   );
 };
