@@ -14,7 +14,7 @@ import type {
 } from './resultsAnalysisTypes';
 
 export const buildConditionLabel = (condition: OrderConditionSummary) => {
-  const fold = condition.foldTypeName || `目标姿态#${condition.foldTypeId ?? '-'}`;
+  const fold = condition.foldTypeName || `姿态#${condition.foldTypeId ?? '-'}`;
   const sim = condition.simTypeName || `仿真类型#${condition.simTypeId}`;
   return `${fold} / ${sim}`;
 };
@@ -38,9 +38,15 @@ export const mapMockRoundToLegacyRound = (
   progress: Math.round(Number(item.process ?? 0)),
   paramValues: item.params ?? null,
   outputResults: item.outputs ?? null,
-  errorMsg: item.status === 3 ? 'Mock 结果执行失败' : undefined,
+  outputAttachments: item.outputAttachments ?? null,
+  errorMsg: item.status === 3 ? '结果执行失败' : undefined,
   runningModule: item.runningModule,
   finalResult: item.finalResult ?? null,
+  optDataId: item.optDataId,
+  taskId: item.taskId,
+  dataDir: item.dataDir,
+  baseDir: item.baseDir,
+  jobDir: item.jobDir,
   moduleDetails: item.moduleDetails,
   flowNodeProgress: buildModuleProgress(item.moduleDetails),
 });

@@ -27,3 +27,17 @@ export interface ResultsConditionCard {
   canResubmit?: boolean;
   statusMeta: ResultsStatusMeta;
 }
+
+export interface ResultsCaseCard {
+  id: number;
+  label: string;
+  conditionCount: number;
+  totalRounds: number;
+  completedRounds: number;
+  failedRounds: number;
+  runningRounds: number;
+  progress: number;
+  status: number;
+  statusMeta: ResultsStatusMeta;
+  conditionLabels: string[];
+}

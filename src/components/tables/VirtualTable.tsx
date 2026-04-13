@@ -100,6 +100,7 @@ export function VirtualTable<TData>({
   });
 
   const { rows } = table.getRowModel();
+  const leafColumnCount = table.getAllLeafColumns().length;
 
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -173,6 +174,7 @@ export function VirtualTable<TData>({
                 return (
                   <th
                     key={header.id}
+                    colSpan={header.colSpan}
                     className={cn(
                       'px-4 py-3 text-left text-sm font-medium text-foreground',
                       'border-b border-border',
@@ -196,12 +198,15 @@ export function VirtualTable<TData>({
         <tbody>
           {paddingTop > 0 && (
             <tr>
-              <td style={{ height: paddingTop }} colSpan={columns.length} />
+              <td style={{ height: paddingTop }} colSpan={leafColumnCount} />
             </tr>
           )}
           {virtualRows.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-12 text-center text-muted-foreground">
+              <td
+                colSpan={leafColumnCount}
+                className="px-4 py-12 text-center text-muted-foreground"
+              >
                 {emptyText}
               </td>
             </tr>
@@ -238,7 +243,7 @@ export function VirtualTable<TData>({
           )}
           {paddingBottom > 0 && (
             <tr>
-              <td style={{ height: paddingBottom }} colSpan={columns.length} />
+              <td style={{ height: paddingBottom }} colSpan={leafColumnCount} />
             </tr>
           )}
         </tbody>

@@ -112,7 +112,7 @@ export const ResultsHeaderSection: React.FC<ResultsHeaderSectionProps> = ({
                 className="hidden max-w-[200px] truncate text-xs text-muted-foreground sm:block"
                 title={focusedLabel}
               >
-                当前工况：{focusedLabel}
+                当前方案：{focusedLabel}
               </div>
             </>
           ) : null}

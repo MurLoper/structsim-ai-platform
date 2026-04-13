@@ -31,6 +31,15 @@ export interface ModuleDetail {
   statusColor?: string;
 }
 
+export interface ResultOutputAttachment {
+  imagePaths?: string[];
+  aviPaths?: string[];
+  curveJsonPath?: string | null;
+  dataDir?: string | null;
+  taskId?: number | string | null;
+  optDataId?: number | string | null;
+}
+
 /** 轮次数据 */
 export interface RoundItem {
   id: string | number;
@@ -40,6 +49,7 @@ export interface RoundItem {
   progress: number;
   paramValues?: Record<string, number | string> | null;
   outputResults?: Record<string, number | string> | null;
+  outputAttachments?: Record<string, ResultOutputAttachment> | null;
   metrics?: Record<string, number> | null;
   flowCurNodeId?: number | null;
   flowNodeProgress?: Record<string, number> | null;
@@ -50,6 +60,11 @@ export interface RoundItem {
   createdAt?: number;
   runningModule?: string;
   finalResult?: number | null;
+  optDataId?: number | string | null;
+  taskId?: number | string | null;
+  dataDir?: string | null;
+  baseDir?: string | null;
+  jobDir?: string | null;
   moduleDetails?: ModuleDetail[];
 }
 
@@ -112,6 +127,12 @@ export interface OrderConditionRoundRawItem {
   status: number;
   params?: Record<string, number | string>;
   outputs?: Record<string, number | string>;
+  outputAttachments?: Record<string, ResultOutputAttachment>;
+  optDataId?: number | string | null;
+  taskId?: number | string | null;
+  dataDir?: string | null;
+  baseDir?: string | null;
+  jobDir?: string | null;
   runningModule?: string;
   process?: number;
   moduleDetails?: ModuleDetail[];

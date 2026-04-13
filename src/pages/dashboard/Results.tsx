@@ -1,19 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import type { OrderConditionSummary } from '@/api/results';
+import type { OrderCaseResult, OrderConditionSummary } from '@/api/results';
 import { Activity, Boxes, FileStack, Gauge, Orbit } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { RESOURCES } from '@/locales';
 import { useUIStore } from '@/stores';
-import { useToast } from '@/components/ui';
 import { ResultsDetailSection } from './components/results/ResultsDetailSection';
 import { ResultsErrorSection } from './components/results/ResultsErrorSection';
 import { ResultsHeaderSection } from './components/results/ResultsHeaderSection';
 import { ResultsInvalidState } from './components/results/ResultsInvalidState';
 import { ResultsOverviewSection } from './components/results/ResultsOverviewSection';
-import { useCaseConditionResubmit } from './hooks/useCaseConditionResubmit';
+import type { ResultsCaseCard } from './components/results/types';
 import { useResultsData } from './hooks/useResultsData';
 import {
-  trackResultsConditionFocus,
   trackResultsTabChange,
   trackResultsView,
 } from '@/features/platform/tracking/domains/resultsTracking';
@@ -24,7 +22,7 @@ const ORDER_STATUS_META: Record<
   number,
   { label: string; variant: 'default' | 'success' | 'warning' | 'error' }
 > = {
-  0: { label: '待运行', variant: 'default' },
+  0: { label: '未开始', variant: 'default' },
   1: { label: '运行中', variant: 'warning' },
   2: { label: '已完成', variant: 'success' },
   3: { label: '失败', variant: 'error' },
@@ -39,7 +37,7 @@ const parseConditionLabel = (value?: string | null) => {
     .filter(Boolean);
 
   return {
-    fold: segments[0] || '目标姿态',
+    fold: segments[0] || '姿态',
     sim: segments[1] || '仿真类型',
   };
 };
@@ -49,7 +47,7 @@ const getBaseConditionTitle = (
   fallbackLabel?: string | null
 ) => {
   const parsed = parseConditionLabel(fallbackLabel);
-  const fold = condition?.foldTypeName || parsed.fold || `目标姿态#${condition?.foldTypeId ?? '-'}`;
+  const fold = condition?.foldTypeName || parsed.fold || `姿态#${condition?.foldTypeId ?? '-'}`;
   const sim = condition?.simTypeName || parsed.sim || `仿真类型#${condition?.simTypeId ?? '-'}`;
   return `${fold} / ${sim}`;
 };
@@ -59,6 +57,12 @@ const getConditionTitle = (
   condition?: Partial<OrderConditionSummary> | null,
   fallbackLabel?: string | null
 ) => `工况 ${index} / ${getBaseConditionTitle(condition, fallbackLabel)}`;
+
+const getCaseLabel = (caseItem: OrderCaseResult) =>
+  caseItem.caseName || `case-${caseItem.caseIndex || caseItem.id}`;
+
+const sumBy = <T,>(items: T[], selector: (item: T) => number | null | undefined) =>
+  items.reduce((sum, item) => sum + Number(selector(item) || 0), 0);
 
 interface ResultsProps {
   orderId?: number;
@@ -70,7 +74,6 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { language } = useUIStore();
-  const { showToast } = useToast();
   const t = useCallback((key: string) => RESOURCES[language]?.[key] || key, [language]);
   const orderId = propOrderId !== undefined ? propOrderId : Number(id);
   const resolvedOrderId = Number.isFinite(orderId) ? orderId : null;
@@ -81,28 +84,18 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
     displayOrderId,
     orderStatus,
     orderProgress,
-    focusedConditionId,
     setFocusedConditionId,
     focusedCondition,
     focusedConditionAnalysis,
-    metricLabelMap,
     conditionLabelMap,
     conditionResults,
     conditionRoundGroups,
     resultCases,
     overviewStats,
-    workflowNodes,
     isResultsLoading,
     resultsError,
     retryResults,
   } = useResultsData(resolvedOrderId);
-
-  const { resubmitCondition, isResubmittingCondition, resubmittingConditionId } =
-    useCaseConditionResubmit({
-      orderId: resolvedOrderId,
-      onSuccess: () => showToast('success', t('res.resubmit.success')),
-      onError: () => showToast('error', t('res.resubmit.failure')),
-    });
 
   const invalidOrderId = resolvedOrderId === null;
   const resultsErrorMessage = resultsError ? String(resultsError) : t('res.error_desc');
@@ -198,33 +191,55 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
     [conditionDetailMap, conditionLabelMap, conditionResults]
   );
 
-  const scaleChartData = useMemo(
-    () =>
-      conditionCards.map(item => ({
-        conditionName:
-          item.shortLabel.length > 18 ? `${item.shortLabel.slice(0, 18)}...` : item.shortLabel,
-        value: item.totalRounds,
-      })),
-    [conditionCards]
-  );
+  const caseCards = useMemo<ResultsCaseCard[]>(() => {
+    return resultCases.map(caseItem => {
+      const caseGroups = conditionRoundGroups.filter(group => group.caseId === caseItem.id);
+      const caseConditionIds = new Set([
+        ...caseItem.conditions.map(condition => condition.id),
+        ...caseGroups.map(group => group.conditionId),
+      ]);
+      const cards = conditionCards.filter(
+        card => card.caseId === caseItem.id || caseConditionIds.has(card.id)
+      );
+      const statistics = caseItem.statistics || {};
+      const totalRounds = Number(statistics.totalRounds ?? sumBy(cards, card => card.totalRounds));
+      const completedRounds = Number(
+        statistics.completedRounds ?? sumBy(cards, card => card.completedRounds)
+      );
+      const failedRounds = Number(
+        statistics.failedRounds ?? sumBy(cards, card => card.failedRounds)
+      );
+      const runningRounds = Number(
+        statistics.runningRounds ?? Math.max(totalRounds - completedRounds - failedRounds, 0)
+      );
+      const progress = Number(
+        statistics.progressPercent ??
+          caseItem.process ??
+          (totalRounds > 0 ? Math.round((completedRounds / totalRounds) * 100) : 0)
+      );
+      const conditionCount = Math.max(caseItem.conditions.length, cards.length, caseGroups.length);
+      const statusMeta = ORDER_STATUS_META[caseItem.status] || ORDER_STATUS_META[0];
+      const conditionLabels = cards.length
+        ? cards.map(card => card.shortLabel)
+        : caseItem.conditions.map((condition, index) =>
+            getConditionTitle(index + 1, condition, condition.simTypeName)
+          );
 
-  const focusedGroup = useMemo(
-    () =>
-      conditionRoundGroups.find(group => group.conditionId === focusedConditionId) ||
-      conditionRoundGroups[0] ||
-      null,
-    [conditionRoundGroups, focusedConditionId]
-  );
-
-  const focusedCard = useMemo(
-    () =>
-      conditionCards.find(item => item.id === (focusedConditionId || focusedGroup?.conditionId)) ||
-      conditionCards[0] ||
-      null,
-    [conditionCards, focusedConditionId, focusedGroup]
-  );
-
-  const focusConditionLabel = focusedCard?.label || '--';
+      return {
+        id: caseItem.id,
+        label: getCaseLabel(caseItem),
+        conditionCount,
+        totalRounds,
+        completedRounds,
+        failedRounds,
+        runningRounds,
+        progress,
+        status: caseItem.status,
+        statusMeta,
+        conditionLabels,
+      };
+    });
+  }, [conditionCards, conditionRoundGroups, resultCases]);
 
   useEffect(() => {
     if (!resultCases.length) {
@@ -250,6 +265,11 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
     return conditionCards.filter(item => activeConditionIds.has(item.id));
   }, [activeCaseRoundGroups, conditionCards]);
 
+  const activeCaseCard = useMemo(
+    () => caseCards.find(item => item.id === activeCaseId) || caseCards[0] || null,
+    [activeCaseId, caseCards]
+  );
+
   const handleSelectCase = useCallback(
     (caseId: number) => {
       setActiveCaseId(caseId);
@@ -261,15 +281,12 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
     [conditionRoundGroups, setFocusedConditionId]
   );
 
-  const handleOpenCondition = useCallback(
-    (conditionId: number, targetTab: ResultsTabKey = 'detail') => {
-      if (resolvedOrderId) {
-        trackResultsConditionFocus(resolvedOrderId, conditionId, 'overview');
-      }
-      setFocusedConditionId(conditionId);
-      setActiveTab(targetTab);
+  const handleOpenCase = useCallback(
+    (caseId: number) => {
+      handleSelectCase(caseId);
+      setActiveTab('detail');
     },
-    [resolvedOrderId, setFocusedConditionId]
+    [handleSelectCase]
   );
 
   useEffect(() => {
@@ -311,7 +328,7 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
         orderStatusMeta={orderStatusMeta}
         derivedOrderProgress={derivedOrderProgress}
         summaryCards={summaryCards}
-        focusedLabel={focusedCard?.label}
+        focusedLabel={activeCaseCard?.label}
         tabs={tabs}
         activeTab={activeTab}
         onTabChange={key => setActiveTab(key as ResultsTabKey)}
@@ -330,17 +347,13 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
       {activeTab === 'overview' && (
         <ResultsOverviewSection
           derivedOrderProgress={derivedOrderProgress}
-          runningRounds={overviewStats.runningRounds}
-          workflowNodeCount={workflowNodes.length}
-          focusConditionLabel={focusConditionLabel}
-          scaleChartData={scaleChartData}
-          conditionCards={conditionCards}
-          onOpenCondition={handleOpenCondition}
-          onResubmitCondition={resubmitCondition}
-          resubmitLabel={t('res.resubmit')}
-          resubmittingLabel={t('res.resubmitting')}
-          resubmittingConditionId={resubmittingConditionId}
-          isResubmittingCondition={isResubmittingCondition}
+          caseCount={caseCards.length}
+          conditionCount={overviewStats.conditionCount}
+          totalRounds={overviewStats.totalRounds}
+          completedRounds={overviewStats.completedRounds}
+          failedRounds={overviewStats.failedRounds}
+          caseCards={caseCards}
+          onOpenCase={handleOpenCase}
         />
       )}
 
@@ -350,10 +363,7 @@ const Results: React.FC<ResultsProps> = ({ orderId: propOrderId, onOpenEdit, onC
           activeCaseId={activeCaseId}
           activeCaseRoundGroups={activeCaseRoundGroups}
           activeCaseConditionCards={activeCaseConditionCards}
-          focusedConditionAnalysis={focusedConditionAnalysis}
-          focusConditionLabel={focusConditionLabel}
-          overviewResultSource={overviewStats.resultSource}
-          metricLabelMap={metricLabelMap}
+          caseCards={caseCards}
           isResultsLoading={isResultsLoading}
           onSelectCase={handleSelectCase}
         />
