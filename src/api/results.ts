@@ -38,6 +38,8 @@ export interface ResultOutputAttachment {
   dataDir?: string | null;
   taskId?: number | string | null;
   optDataId?: number | string | null;
+  originValue?: number | string | null;
+  finalValue?: number | string | null;
 }
 
 /** 轮次数据 */
@@ -49,6 +51,8 @@ export interface RoundItem {
   progress: number;
   paramValues?: Record<string, number | string> | null;
   outputResults?: Record<string, number | string> | null;
+  outputOriginResults?: Record<string, number | string> | null;
+  outputFinalResults?: Record<string, number | string> | null;
   outputAttachments?: Record<string, ResultOutputAttachment> | null;
   metrics?: Record<string, number> | null;
   flowCurNodeId?: number | null;
@@ -59,6 +63,7 @@ export interface RoundItem {
   finishedAt?: number;
   createdAt?: number;
   runningModule?: string;
+  runningStatus?: number | string | null;
   finalResult?: number | null;
   optDataId?: number | string | null;
   taskId?: number | string | null;
@@ -127,6 +132,8 @@ export interface OrderConditionRoundRawItem {
   status: number;
   params?: Record<string, number | string>;
   outputs?: Record<string, number | string>;
+  outputOrigins?: Record<string, number | string>;
+  outputFinals?: Record<string, number | string>;
   outputAttachments?: Record<string, ResultOutputAttachment>;
   optDataId?: number | string | null;
   taskId?: number | string | null;
@@ -134,6 +141,7 @@ export interface OrderConditionRoundRawItem {
   baseDir?: string | null;
   jobDir?: string | null;
   runningModule?: string;
+  runningStatus?: number | string | null;
   process?: number;
   moduleDetails?: ModuleDetail[];
   finalResult?: number | null;

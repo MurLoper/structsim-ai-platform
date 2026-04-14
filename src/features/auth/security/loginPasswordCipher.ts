@@ -1,3 +1,4 @@
+import forge from 'node-forge';
 import { authApi } from '@/api';
 
 const LOGIN_PUBLIC_KEY_CACHE_KEY = 'auth_login_public_key';
@@ -29,6 +30,41 @@ const encodeBase64 = (buffer: ArrayBuffer) => {
     binary += String.fromCharCode(byte);
   });
   return window.btoa(binary);
+};
+
+const encryptByWebCrypto = async (password: string, publicKeyPem: string) => {
+  if (!window.crypto?.subtle) {
+    throw new Error('WebCrypto unavailable');
+  }
+
+  const importedKey = await window.crypto.subtle.importKey(
+    'spki',
+    pemToArrayBuffer(publicKeyPem),
+    {
+      name: 'RSA-OAEP',
+      hash: 'SHA-256',
+    },
+    false,
+    ['encrypt']
+  );
+
+  return window.crypto.subtle.encrypt(
+    {
+      name: 'RSA-OAEP',
+    },
+    importedKey,
+    new TextEncoder().encode(password)
+  );
+};
+
+const encryptByForge = (password: string, publicKeyPem: string) => {
+  const importedKey = forge.pki.publicKeyFromPem(publicKeyPem) as forge.pki.rsa.PublicKey;
+  return importedKey.encrypt(forge.util.encodeUtf8(password), 'RSA-OAEP', {
+    md: forge.md.sha256.create(),
+    mgf1: {
+      md: forge.md.sha256.create(),
+    },
+  });
 };
 
 const readCachedPublicKey = (): CachedLoginPublicKey | null => {
@@ -75,31 +111,21 @@ export const getLoginPublicKey = async (forceRefresh = false) => {
 
 export const encryptPasswordForLogin = async (password: string, forceRefresh = false) => {
   const publicKey = await getLoginPublicKey(forceRefresh);
-  if (!window.crypto?.subtle) {
-    throw new Error('当前浏览器不支持 WebCrypto，无法完成登录加密');
+
+  try {
+    const encrypted = await encryptByWebCrypto(password, publicKey.publicKeyPem);
+    return {
+      keyId: publicKey.keyId,
+      passwordCiphertext: encodeBase64(encrypted),
+    };
+  } catch {
+    try {
+      return {
+        keyId: publicKey.keyId,
+        passwordCiphertext: window.btoa(encryptByForge(password, publicKey.publicKeyPem)),
+      };
+    } catch {
+      throw new Error('当前浏览器无法完成登录密码加密');
+    }
   }
-
-  const importedKey = await window.crypto.subtle.importKey(
-    'spki',
-    pemToArrayBuffer(publicKey.publicKeyPem),
-    {
-      name: 'RSA-OAEP',
-      hash: 'SHA-256',
-    },
-    false,
-    ['encrypt']
-  );
-
-  const encrypted = await window.crypto.subtle.encrypt(
-    {
-      name: 'RSA-OAEP',
-    },
-    importedKey,
-    new TextEncoder().encode(password)
-  );
-
-  return {
-    keyId: publicKey.keyId,
-    passwordCiphertext: encodeBase64(encrypted),
-  };
 };

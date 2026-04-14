@@ -39,6 +39,10 @@ export const getNumericValue = (row: FlatRoundRow, key: string): number | null =
   if (key === 'process') return row.process;
   if (key === 'finalResult') return row.finalResult;
   if (key.startsWith('param:')) return row.params[key.replace('param:', '')] ?? null;
+  if (key.startsWith('outputOrigin:'))
+    return row.outputOrigins[key.replace('outputOrigin:', '')] ?? null;
+  if (key.startsWith('outputFinal:'))
+    return row.outputFinals[key.replace('outputFinal:', '')] ?? null;
   if (key.startsWith('output:')) return row.outputs[key.replace('output:', '')] ?? null;
   return null;
 };
@@ -68,11 +72,13 @@ export const buildAxisOptions = (rows: FlatRoundRow[], t: Translator): FieldOpti
   }
 
   const paramKeys = new Set<string>();
-  const outputKeys = new Set<string>();
+  const outputOriginKeys = new Set<string>();
+  const outputFinalKeys = new Set<string>();
 
   rows.forEach(row => {
     Object.keys(row.params).forEach(key => paramKeys.add(key));
-    Object.keys(row.outputs).forEach(key => outputKeys.add(key));
+    Object.keys(row.outputOrigins).forEach(key => outputOriginKeys.add(key));
+    Object.keys(row.outputFinals).forEach(key => outputFinalKeys.add(key));
   });
 
   Array.from(paramKeys)
@@ -85,12 +91,22 @@ export const buildAxisOptions = (rows: FlatRoundRow[], t: Translator): FieldOpti
       });
     });
 
-  Array.from(outputKeys)
+  Array.from(outputOriginKeys)
     .sort()
     .forEach(key => {
       options.push({
-        value: `output:${key}`,
-        label: t('res.analysis.axis.output', { name: key }),
+        value: `outputOrigin:${key}`,
+        label: t('res.analysis.axis.output_origin', { name: key }),
+        group: 'output',
+      });
+    });
+
+  Array.from(outputFinalKeys)
+    .sort()
+    .forEach(key => {
+      options.push({
+        value: `outputFinal:${key}`,
+        label: t('res.analysis.axis.output_final', { name: key }),
         group: 'output',
       });
     });
@@ -117,6 +133,20 @@ export const flattenCaseResultRows = (roundGroups: ConditionRoundsGroup[]): Flat
         },
         {}
       );
+      const outputOrigins = Object.entries(round.outputOriginResults || {}).reduce<
+        Record<string, number>
+      >((acc, [key, value]) => {
+        const numeric = toNumber(value);
+        if (numeric !== null) acc[key] = numeric;
+        return acc;
+      }, {});
+      const outputFinals = Object.entries(round.outputFinalResults || {}).reduce<
+        Record<string, number>
+      >((acc, [key, value]) => {
+        const numeric = toNumber(value);
+        if (numeric !== null) acc[key] = numeric;
+        return acc;
+      }, {});
 
       return {
         id: `${group.conditionId}-${round.id}`,
@@ -126,6 +156,8 @@ export const flattenCaseResultRows = (roundGroups: ConditionRoundsGroup[]): Flat
         finalResult: toNumber(round.finalResult),
         params,
         outputs,
+        outputOrigins,
+        outputFinals,
       };
     });
   });

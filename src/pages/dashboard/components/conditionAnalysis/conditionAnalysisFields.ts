@@ -47,6 +47,26 @@ export const buildFlatRows = (rounds: RoundItem[]): FlatRoundRow[] =>
       {}
     );
 
+    const outputOrigins = Object.entries(
+      round.outputOriginResults || round.outputResults || {}
+    ).reduce<Record<string, number>>((acc, [key, value]) => {
+      const numeric = toNumber(value);
+      if (numeric !== null) {
+        acc[key] = numeric;
+      }
+      return acc;
+    }, {});
+
+    const outputFinals = Object.entries(round.outputFinalResults || {}).reduce<
+      Record<string, number>
+    >((acc, [key, value]) => {
+      const numeric = toNumber(value);
+      if (numeric !== null) {
+        acc[key] = numeric;
+      }
+      return acc;
+    }, {});
+
     return {
       id: String(round.id),
       roundIndex: round.roundIndex,
@@ -55,6 +75,8 @@ export const buildFlatRows = (rounds: RoundItem[]): FlatRoundRow[] =>
       finalResult: toNumber(round.finalResult),
       params,
       outputs,
+      outputOrigins,
+      outputFinals,
     };
   });
 

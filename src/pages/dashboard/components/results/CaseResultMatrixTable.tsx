@@ -44,6 +44,13 @@ const getConditionLabel = (
   conditionLabelMap.get(group.conditionId) ||
   t('res.case.condition_fallback', { index: index + 1 });
 
+const renderCenterCell = (value: MatrixValue) => (
+  <div className="text-center">{value ?? emptyCell}</div>
+);
+
+const getAlgorithmType = (roundGroups: ConditionRoundsGroup[]) =>
+  String(roundGroups[0]?.orderCondition?.algorithmType || '').toUpperCase();
+
 export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
   caseLabel,
   caseCards,
@@ -64,6 +71,9 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
     () => new Map(conditionCards.map(item => [item.id, item.label])),
     [conditionCards]
   );
+
+  const algorithmType = useMemo(() => getAlgorithmType(roundGroups), [roundGroups]);
+  const isBayesian = algorithmType === 'BAYESIAN';
 
   const paramKeys = useMemo(
     () => collectSortedKeys(roundGroups, group => group.rounds.map(round => round.paramValues)),
@@ -89,20 +99,42 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
         const round = group.rounds.find(item => Number(item.roundIndex) === roundIndex);
         if (!round) return;
 
-        row[`condition_${group.conditionId}_status`] = normalizeCellValue(round.status);
-        row.optDataId = getFirstPresent(row.optDataId, round.optDataId);
-        row.taskId = getFirstPresent(row.taskId, round.taskId);
-        row.workDir = getFirstPresent(row.workDir, round.dataDir, round.jobDir, round.baseDir);
-        row.runningModule = getFirstPresent(row.runningModule, round.runningModule);
-        row.progress = getFirstPresent(row.progress, `${round.progress ?? 0}%`);
+        const groupKey = `condition_${group.conditionId}`;
+        row[`${groupKey}_status`] = normalizeCellValue(round.status);
+        row[`${groupKey}_optDataId`] = normalizeCellValue(round.optDataId);
+        row[`${groupKey}_taskId`] = normalizeCellValue(round.taskId);
+        row[`${groupKey}_workDir`] = getFirstPresent(round.dataDir, round.jobDir, round.baseDir);
+        row[`${groupKey}_runningModule`] = normalizeCellValue(round.runningModule);
+        row[`${groupKey}_runningStatus`] = normalizeCellValue(round.runningStatus ?? round.status);
+        row[`${groupKey}_progress`] = normalizeCellValue(`${round.progress ?? 0}%`);
         row.finalResult = getFirstPresent(row.finalResult, round.finalResult);
 
         Object.entries(round.paramValues || {}).forEach(([key, value]) => {
           row[`param_${key}`] = getFirstPresent(row[`param_${key}`], value);
         });
 
-        Object.entries(round.outputResults || {}).forEach(([key, value]) => {
-          const cellKey = `condition_${group.conditionId}_${key}`;
+        const outputOrigins = round.outputOriginResults || round.outputResults || {};
+        const outputFinals = round.outputFinalResults || {};
+
+        Object.entries(outputOrigins).forEach(([key, value]) => {
+          const cellKey = `${groupKey}_output_origin_${key}`;
+          const cellValue = normalizeCellValue(value);
+          row[cellKey] = cellValue;
+          const attachment = round.outputAttachments?.[key];
+          if (attachment) {
+            row.__attachments[cellKey] = {
+              ...attachment,
+              label: `${
+                conditionLabelMap.get(group.conditionId) ||
+                t('res.case.condition_id_fallback', { id: group.conditionId })
+              } / ${key}`,
+              value: cellValue,
+            };
+          }
+        });
+
+        Object.entries(outputFinals).forEach(([key, value]) => {
+          const cellKey = `${groupKey}_output_final_${key}`;
           const cellValue = normalizeCellValue(value);
           row[cellKey] = cellValue;
           const attachment = round.outputAttachments?.[key];
@@ -161,17 +193,39 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
       const text = String(value || '').trim();
       if (!text) return emptyCell;
       return (
-        <button
-          type="button"
-          title={t('res.matrix.copy.title', { path: text })}
-          className="block max-w-[360px] truncate text-left font-mono text-xs text-brand-700 underline-offset-2 hover:underline"
-          onClick={() => void handleCopyWorkDir(text)}
-        >
-          {text}
-        </button>
+        <div className="flex justify-center">
+          <button
+            type="button"
+            title={t('res.matrix.copy.title', { path: text })}
+            className="block max-w-[320px] truncate text-center font-mono text-xs text-brand-700 underline-offset-2 hover:underline"
+            onClick={() => void handleCopyWorkDir(text)}
+          >
+            {text}
+          </button>
+        </div>
       );
     },
     [handleCopyWorkDir, t]
+  );
+
+  const renderOutputValue = useCallback(
+    (value: MatrixValue, attachment: MatrixAttachment | undefined) => {
+      if (value === null || value === undefined || value === '') return emptyCell;
+      if (!attachment) return renderCenterCell(value);
+      return (
+        <div className="text-center">
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-auto px-0 py-0 font-mono text-brand-700 hover:bg-transparent hover:text-brand-800"
+            onClick={() => openAttachmentPreview(attachment)}
+          >
+            {value}
+          </Button>
+        </div>
+      );
+    },
+    [openAttachmentPreview]
   );
 
   const columns = useMemo<ColumnDef<MatrixRow, unknown>[]>(() => {
@@ -180,7 +234,7 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
         id: 'roundIndex',
         accessorFn: row => row.roundIndex,
         header: t('res.matrix.col.round'),
-        cell: info => info.getValue<number>(),
+        cell: info => renderCenterCell(info.getValue<number>()),
         size: 72,
       },
     ];
@@ -193,7 +247,7 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
           id: `param_${key}`,
           accessorFn: row => row[`param_${key}`],
           header: key,
-          cell: info => info.getValue<MatrixValue>() ?? emptyCell,
+          cell: info => renderCenterCell(info.getValue<MatrixValue>()),
           size: 110,
         })),
       });
@@ -201,102 +255,114 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
 
     roundGroups.forEach((group, index) => {
       const label = getConditionLabel(conditionLabelMap, group, index, t);
+      const groupKey = `condition_${group.conditionId}`;
       const outputKeys = outputKeysByCondition.get(group.conditionId) || [];
+
       result.push({
-        id: `condition_${group.conditionId}`,
+        id: groupKey,
         header: label,
         columns: [
           {
-            id: `condition_${group.conditionId}_status`,
-            accessorFn: row => row[`condition_${group.conditionId}_status`],
-            header: t('res.matrix.col.status'),
+            id: `${groupKey}_optDataId`,
+            accessorFn: row => row[`${groupKey}_optDataId`],
+            header: t('res.matrix.col.opt_data_id'),
+            cell: info => renderCenterCell(info.getValue<MatrixValue>()),
+            size: 140,
+          },
+          {
+            id: `${groupKey}_taskId`,
+            accessorFn: row => row[`${groupKey}_taskId`],
+            header: t('res.matrix.col.task_id'),
+            cell: info => renderCenterCell(info.getValue<MatrixValue>()),
+            size: 140,
+          },
+          ...outputKeys.map(outputKey => {
+            const originCellKey = `${groupKey}_output_origin_${outputKey}`;
+            const finalCellKey = `${groupKey}_output_final_${outputKey}`;
+            const originColumn = {
+              id: originCellKey,
+              accessorFn: (row: MatrixRow) => row[originCellKey],
+              header: isBayesian ? t('res.matrix.col.output_origin') : outputKey,
+              cell: info =>
+                renderOutputValue(
+                  info.getValue() as MatrixValue,
+                  info.row.original.__attachments[originCellKey]
+                ),
+              size: 150,
+            } satisfies ColumnDef<MatrixRow, unknown>;
+
+            if (!isBayesian) {
+              return originColumn;
+            }
+
+            return {
+              id: `${groupKey}_output_${outputKey}`,
+              header: outputKey,
+              columns: [
+                originColumn,
+                {
+                  id: finalCellKey,
+                  accessorFn: (row: MatrixRow) => row[finalCellKey],
+                  header: t('res.matrix.col.output_final'),
+                  cell: info =>
+                    renderOutputValue(
+                      info.getValue() as MatrixValue,
+                      info.row.original.__attachments[finalCellKey]
+                    ),
+                  size: 150,
+                } satisfies ColumnDef<MatrixRow, unknown>,
+              ],
+            } satisfies ColumnDef<MatrixRow, unknown>;
+          }),
+          {
+            id: `${groupKey}_workDir`,
+            accessorFn: row => row[`${groupKey}_workDir`],
+            header: t('res.matrix.col.work_dir'),
+            cell: info => renderWorkDir(info.getValue<MatrixValue>()),
+            size: 320,
+          },
+          {
+            id: `${groupKey}_runningModule`,
+            accessorFn: row => row[`${groupKey}_runningModule`],
+            header: t('res.matrix.col.running_module'),
+            cell: info => renderCenterCell(info.getValue<MatrixValue>()),
+            size: 120,
+          },
+          {
+            id: `${groupKey}_runningStatus`,
+            accessorFn: row => row[`${groupKey}_runningStatus`],
+            header: t('res.matrix.col.running_status'),
             cell: info => renderStatus(info.getValue<MatrixValue>()),
             size: 110,
           },
-          ...outputKeys.map(outputKey => {
-            const cellKey = `condition_${group.conditionId}_${outputKey}`;
-            return {
-              id: cellKey,
-              accessorFn: (row: MatrixRow) => row[cellKey],
-              header: outputKey,
-              cell: info => {
-                const value = info.getValue() as MatrixValue;
-                const attachment = info.row.original.__attachments[cellKey];
-                if (value === null || value === undefined || value === '') return emptyCell;
-                if (!attachment) return value;
-                return (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="h-auto px-0 py-0 font-mono text-brand-700 hover:bg-transparent hover:text-brand-800"
-                    onClick={() => openAttachmentPreview(attachment)}
-                  >
-                    {value}
-                  </Button>
-                );
-              },
-              size: 150,
-            } satisfies ColumnDef<MatrixRow, unknown>;
-          }),
+          {
+            id: `${groupKey}_progress`,
+            accessorFn: row => row[`${groupKey}_progress`],
+            header: t('res.matrix.col.progress'),
+            cell: info => renderCenterCell(info.getValue<MatrixValue>()),
+            size: 120,
+          },
         ],
       });
     });
 
-    result.push({
-      id: 'task',
-      header: t('res.matrix.col.task'),
-      columns: [
-        {
-          id: 'optDataId',
-          accessorFn: row => row.optDataId,
-          header: t('res.matrix.col.opt_data_id'),
-          cell: info => info.getValue<MatrixValue>() ?? emptyCell,
-          size: 140,
-        },
-        {
-          id: 'taskId',
-          accessorFn: row => row.taskId,
-          header: t('res.matrix.col.task_id'),
-          cell: info => info.getValue<MatrixValue>() ?? emptyCell,
-          size: 140,
-        },
-        {
-          id: 'workDir',
-          accessorFn: row => row.workDir,
-          header: t('res.matrix.col.work_dir'),
-          cell: info => renderWorkDir(info.getValue<MatrixValue>()),
-          size: 320,
-        },
-        {
-          id: 'runningModule',
-          accessorFn: row => row.runningModule,
-          header: t('res.matrix.col.running_module'),
-          cell: info => info.getValue<MatrixValue>() ?? emptyCell,
-          size: 120,
-        },
-        {
-          id: 'progress',
-          accessorFn: row => row.progress,
-          header: t('res.matrix.col.progress'),
-          cell: info => info.getValue<MatrixValue>() ?? emptyCell,
-          size: 120,
-        },
-        {
-          id: 'finalResult',
-          accessorFn: row => row.finalResult,
-          header: t('res.matrix.col.final_result'),
-          cell: info => info.getValue<MatrixValue>() ?? emptyCell,
-          size: 120,
-        },
-      ],
-    });
+    if (isBayesian) {
+      result.push({
+        id: 'finalResult',
+        accessorFn: row => row.finalResult,
+        header: t('res.matrix.col.final_result'),
+        cell: info => renderCenterCell(info.getValue<MatrixValue>()),
+        size: 120,
+      });
+    }
 
     return result;
   }, [
     conditionLabelMap,
-    openAttachmentPreview,
+    isBayesian,
     outputKeysByCondition,
     paramKeys,
+    renderOutputValue,
     renderStatus,
     renderWorkDir,
     roundGroups,

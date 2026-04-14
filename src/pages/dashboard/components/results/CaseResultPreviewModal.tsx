@@ -64,7 +64,7 @@ export const CaseResultPreviewModal: React.FC<CaseResultPreviewModalProps> = ({
           <div className="relative overflow-hidden rounded-2xl border border-border bg-muted/20">
             <div className="flex min-h-[70vh] items-center justify-center p-4">
               <img
-                src={activePreviewItem.path}
+                src={activePreviewItem.url}
                 alt={t('res.preview.alt', { index: previewIndex + 1 })}
                 className="max-h-[72vh] max-w-full rounded-xl object-contain"
               />

@@ -18,6 +18,8 @@ export interface FlatRoundRow {
   finalResult: number | null;
   params: Record<string, number>;
   outputs: Record<string, number>;
+  outputOrigins: Record<string, number>;
+  outputFinals: Record<string, number>;
 }
 
 export interface NumericFieldOption {

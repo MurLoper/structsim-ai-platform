@@ -1,5 +1,6 @@
 import type { ConditionRoundsGroup } from '../../hooks/resultsAnalysisTypes';
 import type { MatrixAttachment, MatrixValue, PreviewItem } from './caseResultMatrixTypes';
+import { buildCaseResultAssetUrl } from './caseResultAssetUrl';
 
 export const buildOutputKeysByCondition = (roundGroups: ConditionRoundsGroup[]) => {
   const keysByCondition = new Map<number, string[]>();
@@ -40,7 +41,15 @@ export const collectSortedKeys = (
 export const buildPreviewItems = (attachment: MatrixAttachment | null): PreviewItem[] => {
   if (!attachment) return [];
   return [
-    ...(attachment.imagePaths || []).map(path => ({ type: 'image' as const, path })),
-    ...(attachment.aviPaths || []).map(path => ({ type: 'gif' as const, path })),
+    ...(attachment.imagePaths || []).map(path => ({
+      type: 'image' as const,
+      path,
+      url: buildCaseResultAssetUrl(path),
+    })),
+    ...(attachment.aviPaths || []).map(path => ({
+      type: 'gif' as const,
+      path,
+      url: buildCaseResultAssetUrl(path),
+    })),
   ];
 };

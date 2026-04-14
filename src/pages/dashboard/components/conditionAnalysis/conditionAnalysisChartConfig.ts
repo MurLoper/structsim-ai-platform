@@ -1,11 +1,7 @@
 import type { EChartsOption } from 'echarts';
-import { use as registerEchartsModules } from 'echarts/core';
-import { Bar3DChart, Scatter3DChart, SurfaceChart } from 'echarts-gl/charts';
-import { Grid3DComponent } from 'echarts-gl/components';
+import 'echarts-gl';
 import type { FlatRoundRow, ThreeDViewMode } from './conditionAnalysisTypes';
 import { getNumericValue } from './conditionAnalysisFields';
-
-registerEchartsModules([Scatter3DChart, Bar3DChart, SurfaceChart, Grid3DComponent]);
 
 export const ensureEchartsGl = async () => {};
 

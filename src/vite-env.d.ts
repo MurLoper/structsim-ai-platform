@@ -2,7 +2,8 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_URL: string;
-  // 添加其他环境变量
+  readonly VITE_RESULT_ASSET_DOMAIN_URL?: string;
+  readonly VITE_RESULT_ASSET_PROXY_PREFIX?: string;
 }
 
 interface ImportMeta {
