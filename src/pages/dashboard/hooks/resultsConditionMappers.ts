@@ -32,6 +32,7 @@ export const mapMockRoundToLegacyRound = (
   item: OrderConditionRoundsResponse['items'][number]
 ): RoundItem => ({
   id: item.id,
+  circleId: item.circleId,
   simTypeResultId: conditionId,
   roundIndex: item.roundIndex,
   status: item.status,

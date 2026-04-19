@@ -45,6 +45,7 @@ export interface ResultOutputAttachment {
 /** 轮次数据 */
 export interface RoundItem {
   id: string | number;
+  circleId?: number | string | null;
   simTypeResultId: number;
   roundIndex: number;
   status: number;
@@ -124,6 +125,7 @@ export interface OrderConditionRoundColumn {
 
 export interface OrderConditionRoundRawItem {
   id: string | number;
+  circleId?: number | string | null;
   caseConditionId?: number;
   optIssueId?: number | null;
   optJobId?: number | null;

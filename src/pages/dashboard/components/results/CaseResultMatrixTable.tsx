@@ -86,18 +86,34 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
   );
 
   const rows = useMemo<MatrixRow[]>(() => {
-    const maxRound = Math.max(
-      0,
-      ...roundGroups.flatMap(group => group.rounds.map(round => Number(round.roundIndex || 0)))
-    );
+    const orderedRowKeys: Array<string | number> = [];
+    const seenRowKeys = new Set<string | number>();
 
-    return Array.from({ length: maxRound }, (_, index) => {
-      const roundIndex = index + 1;
-      const row: MatrixRow = { roundIndex, __attachments: {} };
+    roundGroups.forEach(group => {
+      group.rounds.forEach((round, index) => {
+        const rowKey = round.circleId ?? round.id ?? `row_${index + 1}`;
+        if (seenRowKeys.has(rowKey)) return;
+        seenRowKeys.add(rowKey);
+        orderedRowKeys.push(rowKey);
+      });
+    });
+
+    return orderedRowKeys.map((rowKey, index) => {
+      const row: MatrixRow = {
+        __rowKey: String(rowKey),
+        roundIndex: index + 1,
+        __attachments: {},
+      };
+      let resolvedRoundIndex: number | null = null;
 
       roundGroups.forEach(group => {
-        const round = group.rounds.find(item => Number(item.roundIndex) === roundIndex);
+        const round =
+          group.rounds.find(item => {
+            const candidateKey = item.circleId ?? item.id;
+            return String(candidateKey) === String(rowKey);
+          }) || group.rounds[index];
         if (!round) return;
+        resolvedRoundIndex = Number(round.roundIndex || resolvedRoundIndex || index + 1);
 
         const groupKey = `condition_${group.conditionId}`;
         row[`${groupKey}_status`] = normalizeCellValue(round.status);
@@ -151,6 +167,7 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
         });
       });
 
+      row.roundIndex = resolvedRoundIndex ?? index + 1;
       return row;
     });
   }, [conditionLabelMap, roundGroups, t]);
@@ -444,7 +461,7 @@ export const CaseResultMatrixTable: React.FC<CaseResultMatrixTableProps> = ({
             striped
             enableSorting
             emptyText={t('res.matrix.empty')}
-            getRowId={row => String(row.roundIndex)}
+            getRowId={row => row.__rowKey}
           />
         ) : (
           <CaseResultAnalysisPanel roundGroups={roundGroups} loading={loading} />

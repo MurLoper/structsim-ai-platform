@@ -10,6 +10,7 @@ export type ResultsTranslator = (
 ) => string;
 
 export interface MatrixRow {
+  __rowKey: string;
   roundIndex: number;
   __attachments: Record<string, MatrixAttachment>;
   [key: string]: MatrixValue | Record<string, MatrixAttachment>;
